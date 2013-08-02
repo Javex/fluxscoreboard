@@ -58,6 +58,8 @@ session.data_dir = %(here)s/data/session/data
 # runs fine with the default values.
 #
 
+# Name of the application (the python package). Don't change!
+app_name = fluxscoreboard
 
 # The final database URL
 # To use a different database type, swap out the "mysql://" part for a
