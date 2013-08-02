@@ -1,0 +1,12 @@
+pyramid
+SQLAlchemy
+transaction
+pyramid_tm
+pyramid_debugtoolbar
+zope.sqlalchemy
+waitress
+pytest
+pyramid_beaker
+beaker
+mako
+pyramid_mailer

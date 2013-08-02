@@ -1,7 +1,7 @@
 <?php
 
 session_start();
-define('FULL_PATH', '/var/www');
+define('FULL_PATH', '/home/javex/data/Arbeit/Flux/hack.lu2013/fluxscoreboard-php');
 define('CID_BEERCHALLENGE', 8);
 define('DISABLE_SUBMISSION', false);
 
