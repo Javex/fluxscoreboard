@@ -7,19 +7,28 @@ Author: UNKNOWN
 Author-email: UNKNOWN
 License: UNKNOWN
 Description: fluxscoreboard README
-        ==================
+        =====================
         
-        Getting Started
-        ---------------
+        To run the scoreboard you need to:
         
-        - cd <directory containing this file>
+        - Install a Python 2.7 virtualenv
+        - Run `python setup.py develop`
+        - Create a development.ini (see below)
+        - Start the development version with `pserve development.ini`
+        - Install the application with `python installer.py install`. You can also
+          install test data if you want (just random strings). Then, instead, run
+          `python installer.py install_test`
         
-        - $venv/bin/python setup.py develop
+        Then visit localhost:6543 and start testing the application (Note: It can send
+        real mails so make sure to enter **your** address).
         
-        - $venv/bin/initialize_fluxscoreboard_db development.ini
+        Creating a development.ini
+        --------------------------
         
-        - $venv/bin/pserve development.ini
-        
+        Issue `cp development.ini.example development.ini`, then start editing the
+        file, use the comments in it. Most settings are fairly self-explanatory. The
+        application is currently tailored to MySQL but should also run on Postgres at
+        the very least (though not tested). See comments to `sqlalchemy.url`.
         
         
         0.0

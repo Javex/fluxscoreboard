@@ -5,9 +5,19 @@ from sqlalchemy.orm.scoping import scoped_session
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.ext.declarative.api import declarative_base
 from zope.sqlalchemy import ZopeTransactionExtension  # @UnresolvedImport
+from pyramid.security import Allow
 
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
+
+
+class RootFactory(object):
+    __acl__ = [(Allow, 'group:team', 'view'),
+               ]
+
+    def __init__(self, request):
+        pass
+
 
 from fluxscoreboard.models.challenge import Challenge, Submission
 from fluxscoreboard.models.country import Country

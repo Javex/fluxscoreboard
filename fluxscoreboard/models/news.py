@@ -16,7 +16,7 @@ class News(Base):
     published = Column(Boolean, default=False)
     challenge_id = Column(Integer, ForeignKey('challenge.id'))
 
-    challenge = relationship("Challenge", backref="news", lazy='joined')
+    challenge = relationship("Challenge", backref="announcements", lazy='joined')
 
     def __init__(self, *args, **kwargs):
         if "timestamp" not in kwargs:

@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.models import DBSession
+from fluxscoreboard.models import DBSession, RootFactory
 from fluxscoreboard.routes import routes
 from pyramid.authentication import SessionAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid_beaker import session_factory_from_settings
 from sqlalchemy import engine_from_config
+from fluxscoreboard.models.team import groupfinder
 
 
 def main(global_config, **settings):
@@ -19,13 +20,14 @@ def main(global_config, **settings):
 
     # Session & Auth
     session_factory = session_factory_from_settings(settings)
-    authn_policy = SessionAuthenticationPolicy()
+    authn_policy = SessionAuthenticationPolicy(callback=groupfinder)
     authz_policy = ACLAuthorizationPolicy()
 
     config = Configurator(settings=settings,
                           session_factory=session_factory,
                           authentication_policy=authn_policy,
                           authorization_policy=authz_policy,
+                          root_factory=RootFactory,
                           )
 
     # Routes & Views

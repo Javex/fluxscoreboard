@@ -9,6 +9,7 @@
     <div class="form-group">
         ${field.label(class_="col-4 control-label")}
         <div class="col-8">
+## This is a really ugly solution to a limitation of WTForms. It would be a lot nicer to rebuild the form fields so they do this automatically.
             <% 
             field_kwargs = {}
             if required_validator in field.validators:

@@ -17,13 +17,26 @@ def get_online_challenges():
             filter(Challenge.published == True).all())
 
 
+class ManualChallengePoints(int):
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return "evaluated"
+
+
+manual_challenge_points = ManualChallengePoints()
+"""A static value that is returned instead of an actual number of points."""
+
+
 class Challenge(Base):
     __tablename__ = 'challenge'
     id = Column(Integer, primary_key=True)
     title = Column(Unicode(255))
     text = Column(UnicodeText)
     solution = Column(Unicode(255))
-    points = Column(Integer)
+    _points = Column('points', Integer)
     published = Column(Boolean, default=False)
     manual = Column(Boolean, default=False)
 
@@ -32,6 +45,13 @@ class Challenge(Base):
 
     def __unicode__(self):
         return self.title
+
+    @property
+    def points(self):
+        if self.manual:
+            return manual_challenge_points
+        else:
+            return self._points
 
 
 class Submission(Base):

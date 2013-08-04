@@ -2,15 +2,29 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText
+from sqlalchemy.types import Integer, Unicode, Boolean
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import exists
 import binascii
 import os
 from fluxscoreboard.util import bcrypt_split, encrypt_pw
+import logging
+
+
+log = logging.getLogger(__name__)
 
 
 TEAM_NAME_MAX_LENGTH = 255
 TEAM_MAIL_MAX_LENGTH = 255
+
+
+TEAM_GROUPS = ['group:team']
+
+
+def groupfinder(userid, request):
+    team_exists = DBSession().query(exists().where(Team.id == userid)).scalar()
+    if team_exists:
+        return TEAM_GROUPS
 
 
 def get_all_teams():
@@ -36,7 +50,7 @@ class Team(Base):
 
     def __init__(self, *args, **kwargs):
         if "token" not in kwargs:
-            self.token = binascii.hexlify(os.urandom(32))
+            self.token = binascii.hexlify(os.urandom(32)).decode("ascii")
         Base.__init__(self, *args, **kwargs)
 
     def validate_password(self, password):

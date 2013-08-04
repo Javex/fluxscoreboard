@@ -10,3 +10,7 @@ pyramid_beaker
 beaker
 mako
 pyramid_mailer
+webhelpers
+py_bcrypt
+mysql-python
+wtforms

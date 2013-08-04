@@ -95,7 +95,7 @@ class TeamForm(Form):
 
     local = BooleanField("Local")
 
-    id = HiddenField()
+    id = HiddenField(default=None)
 
     submit = SubmitField("Save")
 

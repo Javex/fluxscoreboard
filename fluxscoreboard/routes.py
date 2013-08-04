@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 
-routes = [('news', '/'),
+routes = [('home', '/'),
+          ('news', '/news'),
           ('challenges', '/challenges'),
           ('challenge', '/challenge/{id}'),
           ('scoreboard', '/scoreboard'),
@@ -10,7 +11,6 @@ routes = [('news', '/'),
           ('login', '/login'),
           ('register', '/register'),
           ('confirm', '/confirm/{token}'),
-          ('admin', '/admin'),
           ('admin_news', '/admin/news'),
           ('admin_news_edit', '/admin/news/{id}'),
           ('admin_news_delete', '/admin/news/delete/{id}'),

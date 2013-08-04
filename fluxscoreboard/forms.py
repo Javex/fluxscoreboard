@@ -84,3 +84,11 @@ class LoginForm(Form):
                              validators=[required_validator])
 
     login = SubmitField("Login")
+
+
+class SolutionSubmitForm(Form):
+    solution = TextField("Solution", validators=[required_validator,
+                                                 ]
+                         )
+
+    submit = SubmitField("Submit")
