@@ -9,8 +9,7 @@ def get_all_countries():
     """
     Get a query that fetches a list of all countries from the database.
     """
-    # TODO: Make query instead of list
-    return DBSession().query(Country).all()
+    return DBSession().query(Country)
 
 
 class Country(Base):

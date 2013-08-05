@@ -42,16 +42,14 @@ def get_all_teams():
     """
     Get a query that returns a list of all teams.
     """
-    # TODO: turn into query, not list
-    return DBSession().query(Team).all()
+    return DBSession().query(Team)
 
 
 def get_active_teams():
     """
     Get a query that returns a list of all active teams.
     """
-    # TODO: turn into query, not list
-    return DBSession().query(Team).filter(Team.active == True).all()
+    return DBSession().query(Team).filter(Team.active == True)
 
 
 def get_team_solved_subquery(dbsession, team_id):
