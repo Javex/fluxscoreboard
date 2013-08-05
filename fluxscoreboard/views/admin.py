@@ -20,6 +20,11 @@ log = logging.getLogger(__name__)
 
 
 class AdminView(object):
+    """
+    The view for everything corresponding to administration. The views here
+    are not protected because they must be protected from the outside, i.e.
+    HTTP Authorization or similar.
+    """
 
     _menu = [('admin_news', 'Announcements'),
              ('admin_challenges', 'Challenges'),
@@ -36,6 +41,41 @@ class AdminView(object):
         return self._menu
 
     def _admin_list(self, route_name, FormClass, DatabaseClass, title):
+        """
+        A generic function for all views that contain a list of things and also
+        a form to edit or add entries.
+
+        .. note::
+            This only handles items with their own single primary key and not
+            anything with composite foreign keys.
+
+        Args:
+            ``route_name``: A string containing the name of the route to which
+            the admin should be redirected aver an edit was saved. For example
+            ``"admin_challenges"``.
+
+            ``FormClass``: The class of the form that should be displayed at
+            the bottom of the page to edit or add items. For example
+            :class:`forms_admin.ChallengeForm`.
+
+            ``DatabaseClass``: The ORM class from the model that is used to
+            add and fetch items. For example
+            :class:`models.challenge.Challenge`.
+
+            ``title``: A string that expresses a singular item, for example
+            ``"Challenge"``. Will be used for flash messages.
+
+        Returns:
+            A dictionary or similar that can be directly returned to the
+            application to be rendered as a view.
+
+        An example usage might be like this:
+
+        .. code-block:: python
+            def challenges(self):
+            return self._admin_list('admin_challenges', ChallengeForm,
+                                    Challenge, "Challenge")
+        """
         dbsession = DBSession()
         items_query = dbsession.query(DatabaseClass)
         item_id = self.request.matchdict.get('id', None)
@@ -76,6 +116,13 @@ class AdminView(object):
         return retparams
 
     def _admin_delete(self, route_name, DatabaseClass, title, title_plural):
+        """
+        Generic function to delete a single item from the database. Its
+        arguments have the same meaning as explained in :meth:`_admin_list`
+        with the addition of ``title_plural`` which is just a pluraized
+        version of the ``title`` argument. Also returns something that can
+        be returned directly to the application.
+        """
         item_id = self.request.matchdict["id"]
         current_page = self.request.GET.get('page', 1)
         dbsession = DBSession()
@@ -106,6 +153,34 @@ class AdminView(object):
                              status_variable_name='published',
                              status_messages={False: 'Unpublished %(title)s',
                                               True: 'Published %(title)s'}):
+        """
+        Generic function that allows to toggle a special status on the
+        challenge. By default it toggles the ``published`` property of any
+        given item.
+
+        Many arguments are the same as in :meth:`_admin_list` with these
+        additional arguments:
+            ``status_types``: A two-element dictionary that contains ``True``
+            and ``False`` as keys and any value that describes the given
+            status. For example: If the "unpublished" status is described by
+            the string "offline", then the value for key ``False`` would be
+            ``"offline"``. It depends on the database model, which value
+            is used here. The default is just a boolean mapping.
+
+            ``status_variable_name``: What is the name of the property in the
+            model that contains the status to be changed. Defaults to
+            "published".
+
+            ``status_messages``: The same keys as for ``status_types`` but as
+            values contains messages to be displayed, based on which action
+            was the result. Gives access to the ``title`` variable via
+            ``%(title)s`` inside the string. The defaults are sensible values
+            for the the default status. Most likely you want to change this if
+            changing ``status_variable_name``.
+
+        Returns:
+            A dictionary or similar that can be directly returned from a view.
+        """
         item_id = self.request.matchdict["id"]
         current_page = self.request.GET.get('page', 1)
         dbsession = DBSession()
@@ -122,20 +197,33 @@ class AdminView(object):
 
     @view_config(route_name='admin')
     def admin(self):
+        """Root view of admin page, redirect to announcements."""
         return HTTPFound(location=self.request.route_url('admin_news'))
 
     @view_config(route_name='admin_news', renderer='admin_news.mako')
     @view_config(route_name='admin_news_edit', renderer='admin_news.mako')
     def news(self):
+        """
+        A view to list, add and edit announcements. Implemented with
+        :meth:`_admin_list`.
+        """
         return self._admin_list('admin_news', NewsForm, News, "Announcement")
 
     @view_config(route_name='admin_news_delete')
     def news_delete(self):
+        """
+        A view to delete an announcement. Implemented with
+        :meth:`_admin_delete`.
+        """
         return self._admin_delete('admin_news', News,
                                   "Announcement", "Announcements")
 
     @view_config(route_name='admin_news_toggle_status')
     def news_toggle_status(self):
+        """
+        A view to publish or unpublish an announcement. Implemented with
+        :meth:`_admin_toggle_status`.
+        """
         return self._admin_toggle_status('admin_news', News, "Announcement")
 
     @view_config(route_name='admin_challenges',
@@ -143,16 +231,27 @@ class AdminView(object):
     @view_config(route_name='admin_challenges_edit',
                        renderer='admin_challenges.mako')
     def challenges(self):
+        """
+        A view to list, add and edit challenges. Implemented with
+        :meth:`_admin_list`.
+        """
         return self._admin_list('admin_challenges', ChallengeForm,
                                 Challenge, "Challenge")
 
     @view_config(route_name='admin_challenges_delete')
     def challenge_delete(self):
+        """
+        A view to delete a challenge. Implemented with :meth:`_admin_delete`.
+        """
         return self._admin_delete('admin_challenges', Challenge,
                                   "Challenge", "Challenges")
 
     @view_config(route_name='admin_challenges_toggle_status')
     def challenge_toggle_status(self):
+        """
+        A view to toggle the online/offline status of a challenge.
+        Implemented with :meth:`_admin_toggle_status`.
+        """
         return self._admin_toggle_status('admin_challenges', Challenge,
                                          "Challenge")
 
@@ -161,14 +260,19 @@ class AdminView(object):
     @view_config(route_name='admin_teams_edit',
                        renderer='admin_teams.mako')
     def teams(self):
+        """
+        List, add or edit a team.
+        """
         return self._admin_list('admin_teams', TeamForm, Team, "Team")
 
     @view_config(route_name='admin_teams_delete')
     def team_delete(self):
+        """Delete a team."""
         return self._admin_delete('admin_teams', Team, "Team", "Teams")
 
     @view_config(route_name='admin_teams_activate')
     def team_activate(self):
+        """De-/Activate a team."""
         return self._admin_toggle_status('admin_teams', Team, "Team",
                                          {True: True, False: False},
                                          'active',
@@ -178,6 +282,7 @@ class AdminView(object):
 
     @view_config(route_name='admin_teams_toggle_local')
     def team_toggle_local(self):
+        """Toggle the local attribute of a team."""
         return self._admin_toggle_status(
             'admin_teams', Team, status_types={True: True, False: False},
             status_variable_name='local',
@@ -190,6 +295,12 @@ class AdminView(object):
     @view_config(route_name='admin_submissions_edit',
                        renderer='admin_submissions.mako')
     def submissions(self):
+        """
+        List, add or edit a submission. This is different because it consists
+        of composite foreign keys and thus needs separate though similar logic.
+        But in the end it is basically the same functionality as with the other
+        list views.
+        """
         dbsession = DBSession()
         submissions_query = (dbsession.query(Submission).
                              options(joinedload('challenge')).
@@ -241,6 +352,7 @@ class AdminView(object):
 
     @view_config(route_name='admin_submissions_delete')
     def sbumissions_delete(self):
+        """Delete a submission."""
         team_id = self.request.matchdict["tid"]
         challenge_id = self.request.matchdict["cid"]
         current_page = self.request.GET.get('page', 1)
@@ -270,6 +382,11 @@ class AdminView(object):
     @view_config(route_name='admin_massmail',
                        renderer='admin_massmail.mako')
     def massmail(self):
+        """
+        Send a massmail to all users in the system. It also stores the sent
+        mail and its recipients in the database to keep a permanent record of
+        sent messages.
+        """
         dbsession = DBSession()
         form = MassMailForm(self.request.POST)
         if not form.from_.data:
@@ -308,6 +425,7 @@ class AdminView(object):
     @view_config(route_name='admin_massmail_single',
                        renderer='admin_massmail_single.mako')
     def massmail_single(self):
+        """View a single massmail that was sent."""
         id_ = self.request.matchdict["id"]
         dbsession = DBSession()
         mail = dbsession.query(MassMail).filter(MassMail.id == id_).one()

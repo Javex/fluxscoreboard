@@ -27,9 +27,21 @@ log = logging.getLogger(__name__)
 
 
 logged_in_view = functools.partial(view_config, permission='view')
+"""
+This decorator is to be used on all views that are only allowed for logged
+in users. It has the exact same interface as :class:`pyramid.view.view_config`
+except that its permission is already set.
+"""
 
 
 class BaseView(object):
+    """
+    A base class for all other frontpage views. If you build a frontend view
+    class, derive from this. You can access the current logged in team from
+    the :data:`team` property. A list of menu items will be present in
+    :data:`menu`, which returns different items based on whether the user is
+    logged in.
+    """
 
     _logged_in_menu = [('news', "Announcements"),
                       ('scoreboard', "Scoreboard"),
@@ -47,35 +59,73 @@ class BaseView(object):
 
     @reify
     def team(self):
+        """
+        Retrieve the current team. Can be called multiple teams without
+        overhead.
+        """
         if not hasattr(self.request, 'team'):
             get_team(self.request)
         return self.request.team
 
-    @property
+    @reify
     def menu(self):
+        """
+        Get the current menu items as a list of tuples ``(view_name, title)``.
+        """
         if authenticated_userid(self.request):
             return self._logged_in_menu
         else:
             return self._logged_out_menu
 
+
+class SpecialView(BaseView):
+    """
+    Contains special views, i.e. pages for status codes like 404 and 403.
+    """
     @forbidden_view_config()
     def forbidden(self):
+        """
+        A forbidden view that only returns a 403 if the user isn't logged in
+        otherwise just redirect to login.
+        """
         if authenticated_userid(self.request):
             return HTTPForbidden()
         return HTTPFound(location=self.request.route_url('login'))
 
     @notfound_view_config(renderer='404.mako')
     def notfound(self):
+        """
+        Renders a 404 view that integrates with the page. The attached template
+        is ``404.mako``.
+        """
         return {}
-
-    @logged_in_view(route_name='home')
-    def home(self):
-        return HTTPFound(location=self.request.route_url('news'))
 
 
 class FrontView(BaseView):
+    """
+    All views that are part of the actual page, i.e. the scoreboard and
+    anything surrounding it. All views in here **must** be protected by
+    :class:`logged_in_view` and not the usual
+    :class:`pyramid.view.view_config`.
+    """
+
+    @logged_in_view(route_name='home')
+    def home(self):
+        """
+        A view for the page root which just redirects to the ``news`` view.
+        """
+        return HTTPFound(location=self.request.route_url('news'))
+
     @logged_in_view(route_name='challenges', renderer='challenges.mako')
     def challenges(self):
+        """
+        A list of all challenges similar to the scoreboard view in a table.
+        It has a very complex query that gets all challennges together with
+        a boolean of whether the current team has solved it, and the number
+        of times this challenge was solved overall. This list of tuples
+        ``(challenge, team_solved, number_solved_total)`` is then given to the
+        template and rendered.
+        """
         dbsession = DBSession()
         team_id = authenticated_userid(self.request)
         team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
@@ -86,11 +136,17 @@ class FrontView(BaseView):
                            outerjoin(Submission).
                            group_by(Submission.challenge_id))
         challenges = challenge_query.all()
-        log.debug("Challenge count: %d" % len(challenges))
         return {'challenges': challenges}
 
     @logged_in_view(route_name='challenge', renderer='challenge.mako')
     def challenge(self):
+        """
+        A view of a single challenge. The query is very similar to that of
+        :meth:`challenges` with the limitation that only one challenge is
+        fetched. Additionally, this page displays a form to enter the solution
+        of that challenge and fetches a list of announcements for the
+        challenge.
+        """
         challenge_id = int(self.request.matchdict["id"])
         team_id = authenticated_userid(self.request)
         dbsession = DBSession()
@@ -120,6 +176,12 @@ class FrontView(BaseView):
 
     @logged_in_view(route_name='scoreboard', renderer='scoreboard.mako')
     def scoreboard(self):
+        """
+        The central most interesting view. This contains a list of all teams
+        with their points, sorted with the highest points on top. The most
+        complex part of the query is the query that calculates the sum of
+        points right in the SQL.
+        """
         dbsession = DBSession()
         # Calculate sum of all points, defalt to 0
         challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
@@ -142,6 +204,10 @@ class FrontView(BaseView):
 
     @logged_in_view(route_name='news', renderer='announcements.mako')
     def news(self):
+        """
+        Just a list of all announcements that are currently published, ordered
+        by publication date, the most recent first.
+        """
         announcements = (DBSession().query(News).
                          filter(News.published == True).
                          order_by(desc(News._timestamp)).all())
@@ -149,6 +215,12 @@ class FrontView(BaseView):
 
     @logged_in_view(route_name='submit', renderer='submit.mako')
     def submit_solution(self):
+        """
+        A special form that, in addition to the form provided by
+        :meth:`challenge`, allows a user to submit solutions for a challenge.
+        The difference here is that the challenge is chosen from a select list.
+        Otherwise it is basically the same and boils down to the same logic.
+        """
         form = SolutionSubmitListForm(self.request.params)
         team_id = authenticated_userid(self.request)
         retparams = {'form': form}
@@ -171,16 +243,32 @@ class FrontView(BaseView):
 
 
 class UserView(BaseView):
+    """
+    This view is used for everything user- (or in our case team-) related. It
+    contains stuff like registration, login and confirmation. It depends on the
+    purpose of the view whether to make it a :class:`logged_in_view` or a
+    :class:`pyramid.view.view_config`.
+    """
+
     @logged_in_view(route_name='logout')
     def logout(self):
+        """
+        A simple view that logs out the user and redirects to the login page.
+        """
         headers = forget(self.request)
         self.request.session.invalidate()
         self.request.session.flash("You have been logged out.")
         return HTTPFound(location=self.request.route_url('login'),
                          headers=headers)
 
+    # TODO: login and register should only be allowed if not logged in!
     @view_config(route_name='login', renderer='login.mako')
     def login(self):
+        """
+        A view that logs in the user. Displays a login form and in case of a
+        ``POST`` request, handles the login by checking whether it is valid.
+        If it is, the user is logged in and redirected to the frontpage.
+        """
         form = LoginForm(self.request.POST)
         if self.request.method == 'POST':
             if not form.validate():
@@ -212,6 +300,11 @@ class UserView(BaseView):
 
     @view_config(route_name='register', renderer='register.mako')
     def register(self):
+        """
+        Display and handle registration of new teams. Also sends a confirmation
+        mail to verify the teams email address.
+        """
+        # TODO: Add timezone support to registration
         form = RegisterForm(self.request.POST)
         if self.request.method == 'POST':
             if not form.validate():
@@ -240,6 +333,13 @@ class UserView(BaseView):
 
     @view_config(route_name='confirm')
     def confirm_registration(self):
+        """
+        After a registration has been made, the team recieves a confirmation
+        mail with a token. With this token the team activates its account by
+        visitng this view. It fetches the team corresponding to the token and
+        activates it.
+        """
+        # TODO: Its probably a better idea if the token contained the userid
         token = self.request.matchdict.get('token', None)
         if token is None:
             self.request.session.flash("Invalid token")
@@ -256,6 +356,11 @@ class UserView(BaseView):
 
     @logged_in_view(route_name='profile', renderer='profile.mako')
     def profile(self):
+        """
+        Here a team can alter their profile, i.e. change their email, password,
+        location or timezone. The team name is fixed and can only be changed
+        by administrators.
+        """
         form = ProfileForm(self.request.POST, self.team)
         retparams = {'form': form,
                      'team': self.team,

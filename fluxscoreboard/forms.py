@@ -42,6 +42,7 @@ required_validator = validators.Required(
 
 
 class RegisterForm(Form):
+    """Registration form for new teams."""
     name = TextField("Team Name",
                      validators=[required_validator,
                                  name_length_validator,
@@ -80,6 +81,7 @@ class RegisterForm(Form):
 
 
 class LoginForm(Form):
+    """Login form for teams that are activated."""
     email = EmailField("Team E-Mail",
                        validators=[required_validator])
 
@@ -90,6 +92,7 @@ class LoginForm(Form):
 
 
 class ProfileForm(Form):
+    """A form to edit a team's profile."""
     email = EmailField("Team E-Mail",
                        validators=[required_validator])
 
@@ -110,6 +113,10 @@ class ProfileForm(Form):
 
 
 class SolutionSubmitForm(Form):
+    """
+    A form to submit a solution for a challenge on a single challenge view.
+    This form does not keep track of which challenge this is.
+    """
     solution = TextField("Solution", validators=[required_validator,
                                                  ]
                          )
@@ -118,6 +125,10 @@ class SolutionSubmitForm(Form):
 
 
 class SolutionSubmitListForm(SolutionSubmitForm):
+    """
+    A form to submit a solution for any challenge selected from a list. Keeps
+    track of which challenge the solution was submitted for.
+    """
     challenge = QuerySelectField("Challenge",
                                  query_factory=get_unsolved_challenges,
                                  )

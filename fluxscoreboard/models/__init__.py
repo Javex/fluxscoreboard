@@ -7,11 +7,17 @@ from sqlalchemy.ext.declarative.api import declarative_base
 from zope.sqlalchemy import ZopeTransactionExtension  # @UnresolvedImport
 from pyramid.security import Allow
 
+
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
+"""Database session factory. Returns the current threadlocal session."""
+
+
 Base = declarative_base()
+"""Base class for all ORM classes."""
 
 
 class RootFactory(object):
+    """Skeleton for simple ACL permission protection."""
     __acl__ = [(Allow, 'group:team', 'view'),
                ]
 

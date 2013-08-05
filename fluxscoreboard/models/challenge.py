@@ -15,19 +15,31 @@ bonus_map = {0: (3, 'first'),
              1: (2, 'second'),
              2: (1, 'third'),
              }
+"""
+Maps an index of previous solved count to bonus points and a ranking string.
+"""
 
 
 def get_all_challenges():
+    """
+    Return a query that gets **all** challenges.
+    """
     return DBSession().query(Challenge)
 
 
 def get_online_challenges():
+    """
+    Return a query that gets only those challenges that are online.
+    """
     return (DBSession().query(Challenge).
             filter(Challenge.published == True))
 
 
 def get_unsolved_challenges():
-    """Return a list of all unsolved challenges for a given team."""
+    """
+    Return a query that produces a list of all unsolved challenges for a given
+    team.
+    """
     from fluxscoreboard.models.team import get_team_solved_subquery
     request = get_current_request()
     team_id = authenticated_userid(request)
@@ -50,6 +62,24 @@ def get_solvable_challenges():
 
 
 def check_submission(challenge, solution, team_id):
+    """
+    Check a solution for a challenge submitted by a team and add it to the
+    database if it was correct.
+
+    Args:
+        ``challenge``: An instance of :class:`Challenge`, the challenge to
+        check the solution for.
+
+        ``solution``: A string, the proposed solution for the challenge.
+
+        ``team_id``: An integer, the team's id which submitted the solution.
+
+    Returns:
+        A tuple of ``(result, msg)``. ``result`` indicates whether the solution
+        was accpeted (and added to the database) or not. The message returns
+        a string with either a result (if ``result == False``) or a
+        congratulations message.
+    """
     dbsession = DBSession()
 
     # TODO: Check if submission is disabled
@@ -85,6 +115,7 @@ def check_submission(challenge, solution, team_id):
 
 
 class ManualChallengePoints(int):
+    """See :data:`manual_challenge_points`."""
 
     def __str__(self):
         return unicode(self).encode('utf-8')
@@ -98,6 +129,25 @@ manual_challenge_points = ManualChallengePoints()
 
 
 class Challenge(Base):
+    """
+    A challenge in the system.
+
+    Attributes:
+        ``id``: The primary key column.
+
+        ``title``: Title of the challenge.
+
+        ``text``: A description of the challenge.
+
+        ``solution``: The challenge's solution
+
+        ``points``: How many points the challenge is worth.
+
+        ``published``: Whether the challenge is online.
+
+        ``manual``: If the points for this challenge are awareded manually.
+    """
+    # TODO: change ``published`` to ``online``.
     __tablename__ = 'challenge'
     id = Column(Integer, primary_key=True)
     title = Column(Unicode(255))
@@ -126,6 +176,26 @@ class Challenge(Base):
 
 
 class Submission(Base):
+    """
+    A single submission. Each entry means that this team has solved the
+    corresponding challenge, i.e. there is no ``solved`` flag: The existence
+    of the entry states that.
+
+    Attributes:
+        ``team_id``: Foreign primary key column of the team.
+
+        ``challenge_id``: Foreign primary key column of the challenge.
+
+        ``timestamp``: A UTC-aware :class:`datetime.dateime` object. If setting
+        always only pass either a timezone-aware object or a naive UTC
+        datetime. Defaults to :meth:`datetime.datetime.utcnow`.
+
+        ``bonus``: How many bonus points were awared.
+
+        ``team``: Direct access to the team who solved this challenge.
+
+        ``challenge``: Direct access to the challenge.
+    """
     __tablename__ = 'submission'
     team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
     challenge_id = Column(Integer, ForeignKey('challenge.id'),
@@ -151,6 +221,7 @@ class Submission(Base):
 
     @property
     def points(self):
+        # TODO: remove
         return self.challenge.points + self.bonus
 
     @property

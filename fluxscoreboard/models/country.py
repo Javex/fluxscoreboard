@@ -6,10 +6,18 @@ from sqlalchemy.types import Integer, Unicode, UnicodeText
 
 
 def get_all_countries():
+    """
+    Get a query that fetches a list of all countries from the database.
+    """
+    # TODO: Make query instead of list
     return DBSession().query(Country).all()
 
 
 class Country(Base):
+    """
+    A country in the database. Basically only a name for different locations
+    of teams.
+    """
     __tablename__ = 'country'
     id = Column(Integer, primary_key=True)
     name = Column(UnicodeText)

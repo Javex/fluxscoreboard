@@ -10,6 +10,26 @@ import json
 
 
 class News(Base):
+    """
+    A single announcement, either global or for a challenge, depending on the
+    ``challenge_id`` attribute.
+
+    Attributes:
+        ``id``: The primary key.
+
+        ``timestamp``: A UTC-aware :class:`datetime.dateime` object. If setting
+        always only pass either a timezone-aware object or a naive UTC
+        datetime. Defaults to :meth:`datetime.datetime.utcnow`.
+
+        ``message``: The text of the announcement.
+
+        ``published``: Whether the announcement is displayed in the frontend.
+
+        ``challenge_id``: If present, which challenge this announcement belongs
+        to.
+
+        ``challenge``: Direct access to the challenge, if any.
+    """
     __tablename__ = 'news'
     id = Column(Integer, primary_key=True)
     _timestamp = Column('timestamp', DateTime,
@@ -43,6 +63,26 @@ class News(Base):
 
 
 class MassMail(Base):
+    """
+    An entry of a mass mail that was sent.
+
+    Attributes:
+        ``id``: The primary key.
+
+        ``timestamp``: A UTC-aware :class:`datetime.dateime` object. If setting
+        always only pass either a timezone-aware object or a naive UTC
+        datetime. Defaults to :meth:`datetime.datetime.utcnow`.
+
+        ``subject``: The subject of the mail
+
+        ``message``: The body of the mail
+
+        ``recipients``: A list of recipients that have recieved this mail.
+        Internally this is stored as a json encoded list.
+
+        ``from_``: The address which was used as the ``From:`` field of the
+        mail.
+    """
     __tablename__ = 'massmail'
     id = Column(Integer, primary_key=True)
     _timestamp = Column('timestamp', DateTime,

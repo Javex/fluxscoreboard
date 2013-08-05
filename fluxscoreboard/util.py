@@ -46,6 +46,10 @@ def bcrypt_split(value):
 
 
 def nl2br(text):
+    """
+    Translate newlines into HTML ``<br />`` tags.
+    """
+    # TODO: Remove the markupsafe part and check it still works
     text = unicode(markupsafe.escape(text))
     text = text.replace("\r\n", "\n")
     text = text.replace("\n", "<br />")

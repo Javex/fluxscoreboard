@@ -24,9 +24,14 @@ TEAM_MAIL_MAX_LENGTH = 255
 
 
 TEAM_GROUPS = ['group:team']
+"""Groups are just fixed: If a team is logged in it belongs to these groups."""
 
 
 def groupfinder(userid, request):
+    """
+    Check if there is a team logged in, and if it is, return the default team
+    groups.
+    """
     if getattr(request, 'team', None) is None:
         get_team(request)
     if request.team:
@@ -34,14 +39,35 @@ def groupfinder(userid, request):
 
 
 def get_all_teams():
+    """
+    Get a query that returns a list of all teams.
+    """
+    # TODO: turn into query, not list
     return DBSession().query(Team).all()
 
 
 def get_active_teams():
+    """
+    Get a query that returns a list of all active teams.
+    """
+    # TODO: turn into query, not list
     return DBSession().query(Team).filter(Team.active == True).all()
 
 
 def get_team_solved_subquery(dbsession, team_id):
+    """
+    Get a query that searches for a submission from a team for a given
+    challenge. The challenge is supposed to come from an outer query.
+
+    Example usage:
+    .. code-block:: python
+        team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+        challenge_query = (dbsession.query(Challenge,
+                                           team_solved_subquery.exists()))
+
+    In this example we query for a list of all challenges and additionally
+    fetch whether the currenttly logged in team has solved it.
+    """
     # This subquery basically searches for whether the current team has
     # solved the corresponding challenge. The correlate statement is
     # a SQLAlchemy statement that tells it to use the **outer** challenge
@@ -55,10 +81,32 @@ def get_team_solved_subquery(dbsession, team_id):
 
 
 def get_number_solved_subquery():
+    """
+    Get a subquery that returns how many teams have solved a challenge.
+
+    Example usage:
+    .. code-block:: python
+        number_of_solved_subquery = get_number_solved_subquery()
+        challenge_query = (dbsession.query(Challenge,
+                                           number_of_solved_subquery).
+                           outerjoin(Submission).
+                           group_by(Submission.challenge_id))
+
+    Here we query for a list of all challenges and additionally fetch the
+    number of times it has been solved. This subquery alone is not worth
+    much, it needs to be used together with other statements as shown in the
+    example.
+    """
     return func.count(Submission.team_id)
 
 
 def get_team(request):
+    """
+    Get the currently logged in team. Fetches the team from the database
+    only once, then stores it in the request.
+    """
+    # TODO: Store in the request here and return it then. Outer functions can
+    # have their check removed.
     dbsession = DBSession()
     team_id = unauthenticated_userid(request)
     try:
@@ -71,6 +119,36 @@ def get_team(request):
 
 
 class Team(Base):
+    """
+    A team represented in the database.
+
+    Attributes:
+        ``id``: Primary key
+
+        ``name``: The name of the team.
+
+        ``password``: The password of the team. If setting the password, pass
+        it as cleartext. It will automatically be encrypted and stored in the
+        database.
+
+        ``email``: E-Mail address of the team. Verified if team is ``active``.
+
+        ``country_id``: Foreign Key specifying the location of the team.
+
+        ``local``: Whether the team is local at the conference.
+
+        ``token``: Token for verification.
+
+        ``active``: Whether the team's mail address has been verified and the
+        team can actively log in.
+
+        ``timezone``: A UTC-aware :class:`datetime.dateime` object. If setting
+        always only pass either a timezone-aware object or a naive UTC
+        datetime. Defaults to :meth:`datetime.datetime.utcnow`.
+
+        ``country``: Direct access to the teams :class:`models.country.Country`
+        attribute.
+    """
     __tablename__ = 'team'
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(TEAM_NAME_MAX_LENGTH), nullable=False)
@@ -92,6 +170,10 @@ class Team(Base):
         Base.__init__(self, *args, **kwargs)
 
     def validate_password(self, password):
+        """
+        Validate the password agains the team. If it matches return ``True``
+        else raise a :exc:`ValueError`.
+        """
         salt, __ = bcrypt_split(self.password)
         referenece_pw = encrypt_pw(password, salt)
         if self.password != referenece_pw:
