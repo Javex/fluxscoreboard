@@ -154,9 +154,13 @@ class Challenge(Base):
     title = Column(Unicode(255))
     text = Column(UnicodeText)
     solution = Column(Unicode(255))
-    _points = Column('points', Integer)
+    _points = Column('points', Integer, default=0)
     published = Column(Boolean, default=False)
     manual = Column(Boolean, default=False)
+
+    def __init__(self, *args, **kwargs):
+        if kwargs.get("manual", False) and kwargs.get("points", 0):
+            raise ValueError("A manual challenge cannot have points!")
 
     def __str__(self):
         return unicode(self).encode("utf-8")
