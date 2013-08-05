@@ -61,7 +61,7 @@ def get_solvable_challenges():
     return unsolved.filter(Challenge.manual == False)
 
 
-def check_submission(challenge, solution, team_id):
+def check_submission(challenge, solution, team_id, settings):
     """
     Check a solution for a challenge submitted by a team and add it to the
     database if it was correct.
@@ -82,7 +82,8 @@ def check_submission(challenge, solution, team_id):
     """
     dbsession = DBSession()
 
-    # TODO: Check if submission is disabled
+    if settings["submission_disabled"]:
+        return False, "Submission is currently disabled"
 
     if not challenge.published:
         return False, "Challenge is offline."

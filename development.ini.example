@@ -12,6 +12,9 @@ use = egg:fluxscoreboard
 # Note: You might want to look at logging configuration as well.
 #
 
+# Whether submission of solutions should be disabled
+submission_disabled = True
+
 
 # Enter your database credentials here
 db.user = hacklu

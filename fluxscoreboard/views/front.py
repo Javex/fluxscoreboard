@@ -166,7 +166,8 @@ class FrontView(BaseView):
                 return retparams
             is_solved, msg = check_submission(challenge,
                                            form.solution.data,
-                                           team_id
+                                           team_id,
+                                           self.request.registry.settings,
                                            )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
@@ -230,7 +231,8 @@ class FrontView(BaseView):
                 return retparams
             is_solved, msg = check_submission(form.challenge.data,
                                               form.solution.data,
-                                              team_id
+                                              team_id,
+                                              self.request.registry.settings,
                                               )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
