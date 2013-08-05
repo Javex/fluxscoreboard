@@ -15,7 +15,7 @@
     </div>
     <div class="row">
         <div class="col-4">Message</div>
-        <div class="col-8">${mail.message | n,nl2br}</div>
+        <div class="col-8">${mail.message | nl2br}</div>
     </div>
     <div class="row">
         <div class="col-4">Timestamp</div>
