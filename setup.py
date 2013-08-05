@@ -7,23 +7,24 @@ README = open(os.path.join(here, 'README.md')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 requires = [
-    'pyramid',
-    'SQLAlchemy',
-    'transaction',
-    'pyramid_tm',
-    'pyramid_debugtoolbar',
-    'zope.sqlalchemy',
-    'waitress',
-    'pytest',
-    'pyramid_beaker',
-    'beaker',
-    'mako',
-    'pyramid_mailer',
-    'webhelpers',
-    'py_bcrypt',
-    'mysql-python',
-    'wtforms',
-    'pytz',
+    'pyramid',  # WSGI framework
+    'SQLAlchemy',  # Database
+    'mysql-python',  # Database
+    'zope.sqlalchemy',  # Database
+    'transaction',  # Transactions
+    'pyramid_tm',  # Transactions
+    'pyramid_beaker',  # Sessions
+    'beaker',  # Sessions
+    'mako',  # Template
+    'pyramid_mailer',  # Mail
+    'webhelpers',  # Utility
+    'py_bcrypt',  # Password storage
+    'wtforms',  # Forms
+    'pytz',  # Timezone
+    'pyramid_debugtoolbar',  # Dev Server
+    'waitress',  # Dev Server
+    'pytest',  # Testing
+    'webtest',  # Testing
     ]
 
 setup(name='fluxscoreboard',
