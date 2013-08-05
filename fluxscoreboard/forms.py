@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.models.challenge import get_online_challenges, \
-    get_unsolved_challenges
+from fluxscoreboard.models.challenge import get_unsolved_challenges
 from fluxscoreboard.models.country import get_all_countries
 from fluxscoreboard.models.team import TEAM_NAME_MAX_LENGTH, \
     TEAM_MAIL_MAX_LENGTH
@@ -76,6 +75,12 @@ class RegisterForm(Form):
     country = QuerySelectField("Country/State",
                                query_factory=get_all_countries
                                )
+
+    timezone = SelectField("Timezone",
+                           choices=([('', '')] +
+                                    [(tz, tz) for tz in common_timezones]),
+                           default=((utc.zone, utc.zone)),
+                           )
 
     submit = SubmitField("Register")
 

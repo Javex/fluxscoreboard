@@ -7,11 +7,13 @@ $(document).ready(function(){
  * application.
  */
 var HackLu = {
+
 	init: function() {
-		this.bind_events();
+		this.make_select2();
 	},
 	
-	bind_events: function() {
-		
+	make_select2: function() {
+		// select item with class "select2" turns into select to list
+		$("select.select2").removeClass('form-control').select2();
 	},
 };

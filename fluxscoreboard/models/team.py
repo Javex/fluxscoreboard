@@ -4,7 +4,7 @@ from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Submission, Challenge
 from fluxscoreboard.util import bcrypt_split, encrypt_pw
 from pyramid.security import authenticated_userid, unauthenticated_userid
-from pytz import utc, timezone
+from pytz import utc, timezone, all_timezones
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import ForeignKey, Column
@@ -142,9 +142,9 @@ class Team(Base):
         ``active``: Whether the team's mail address has been verified and the
         team can actively log in.
 
-        ``timezone``: A UTC-aware :class:`datetime.dateime` object. If setting
-        always only pass either a timezone-aware object or a naive UTC
-        datetime. Defaults to :meth:`datetime.datetime.utcnow`.
+        ``timezone``: A timezone, specified as string, like ``"Europe/Berlin"``
+        or something that, when coerced to unicode, turns out as a string
+        like this. Must be valid timezone.
 
         ``country``: Direct access to the teams :class:`models.country.Country`
         attribute.
@@ -195,7 +195,9 @@ class Team(Base):
 
     @timezone.setter
     def timezone(self, tz):
-        self._timezone = unicode(tz)
+        timezone = unicode(tz)
+        assert timezone in all_timezones
+        self._timezone = timezone
 
     def __str__(self):
         return unicode(self).encode("utf-8")

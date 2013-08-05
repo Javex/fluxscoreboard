@@ -58,6 +58,15 @@
                 % endfor
             </div>
         </div>
+        <div class="form-group">
+            ${form.timezone.label(class_="col-4 control-label")}
+            <div class="col-8">
+                ${form.timezone(class_="form-control select2", **{'data-placeholder': 'Please choose a timezone'})}
+                % for msg in form.errors.get("timezone", []):
+                    <div class="alert alert-danger">${msg}</div>
+                % endfor
+            </div>
+        </div>
         <div class="col-4"></div>
         <div class="col-8">
             ${form.submit(class_="btn btn-primary")}

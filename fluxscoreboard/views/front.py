@@ -304,7 +304,6 @@ class UserView(BaseView):
         Display and handle registration of new teams. Also sends a confirmation
         mail to verify the teams email address.
         """
-        # TODO: Add timezone support to registration
         form = RegisterForm(self.request.POST)
         if self.request.method == 'POST':
             if not form.validate():
@@ -313,6 +312,7 @@ class UserView(BaseView):
                         email=form.email.data,
                         password=form.password.data,
                         country=form.country.data,
+                        timezone=form.timezone.data,
                         )
             DBSession().add(team)
             mailer = get_mailer(self.request)
