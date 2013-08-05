@@ -1,3 +1,7 @@
+.bold {
+	font-weight: bold;
+}
+
 div#menu.navbar-admin {
 	background-color: #F2DEDE;
 	border-color: #EED3D7;
