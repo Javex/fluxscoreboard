@@ -1,4 +1,5 @@
 <%inherit file="base.mako"/>
+% if not request.registry.settings["submission_disabled"]:
 <form class="form-horizontal" method="POST" action="${request.route_url('submit')}">
     <legend>Enter solution for challenge</legend>
     <div class="form-group">
@@ -24,3 +25,6 @@
         <div class="col-2">${form.submit(class_='form-control btn btn-default')}</div>
     </div>
 </form>
+% else:
+    <div class="alert alert-info">Sorry, but submission of solutions is currently disabled.</div>
+% endif
