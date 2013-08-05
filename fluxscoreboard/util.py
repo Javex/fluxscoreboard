@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
+from functools import wraps
 import bcrypt
 import markupsafe
-import string
 import random
+import string
+from pyramid.security import authenticated_userid
+from pyramid.httpexceptions import HTTPFound
 
 
 def encrypt_pw(pw, salt=None):
@@ -66,3 +69,25 @@ def tz_str(timestamp, timezone):
     timezone-aware :class:`datetime.datetime` object ``timestamp``.
     """
     return timestamp.astimezone(timezone).strftime('%Y-%m-%d %H:%M:%S')
+
+
+class not_logged_in(object):
+    """
+    Decorator for a view that should only be visible to users that are not
+    logged in. They will be redirected to the frontpage.
+    """
+
+    def __init__(self, msg=None):
+        if msg is None:
+            msg = ("This action does not make sense if you are already logged "
+                   "in!")
+        self.msg = msg
+
+    def __call__(self, func):
+        @wraps(func)
+        def _redirect_if_logged_in(self_wrap, *args, **kwargs):
+            if authenticated_userid(self_wrap.request):
+                self_wrap.request.session.flash(self.msg)
+                return HTTPFound(location=self_wrap.request.route_url('home'))
+            return func(self_wrap, *args, **kwargs)
+        return _redirect_if_logged_in

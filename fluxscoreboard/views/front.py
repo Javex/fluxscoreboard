@@ -8,6 +8,7 @@ from fluxscoreboard.models.challenge import Challenge, Submission, \
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.team import Team, get_team_solved_subquery, \
     get_number_solved_subquery, get_team
+from fluxscoreboard.util import not_logged_in
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.renderers import render
@@ -261,8 +262,8 @@ class UserView(BaseView):
         return HTTPFound(location=self.request.route_url('login'),
                          headers=headers)
 
-    # TODO: login and register should only be allowed if not logged in!
     @view_config(route_name='login', renderer='login.mako')
+    @not_logged_in("Doh! You are already logged in.")
     def login(self):
         """
         A view that logs in the user. Displays a login form and in case of a
@@ -270,9 +271,11 @@ class UserView(BaseView):
         If it is, the user is logged in and redirected to the frontpage.
         """
         form = LoginForm(self.request.POST)
+        retparams = {'form': form,
+                     }
         if self.request.method == 'POST':
             if not form.validate():
-                return {'form': form}
+                return retparams
             try:
                 team = (DBSession().
                         query(Team).
@@ -284,21 +287,23 @@ class UserView(BaseView):
             except (NoResultFound, ValueError) as e:
                 self.request.session.flash("Login failed.")
                 log.info("Failed login attempt for team %(team_email)s "
-                         "with IP Address %(ip_address) and reason "
+                         "with IP Address %(ip_address)s and reason "
                          "%(message)s" %
                          {'team_email': team.email,
                           'ip_address': self.request.client_addr,
                           'message': e.message,
                           }
                          )
+                return retparams
             self.request.session.invalidate()
             headers = remember(self.request, team.id)
             self.request.session.flash("You have been logged in.")
             return HTTPFound(location=self.request.route_url('news'),
                                  headers=headers)
-        return {'form': form}
+        return retparams
 
     @view_config(route_name='register', renderer='register.mako')
+    @not_logged_in("You are logged in. Why register again?")
     def register(self):
         """
         Display and handle registration of new teams. Also sends a confirmation
