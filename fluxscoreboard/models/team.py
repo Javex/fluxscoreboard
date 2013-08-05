@@ -32,9 +32,7 @@ def groupfinder(userid, request):
     Check if there is a team logged in, and if it is, return the default team
     groups.
     """
-    if getattr(request, 'team', None) is None:
-        get_team(request)
-    if request.team:
+    if get_team(request):
         return TEAM_GROUPS
 
 
@@ -103,17 +101,17 @@ def get_team(request):
     Get the currently logged in team. Fetches the team from the database
     only once, then stores it in the request.
     """
-    # TODO: Store in the request here and return it then. Outer functions can
-    # have their check removed.
-    dbsession = DBSession()
-    team_id = unauthenticated_userid(request)
-    try:
-        team = (dbsession.query(Team).
-                filter(Team.id == team_id).
-                filter(Team.active == True).one())
-        request.team = team
-    except NoResultFound:
-        request.team = None
+    if not hasattr(request, 'team'):
+        dbsession = DBSession()
+        team_id = unauthenticated_userid(request)
+        try:
+            team = (dbsession.query(Team).
+                    filter(Team.id == team_id).
+                    filter(Team.active == True).one())
+            request.team = team
+        except NoResultFound:
+            request.team = None
+    return request.team
 
 
 class Team(Base):

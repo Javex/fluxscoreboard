@@ -64,9 +64,7 @@ class BaseView(object):
         Retrieve the current team. Can be called multiple teams without
         overhead.
         """
-        if not hasattr(self.request, 'team'):
-            get_team(self.request)
-        return self.request.team
+        return get_team(self.request)
 
     @reify
     def menu(self):
