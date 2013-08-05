@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import DBSession, RootFactory
+from fluxscoreboard.models.team import groupfinder
 from fluxscoreboard.routes import routes
 from pyramid.authentication import SessionAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
+from pyramid.settings import asbool
 from pyramid_beaker import session_factory_from_settings
 from sqlalchemy import engine_from_config
-from fluxscoreboard.models.team import groupfinder
 
 
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
+    fix_setting_types(settings)
 
     # Database
     engine = engine_from_config(settings, 'sqlalchemy.')
@@ -37,3 +39,11 @@ def main(global_config, **settings):
 
     config.scan()
     return config.make_wsgi_app()
+
+
+def fix_setting_types(settings):
+    """
+    Parses a settings dictionary and adjusts the types of certain settings so
+    they are not all strings.
+    """
+    settings["submission_disabled"] = asbool(settings["submission_disabled"])
