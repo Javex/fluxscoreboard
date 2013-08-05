@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
-from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.types import Integer, Unicode, Boolean
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import exists
-import binascii
-import os
+from fluxscoreboard.models.challenge import Submission, Challenge
 from fluxscoreboard.util import bcrypt_split, encrypt_pw
+from pyramid.security import authenticated_userid, unauthenticated_userid
+from pytz import utc, timezone
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.schema import ForeignKey, Column
+from sqlalchemy.sql import exists
+from sqlalchemy.sql.expression import func
+from sqlalchemy.types import Integer, Unicode, Boolean
+import binascii
 import logging
+import os
 
 
 log = logging.getLogger(__name__)
@@ -22,8 +27,9 @@ TEAM_GROUPS = ['group:team']
 
 
 def groupfinder(userid, request):
-    team_exists = DBSession().query(exists().where(Team.id == userid)).scalar()
-    if team_exists:
+    if getattr(request, 'team', None) is None:
+        get_team(request)
+    if request.team:
         return TEAM_GROUPS
 
 
@@ -33,6 +39,35 @@ def get_all_teams():
 
 def get_active_teams():
     return DBSession().query(Team).filter(Team.active == True).all()
+
+
+def get_team_solved_subquery(dbsession, team_id):
+    # This subquery basically searches for whether the current team has
+    # solved the corresponding challenge. The correlate statement is
+    # a SQLAlchemy statement that tells it to use the **outer** challenge
+    # column.
+    team_solved_subquery = (dbsession.query(Submission).
+                            filter(Submission.team_id == team_id).
+                            filter(Challenge.id ==
+                                   Submission.challenge_id).
+                            correlate(Challenge))
+    return team_solved_subquery
+
+
+def get_number_solved_subquery():
+    return func.count(Submission.team_id)
+
+
+def get_team(request):
+    dbsession = DBSession()
+    team_id = unauthenticated_userid(request)
+    try:
+        team = (dbsession.query(Team).
+                filter(Team.id == team_id).
+                filter(Team.active == True).one())
+        request.team = team
+    except NoResultFound:
+        request.team = None
 
 
 class Team(Base):
@@ -45,6 +80,9 @@ class Team(Base):
     local = Column(Boolean, default=False)
     token = Column(Unicode(64), nullable=False, unique=True)
     active = Column(Boolean, default=False)
+    _timezone = Column('timezone', Unicode(30),
+                       default=lambda: unicode(utc.zone),
+                       nullable=False)
 
     country = relationship("Country", lazy='joined')
 
@@ -68,6 +106,14 @@ class Team(Base):
     @password.setter
     def password(self, pw):
         self._password = encrypt_pw(pw)
+
+    @property
+    def timezone(self):
+        return timezone(self._timezone)
+
+    @timezone.setter
+    def timezone(self, tz):
+        self._timezone = unicode(tz)
 
     def __str__(self):
         return unicode(self).encode("utf-8")

@@ -54,3 +54,11 @@ def nl2br(text):
 
 def random_str(len_, choice=string.ascii_letters):
     return "".join(random.choice(choice) for __ in xrange(len_))
+
+
+def tz_str(timestamp, timezone):
+    """
+    Create a localized timestring in a local ``timezone`` from the
+    timezone-aware :class:`datetime.datetime` object ``timestamp``.
+    """
+    return timestamp.astimezone(timezone).strftime('%Y-%m-%d %H:%M:%S')

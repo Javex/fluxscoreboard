@@ -68,15 +68,24 @@ class AdminView(object):
                 form.populate_obj(db_item)
                 if db_item.id == '':
                     db_item.id = None
-            return HTTPFound(location=self.request.route_url(route_name))
+            return HTTPFound(
+                location=self.request.route_url(route_name,
+                                                 _query={'page': page.page},
+                                                 )
+                             )
         return retparams
 
     def _admin_delete(self, route_name, DatabaseClass, title, title_plural):
         item_id = self.request.matchdict["id"]
+        current_page = self.request.GET.get('page', 1)
         dbsession = DBSession()
         delete_query = (dbsession.query(DatabaseClass).
                         filter(DatabaseClass.id == item_id))
-        rows_deleted = delete_query.delete()
+        objs = delete_query.all()
+        rows_deleted = 0
+        for obj in objs:
+            dbsession.delete(obj)
+            rows_deleted += 1
         if rows_deleted == 0:
             self.request.session.flash("The %s to be deleted was "
                                        "not found!" % title.lower(),
@@ -90,7 +99,7 @@ class AdminView(object):
                              % title_plural.lower())
         else:
             self.request.session.flash("%s deleted!" % title)
-        return HTTPFound(location=self.request.route_url(route_name))
+        return HTTPFound(location=self.request.route_url(route_name, _query={'page': current_page}))
 
     def _admin_toggle_status(self, route_name, DatabaseClass, title='',
                              status_types={False: False, True: True},
@@ -98,6 +107,7 @@ class AdminView(object):
                              status_messages={False: 'Unpublished %(title)s',
                                               True: 'Published %(title)s'}):
         item_id = self.request.matchdict["id"]
+        current_page = self.request.GET.get('page', 1)
         dbsession = DBSession()
         inverse_status_types = {}
         for key, value in status_types.items():
@@ -108,7 +118,11 @@ class AdminView(object):
         setattr(item, status_variable_name, status_types[not status])
         self.request.session.flash(status_messages[not status]
                                    % {'title': title.lower()})
-        return HTTPFound(location=self.request.route_url(route_name))
+        return HTTPFound(location=self.request.route_url(route_name, _query={'page': current_page}))
+
+    @view_config(route_name='admin')
+    def admin(self):
+        return HTTPFound(location=self.request.route_url('admin_news'))
 
     @view_config(route_name='admin_news', renderer='admin_news.mako')
     @view_config(route_name='admin_news_edit', renderer='admin_news.mako')
@@ -219,7 +233,9 @@ class AdminView(object):
                 form.populate_obj(db_item)
                 retparams["is_new"] = is_new
             return HTTPFound(
-                location=self.request.route_url('admin_submissions')
+                location=self.request.route_url('admin_submissions',
+                                                _query={'page': page.page}
+                                                ),
                 )
         return retparams
 
@@ -227,6 +243,7 @@ class AdminView(object):
     def sbumissions_delete(self):
         team_id = self.request.matchdict["tid"]
         challenge_id = self.request.matchdict["cid"]
+        current_page = self.request.GET.get('page', 1)
         dbsession = DBSession()
         delete_query = (dbsession.query(Submission).
                         filter(Submission.challenge_id == challenge_id).
@@ -244,7 +261,11 @@ class AdminView(object):
                              "This should not be possible!")
         else:
             self.request.session.flash("Submission deleted!")
-        return HTTPFound(location=self.request.route_url('admin_submissions'))
+        return HTTPFound(
+            location=self.request.route_url('admin_submissions',
+                                            _query={'page': current_page},
+                                            )
+                         )
 
     @view_config(route_name='admin_massmail',
                        renderer='admin_massmail.mako')

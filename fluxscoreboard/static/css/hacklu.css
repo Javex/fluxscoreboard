@@ -11,3 +11,7 @@ div#menu.navbar-admin > ul > li > a {
     color: #B94A48;
 }
 
+
+table.sortable th:hover{
+	cursor:pointer;
+}

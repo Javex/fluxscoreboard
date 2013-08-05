@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from wtforms.form import Form
-from wtforms.fields.simple import TextField, SubmitField, PasswordField
-from wtforms import validators
-from wtforms.fields.html5 import EmailField
-from wtforms.fields.core import SelectField
-from wtforms.ext.sqlalchemy.fields import QuerySelectField
+from fluxscoreboard.models.challenge import get_online_challenges, \
+    get_unsolved_challenges
 from fluxscoreboard.models.country import get_all_countries
 from fluxscoreboard.models.team import TEAM_NAME_MAX_LENGTH, \
     TEAM_MAIL_MAX_LENGTH
+from pytz import common_timezones, utc
+from wtforms import validators
+from wtforms.ext.sqlalchemy.fields import QuerySelectField
+from wtforms.fields.core import SelectField
+from wtforms.fields.html5 import EmailField
+from wtforms.fields.simple import TextField, SubmitField, PasswordField
+from wtforms.form import Form
 
 
 email_validator = validators.Email("Please enter a valid E-Mail Address.")
@@ -86,9 +89,35 @@ class LoginForm(Form):
     login = SubmitField("Login")
 
 
+class ProfileForm(Form):
+    email = EmailField("Team E-Mail",
+                       validators=[required_validator])
+
+    password = PasswordField("Password")
+
+    country = QuerySelectField("Country/State",
+                               query_factory=get_all_countries
+                               )
+
+    timezone = SelectField("Timezone",
+                           choices=[(tz, tz) for tz in common_timezones],
+                           default=((utc.zone, utc.zone)),
+                           )
+
+    submit = SubmitField("Save")
+
+    cancel = SubmitField("Cancel")
+
+
 class SolutionSubmitForm(Form):
     solution = TextField("Solution", validators=[required_validator,
                                                  ]
                          )
 
     submit = SubmitField("Submit")
+
+
+class SolutionSubmitListForm(SolutionSubmitForm):
+    challenge = QuerySelectField("Challenge",
+                                 query_factory=get_unsolved_challenges,
+                                 )

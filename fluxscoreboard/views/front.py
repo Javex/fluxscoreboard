@@ -1,24 +1,26 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
-from fluxscoreboard.forms import RegisterForm, LoginForm, SolutionSubmitForm
+from fluxscoreboard.forms import RegisterForm, LoginForm, SolutionSubmitForm, \
+    SolutionSubmitListForm, ProfileForm
 from fluxscoreboard.models import DBSession
+from fluxscoreboard.models.challenge import Challenge, Submission, \
+    check_submission
 from fluxscoreboard.models.news import News
-from fluxscoreboard.models.team import Team
-from pyramid.httpexceptions import HTTPFound
+from fluxscoreboard.models.team import Team, get_team_solved_subquery, \
+    get_number_solved_subquery, get_team
+from pyramid.decorator import reify
+from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.renderers import render
 from pyramid.security import remember, authenticated_userid, forget
-from pyramid.view import view_config
+from pyramid.view import view_config, forbidden_view_config, \
+    notfound_view_config
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
-from sqlalchemy.orm.exc import NoResultFound
-import logging
-import functools
-from fluxscoreboard.models.challenge import Challenge, Submission
-from sqlalchemy.sql import exists
-from sqlalchemy.orm.util import aliased
-from sqlalchemy.sql.expression import func, subquery
-from sqlalchemy.types import Integer
 from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.sql.expression import func, desc
+import functools
+import logging
 
 
 log = logging.getLogger(__name__)
@@ -33,6 +35,7 @@ class BaseView(object):
                       ('scoreboard', "Scoreboard"),
                       ('challenges', "Challenges"),
                       ('submit', "Submit"),
+                      ('profile', "Profile"),
                       ('logout', "Logout"),
                       ]
     _logged_out_menu = [('login', "Login"),
@@ -42,6 +45,12 @@ class BaseView(object):
     def __init__(self, request):
         self.request = request
 
+    @reify
+    def team(self):
+        if not hasattr(self.request, 'team'):
+            get_team(self.request)
+        return self.request.team
+
     @property
     def menu(self):
         if authenticated_userid(self.request):
@@ -49,25 +58,28 @@ class BaseView(object):
         else:
             return self._logged_out_menu
 
+    @forbidden_view_config()
+    def forbidden(self):
+        if authenticated_userid(self.request):
+            return HTTPForbidden()
+        return HTTPFound(location=self.request.route_url('login'))
+
+    @notfound_view_config(renderer='404.mako')
+    def notfound(self):
+        return {}
+
     @logged_in_view(route_name='home')
     def home(self):
         return HTTPFound(location=self.request.route_url('news'))
 
+
+class FrontView(BaseView):
     @logged_in_view(route_name='challenges', renderer='challenges.mako')
     def challenges(self):
         dbsession = DBSession()
-        # team_id = authenticated_userid(self.request)
-        team_id = 30
-        # This subquery basically searches for whether the current team has
-        # solved the corresponding challenge. The correlate statement is
-        # a SQLAlchemy statement that tells it to use the **outer** challenge
-        # column.
-        team_solved_subquery = (dbsession.query(Submission).
-                                filter(Submission.team_id == team_id).
-                                filter(Challenge.id ==
-                                       Submission.challenge_id).
-                                correlate(Challenge))
-        number_of_solved_subquery = func.count(Submission.team_id)
+        team_id = authenticated_userid(self.request)
+        team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+        number_of_solved_subquery = get_number_solved_subquery()
         challenge_query = (dbsession.query(Challenge,
                                            team_solved_subquery.exists(),
                                            number_of_solved_subquery).
@@ -82,19 +94,28 @@ class BaseView(object):
         challenge_id = int(self.request.matchdict["id"])
         team_id = authenticated_userid(self.request)
         dbsession = DBSession()
-        challenge = (dbsession.query(Challenge).
-                     filter(Challenge.id == challenge_id).
-                     options(subqueryload('announcements')).one())
+        team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+        challenge, is_solved = (dbsession.query(Challenge,
+                                                team_solved_subquery.exists()).
+                                 filter(Challenge.id == challenge_id).
+                                 options(subqueryload('announcements')).one())
         form = SolutionSubmitForm(self.request.POST)
-        retparams = {'challenge': challenge, 'form': form}
+        retparams = {'challenge': challenge,
+                     'form': form,
+                     'is_solved': is_solved,
+                     }
         if self.request.method == 'POST':
             if not form.validate():
                 return retparams
-            if challenge.solution == form.solution.data:
-                self.request.flash("Yes, that was the correct solution.")
-                submission = Submission(team_id=team_id,
-                                        challenge_id=challenge_id,
-                                        )
+            is_solved, msg = check_submission(challenge,
+                                           form.solution.data,
+                                           team_id
+                                           )
+            self.request.session.flash(msg,
+                                       'success' if is_solved else 'error')
+            return HTTPFound(location=self.request.route_url('challenge',
+                                                             id=challenge.id)
+                             )
         return retparams
 
     @logged_in_view(route_name='scoreboard', renderer='scoreboard.mako')
@@ -111,22 +132,45 @@ class BaseView(object):
                                filter(Challenge.id == Submission.challenge_id).
                                filter(Team.id == Submission.team_id).
                                correlate(Team))
+        score = team_score_subquery.as_scalar()
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
-        team_query = dbsession.query(Team, team_score_subquery.as_scalar())
+        team_query = (dbsession.query(Team, score).
+                      order_by(desc(score)))
         teams = team_query.all()
         return {'teams': teams}
 
     @logged_in_view(route_name='news', renderer='announcements.mako')
     def news(self):
         announcements = (DBSession().query(News).
-                         filter(News.published == True).all())
+                         filter(News.published == True).
+                         order_by(desc(News._timestamp)).all())
         return {'announcements': announcements}
 
     @logged_in_view(route_name='submit', renderer='submit.mako')
     def submit_solution(self):
-        pass
+        form = SolutionSubmitListForm(self.request.params)
+        team_id = authenticated_userid(self.request)
+        retparams = {'form': form}
+        if self.request.method == 'POST':
+            if not form.validate():
+                return retparams
+            is_solved, msg = check_submission(form.challenge.data,
+                                              form.solution.data,
+                                              team_id
+                                              )
+            self.request.session.flash(msg,
+                                       'success' if is_solved else 'error')
+            return HTTPFound(
+                location=self.request.route_url(
+                    'submit',
+                    _query={'challenge': form.challenge.data.id},
+                    ),
+            )
+        return retparams
 
+
+class UserView(BaseView):
     @logged_in_view(route_name='logout')
     def logout(self):
         headers = forget(self.request)
@@ -209,3 +253,17 @@ class BaseView(object):
         self.request.session.flash("Your account is active, you may now log "
                                    "in.")
         return HTTPFound(location=self.request.route_url('login'))
+
+    @logged_in_view(route_name='profile', renderer='profile.mako')
+    def profile(self):
+        form = ProfileForm(self.request.POST, self.team)
+        retparams = {'form': form,
+                     'team': self.team,
+                     }
+        if self.request.method == 'POST':
+            if not form.validate():
+                return retparams
+            form.populate_obj(self.team)
+            self.request.session.flash('Your profile has been updated')
+            return HTTPFound(location=self.request.route_url('profile'))
+        return retparams

@@ -2,15 +2,20 @@
 from __future__ import unicode_literals, absolute_import, print_function
 
 routes = [('home', '/'),
+          # Frontpage routes
           ('news', '/news'),
           ('challenges', '/challenges'),
-          ('challenge', '/challenge/{id}'),
+          ('challenge', '/challenges/{id}'),
           ('scoreboard', '/scoreboard'),
+          # User routes
           ('submit', '/submit'),
           ('logout', '/logout'),
           ('login', '/login'),
           ('register', '/register'),
           ('confirm', '/confirm/{token}'),
+          ('profile', '/profile'),
+          # Administration routes
+          ('admin', '/admin'),
           ('admin_news', '/admin/news'),
           ('admin_news_edit', '/admin/news/{id}'),
           ('admin_news_delete', '/admin/news/delete/{id}'),

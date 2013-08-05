@@ -1,42 +1,10 @@
-<%def name="display_admin_form(route_name, form, title, is_new)">
-<% from fluxscoreboard.forms import required_validator %>
-<% from wtforms.fields.core import IntegerField %>
-<% from wtforms.fields.simple import TextAreaField, TextField %>
-<% from wtforms.fields.html5 import EmailField %>
-<form method="POST" action="${request.route_url(route_name)}" class="form-horizontal">
-    <legend>${('New ' if is_new else 'Edit') + ' ' + title}</legend>
-    % for field in [item for item in form if item.name not in ["id", "submit", "cancel"]]:
-    <div class="form-group">
-        ${field.label(class_="col-4 control-label")}
-        <div class="col-8">
-## This is a really ugly solution to a limitation of WTForms. It would be a lot nicer to rebuild the form fields so they do this automatically.
-            <% 
-            field_kwargs = {}
-            if required_validator in field.validators:
-                field_kwargs["required"] = "required"
-            for type_ in [TextField, TextAreaField, EmailField, IntegerField]:
-                if isinstance(field, type_):
-                    field_kwargs["placeholder"] = field.label.text
-                    break
-            %>
-            ${field(class_="form-control", **field_kwargs)}
-            % for msg in getattr(field, 'errors', []):
-                <div class="alert alert-danger">${msg}</div>
-            % endfor
-        </div>
-    </div>
-    % endfor
-    <div class="col-4"></div>
-    <div class="col-8">
-        % if getattr(form, 'id', None) is not None:
-            ${form.id()}
-        % endif
-        % if not is_new:
-            ${form.cancel(class_="btn btn-default")}
-        % endif
-        ${form.submit(class_="btn btn-primary")}
-    </div>
-</form>
+<%namespace name="form_funcs" file="_form_functions.mako"/>
+<%def name="display_admin_form(route_name, form, title, is_new, current_page)">
+${form_funcs.render_form(request.route_url(route_name, _query=dict(page=current_page)),
+                         form,
+                         ('New ' if is_new else 'Edit') + ' ' + title,
+                         display_cancel=not is_new)
+                         }
 </%def>
 
 <%def name="display_pagination(page, route_name)">

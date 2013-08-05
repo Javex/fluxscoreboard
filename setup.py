@@ -23,6 +23,7 @@ requires = [
     'py_bcrypt',
     'mysql-python',
     'wtforms',
+    'pytz',
     ]
 
 setup(name='fluxscoreboard',

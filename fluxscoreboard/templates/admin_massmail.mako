@@ -8,7 +8,7 @@
             <tr>
                 <th>ID</th>
                 <th>Subject</th>
-                <th>Timestamp</th>
+                <th>Timestamp (UTC)</th>
                 <th>#Recipients</th>
                 <th>From</th>
             </tr>
@@ -35,4 +35,4 @@
     </div>
 % endif
 
-${admin_funcs.display_admin_form('admin_massmail', form, "Mass Mail", True)}
+${admin_funcs.display_admin_form('admin_massmail', form, "Mass Mail", True, page.page)}

@@ -17,7 +17,7 @@
         </thead>
         <tbody>
     % for team in items:
-            <tr>
+            <tr class="${'success' if form.id.data == team.id else ''}">
                 <td>${team.id}</td>
                 <td>${team.name}</td>
                 <td>${team.email}</td>
@@ -33,10 +33,10 @@
                         Action <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a href="${request.route_url('admin_teams_edit', id=team.id)}">Edit</a></li>
-                        <li><a href="${request.route_url('admin_teams_delete', id=team.id)}">Delete</a></li>
+                        <li><a href="${request.route_url('admin_teams_edit', id=team.id, _query=dict(page=page.page))}">Edit</a></li>
+                        <li><a href="${request.route_url('admin_teams_delete', id=team.id, _query=dict(page=page.page))}">Delete</a></li>
                         <li>
-                            <a href="${request.route_url('admin_teams_activate', id=team.id)}">
+                            <a href="${request.route_url('admin_teams_activate', id=team.id, _query=dict(page=page.page))}">
                                 % if team.active:
                                     Deactivate Team
                                 % else:
@@ -45,7 +45,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="${request.route_url('admin_teams_toggle_local', id=team.id)}">
+                            <a href="${request.route_url('admin_teams_toggle_local', id=team.id, _query=dict(page=page.page))}">
                                 % if team.local:
                                     Make Team Remote
                                 % else:
@@ -67,4 +67,4 @@
     </div>
 % endif
 
-${admin_funcs.display_admin_form('admin_teams', form, "Team", is_new)}
+${admin_funcs.display_admin_form('admin_teams', form, "Team", is_new, page.page)}

@@ -6,6 +6,7 @@
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/jquery.min.js')}"></script>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/bootstrap.min.js')}"></script>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/hacklu.js')}"></script>
+        <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/sorttable.js')}"></script>
         
         <link href="${request.static_url('fluxscoreboard:static/css/bootstrap.min.css')}" rel="stylesheet" />
         <link href="${request.static_url('fluxscoreboard:static/css/hacklu.css')}" rel="stylesheet" />
@@ -21,25 +22,23 @@
                 </li>
             % endfor
             </ul>
+            % if request.path.startswith('/admin'):
             <ul class="nav navbar-nav pull-right">
                 <li>
-                % if request.path.startswith('/admin'):
                     <a href="${request.route_url('news')}">Frontpage</a>
-                % else:
-                    <a href="${request.route_url('admin_news')}">Admin</a>
-                % endif
                 </li>
             </ul>
+            % endif
         </div>
-        % for msg in request.session.pop_flash():
-        <div class="alert alert-info">${msg}</div>
-        % endfor
-        % for msg in request.session.pop_flash("warning"):
-        <div class="alert">${msg}</div>
-        % endfor
-        % for msg in request.session.pop_flash("error"):
-        <div class="alert alert-danger">${msg}</div>
+        % for queue, css_type in [('', 'info'), ('error', 'danger'), ('success', 'success'), ('warning', '')]:
+            ${render_flash(queue, css_type)}
         % endfor
         ${self.body()}
     </body>
 </html>
+
+<%def name="render_flash(queue='', css_type='info')">
+% for msg in request.session.pop_flash(queue):
+<div class="alert ${'alert-%s' % css_type if css_type else ''}">${msg}</div>
+% endfor
+</%def>

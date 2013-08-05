@@ -33,10 +33,10 @@
                         Action <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a href="${request.route_url('admin_challenges_edit', id=challenge.id)}">Edit</a></li>
-                        <li><a href="${request.route_url('admin_challenges_delete', id=challenge.id)}">Delete</a></li>
+                        <li><a href="${request.route_url('admin_challenges_edit', id=challenge.id, _query=dict(page=page.page))}">Edit</a></li>
+                        <li><a href="${request.route_url('admin_challenges_delete', id=challenge.id, _query=dict(page=page.page))}">Delete</a></li>
                         <li>
-                            <a href="${request.route_url('admin_challenges_toggle_status', id=challenge.id)}">
+                            <a href="${request.route_url('admin_challenges_toggle_status', id=challenge.id, _query=dict(page=page.page))}">
                                 % if challenge.published:
                                     Unpublish Challenge
                                 % else:
@@ -58,4 +58,4 @@
     </div>
 % endif
 
-${admin_funcs.display_admin_form('admin_challenges', form, "Challenge", is_new)}
+${admin_funcs.display_admin_form('admin_challenges', form, "Challenge", is_new, page.page)}

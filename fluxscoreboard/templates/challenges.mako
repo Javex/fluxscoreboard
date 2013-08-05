@@ -1,6 +1,6 @@
 <%inherit file="base.mako"/>
 <% from fluxscoreboard.models.challenge import manual_challenge_points%>
-<table class="table">
+<table class="table sortable">
     <thead>
         <tr>
             <th>#</th>
