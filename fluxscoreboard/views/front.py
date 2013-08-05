@@ -286,10 +286,10 @@ class UserView(BaseView):
                 team.validate_password(form.password.data)
             except (NoResultFound, ValueError) as e:
                 self.request.session.flash("Login failed.")
-                log.info("Failed login attempt for team %(team_email)s "
-                         "with IP Address %(ip_address)s and reason "
-                         "%(message)s" %
-                         {'team_email': team.email,
+                log.info("Failed login attempt for team '%(team_email)s' "
+                         "with IP Address '%(ip_address)s' and reason "
+                         "'%(message)s'" %
+                         {'team_email': form.email.data,
                           'ip_address': self.request.client_addr,
                           'message': e.message,
                           }
