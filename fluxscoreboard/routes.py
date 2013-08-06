@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 
-"""
+
+__doc__ = """
 All routes of the application in a list. Each item consists of the route name
 and its path in a tuple: ``(route_name, path)``. These are then mapped to a
-view via the :class:`pyramid.view.view_config` decorator.
+view via the :class:`pyramid.view.view_config` decorator. See
+:ref:`dev_routes` for an explanation of how to create routes and work with
+them.
 """
+
 
 routes = [('home', '/'),
           # Frontpage routes

@@ -25,9 +25,12 @@ db.database = scoreboard
 
 # Enter SMTP mail settings for outgoing email messages
 mail.host =
+# The default port 465 is the default SMTP SSL port, for regular SMTP use 25.
 mail.port = 465
 mail.username =
 mail.password =
+# Deactivate this if you don't want to use SSL. Remember you might have to
+# alter the port setting (to 25)
 mail.ssl = True
 # Enter here which address should be used as the default "From" for
 # registration mails and other mail features

@@ -17,7 +17,7 @@ class News(Base):
     Attributes:
         ``id``: The primary key.
 
-        ``timestamp``: A UTC-aware :class:`datetime.dateime` object. If setting
+        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. If setting
         always only pass either a timezone-aware object or a naive UTC
         datetime. Defaults to :meth:`datetime.datetime.utcnow`.
 
@@ -69,7 +69,7 @@ class MassMail(Base):
     Attributes:
         ``id``: The primary key.
 
-        ``timestamp``: A UTC-aware :class:`datetime.dateime` object. If setting
+        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. If setting
         always only pass either a timezone-aware object or a naive UTC
         datetime. Defaults to :meth:`datetime.datetime.utcnow`.
 

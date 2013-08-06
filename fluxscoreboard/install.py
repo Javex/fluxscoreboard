@@ -10,7 +10,7 @@ import random
 import string
 from fluxscoreboard.util import random_str
 
-"""
+__doc__ = """
 Installation module that provides the application with mechanisms for
 installing and uninstalling the application. Also useful for testing.
 
@@ -113,5 +113,8 @@ def install_test_data(dbsession, settings):
 def uninstall(settings):
     """
     Remove those parts created by install
+
+    .. todo::
+        Implement
     """
     raise NotImplementedError

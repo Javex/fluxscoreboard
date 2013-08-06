@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 
 TEAM_NAME_MAX_LENGTH = 255
 TEAM_MAIL_MAX_LENGTH = 255
+TEAM_PASSWORD_MAX_LENGTH = 60
 
 
 TEAM_GROUPS = ['group:team']
@@ -32,8 +33,8 @@ TEAM_GROUPS = ['group:team']
 
 def groupfinder(userid, request):
     """
-    Check if there is a team logged in, and if it is, return the default team
-    groups.
+    Check if there is a team logged in, and if it is, return the default
+    :data:`TEAM_GROUPS`.
     """
     if get_team(request):
         return TEAM_GROUPS
@@ -59,10 +60,11 @@ def get_team_solved_subquery(dbsession, team_id):
     challenge. The challenge is supposed to come from an outer query.
 
     Example usage:
-    .. code-block:: python
-        team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
-        challenge_query = (dbsession.query(Challenge,
-                                           team_solved_subquery.exists()))
+        .. code-block:: python
+
+            team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+            challenge_query = (dbsession.query(Challenge,
+                                               team_solved_subquery.exists()))
 
     In this example we query for a list of all challenges and additionally
     fetch whether the currenttly logged in team has solved it.
@@ -84,12 +86,14 @@ def get_number_solved_subquery():
     Get a subquery that returns how many teams have solved a challenge.
 
     Example usage:
-    .. code-block:: python
-        number_of_solved_subquery = get_number_solved_subquery()
-        challenge_query = (dbsession.query(Challenge,
-                                           number_of_solved_subquery).
-                           outerjoin(Submission).
-                           group_by(Submission.challenge_id))
+
+        .. code-block:: python
+
+            number_of_solved_subquery = get_number_solved_subquery()
+            challenge_query = (dbsession.query(Challenge,
+                                               number_of_solved_subquery).
+                               outerjoin(Submission).
+                               group_by(Submission.challenge_id))
 
     Here we query for a list of all challenges and additionally fetch the
     number of times it has been solved. This subquery alone is not worth
@@ -195,17 +199,18 @@ class Team(Base):
         ``active``: Whether the team's mail address has been verified and the
         team can actively log in.
 
-        ``timezone``: A timezone, specified as string, like ``"Europe/Berlin"``
-        or something that, when coerced to unicode, turns out as a string
-        like this. Must be valid timezone.
+        ``timezone``: A timezone, specified as a string, like
+        ``"Europe/Berlin"`` or something that, when coerced to unicode, turns
+        out as a string like this. Must be valid timezone.
 
-        ``country``: Direct access to the teams :class:`models.country.Country`
-        attribute.
+        ``country``: Direct access to the teams
+        :class:`fluxscoreboard.models.country.Country` attribute.
     """
     __tablename__ = 'team'
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(TEAM_NAME_MAX_LENGTH), nullable=False)
-    _password = Column('password', Unicode(60), nullable=False)
+    _password = Column('password', Unicode(TEAM_PASSWORD_MAX_LENGTH),
+                       nullable=False)
     email = Column(Unicode(TEAM_MAIL_MAX_LENGTH), nullable=False, unique=True)
     country_id = Column(Integer, ForeignKey('country.id'), nullable=False)
     local = Column(Boolean, default=False)
@@ -230,7 +235,7 @@ class Team(Base):
     def validate_password(self, password):
         """
         Validate the password agains the team. If it matches return ``True``
-        else raise a :exc:`ValueError`.
+        else raise a :exc:`exceptions.ValueError`.
         """
         salt, __ = bcrypt_split(self.password)
         reference_pw = encrypt_pw(password, salt)

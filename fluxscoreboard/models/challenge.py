@@ -53,6 +53,7 @@ def get_solvable_challenges():
     """
     Return a list of challenges that the current team can solve right now. It
     returns a list of challenges that are
+
     - online
     - unsolved by the current team
     - not manual (i.e. solvable by entering a solution)
@@ -124,6 +125,9 @@ class ManualChallengePoints(int):
     def __unicode__(self):
         return "evaluated"
 
+    def __repr__(self):
+        return "<ManualChallengePoints instance>"
+
 
 manual_challenge_points = ManualChallengePoints()
 """A static value that is returned instead of an actual number of points."""
@@ -170,6 +174,11 @@ class Challenge(Base):
 
     @property
     def points(self):
+        """
+        The points of a challenge which is either the value assigned to it or,
+        if the challenge is manual, the :data:`manual_challenge_points`
+        object to indicate that the points are manually assigned.
+        """
         if self.manual:
             return manual_challenge_points
         else:
@@ -191,8 +200,8 @@ class Submission(Base):
 
         ``challenge_id``: Foreign primary key column of the challenge.
 
-        ``timestamp``: A UTC-aware :class:`datetime.dateime` object. If setting
-        always only pass either a timezone-aware object or a naive UTC
+        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. If
+        setting always only pass either a timezone-aware object or a naive UTC
         datetime. Defaults to :meth:`datetime.datetime.utcnow`.
 
         ``bonus``: How many bonus points were awared.

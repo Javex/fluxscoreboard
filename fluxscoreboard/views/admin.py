@@ -56,11 +56,11 @@ class AdminView(object):
 
             ``FormClass``: The class of the form that should be displayed at
             the bottom of the page to edit or add items. For example
-            :class:`forms_admin.ChallengeForm`.
+            :class:`fluxscoreboard.forms_admin.ChallengeForm`.
 
             ``DatabaseClass``: The ORM class from the model that is used to
             add and fetch items. For example
-            :class:`models.challenge.Challenge`.
+            :class:`fluxscoreboard.models.challenge.Challenge`.
 
             ``title``: A string that expresses a singular item, for example
             ``"Challenge"``. Will be used for flash messages.
@@ -72,6 +72,7 @@ class AdminView(object):
         An example usage might be like this:
 
         .. code-block:: python
+
             def challenges(self):
             return self._admin_list('admin_challenges', ChallengeForm,
                                     Challenge, "Challenge")
@@ -160,6 +161,7 @@ class AdminView(object):
 
         Many arguments are the same as in :meth:`_admin_list` with these
         additional arguments:
+
             ``status_types``: A two-element dictionary that contains ``True``
             and ``False`` as keys and any value that describes the given
             status. For example: If the "unpublished" status is described by

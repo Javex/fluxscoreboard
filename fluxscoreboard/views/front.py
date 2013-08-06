@@ -24,6 +24,16 @@ import functools
 import logging
 
 
+__doc__ = """
+This module contains all forms for the frontend. Backend forms can be found
+in :mod:`fluxscoreboard.forms_admin`. The forms here and there are described
+as they should behave, e.g. "Save the challenge", however, this behaviour has
+to be implemented by the developer and is not done automatically by it.
+However, validatation restrictions (e.g. length) are enforced. But alone,
+without a database to persist them, they are mostly useless.
+"""
+
+
 log = logging.getLogger(__name__)
 
 

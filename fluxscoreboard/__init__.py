@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import DBSession, RootFactory
 from fluxscoreboard.models.team import groupfinder
-from fluxscoreboard.routes import routes
+from fluxscoreboard import routes
 from pyramid.authentication import SessionAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
@@ -11,6 +11,8 @@ from pyramid_beaker import session_factory_from_settings
 from sqlalchemy import engine_from_config, event
 from zope.sqlalchemy import ZopeTransactionExtension  # @UnresolvedImport
 
+
+__version__ = '0.1'
 
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
@@ -42,7 +44,7 @@ def main(global_config, **settings):
 
     # Routes & Views
     config.add_static_view('static', 'static', cache_max_age=3600)
-    for name, path in routes:
+    for name, path in routes.routes:
         config.add_route(name, path)
 
     config.scan()

@@ -1,10 +1,18 @@
-import os
-
 from setuptools import setup, find_packages
+import os
+import re
+
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.md')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
+
+version_file = os.path.join(os.path.dirname(__file__),
+                            'fluxscoreboard',
+                            '__init__.py')
+v = open(version_file)
+VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(v.read()).group(1)
+v.close()
 
 requires = [
     'pyramid',  # WSGI framework
@@ -28,7 +36,7 @@ requires = [
     ]
 
 setup(name='fluxscoreboard',
-      version='0.0',
+      version=VERSION,
       description='fluxscoreboard',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[

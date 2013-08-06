@@ -51,6 +51,11 @@ def bcrypt_split(value):
 def nl2br(text):
     """
     Translate newlines into HTML ``<br />`` tags.
+
+    Usage:
+        .. code-block:: mako
+
+            ${some_string | nl2br}
     """
     text = unicode(text)
     text = text.replace("\r\n", "\n")
@@ -74,6 +79,14 @@ class not_logged_in(object):
     """
     Decorator for a view that should only be visible to users that are not
     logged in. They will be redirected to the frontpage.
+
+    Usage:
+        .. code-block:: python
+
+            @view_config(...)
+            @not_logged_in
+            def some_view(request):
+                pass
     """
 
     def __init__(self, msg=None):

@@ -10,7 +10,6 @@ from pyramid.security import Allow
 DBSession = scoped_session(sessionmaker())
 """Database session factory. Returns the current threadlocal session."""
 
-
 Base = declarative_base()
 """Base class for all ORM classes."""
 
