@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
+from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import get_unsolved_challenges
 from fluxscoreboard.models.country import get_all_countries
 from fluxscoreboard.models.team import TEAM_NAME_MAX_LENGTH, \
-    TEAM_MAIL_MAX_LENGTH
+    TEAM_MAIL_MAX_LENGTH, Team
 from pytz import common_timezones, utc
 from wtforms import validators
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
@@ -22,6 +23,18 @@ email_length_validator = validators.Length(min=5, max=TEAM_MAIL_MAX_LENGTH,
                                                     "%(min)d and %(max)d "
                                                     "characters")
                                            )
+
+
+def email_unique_validator(form, field):
+    email = field.data
+    dbsession = DBSession()
+    email_exists = dbsession.query(Team).filter(Team.email == email).all()
+    if len(email_exists) > 0:
+        raise ValueError("This email is already registered.")
+    else:
+        return True
+
+
 password_equal_validator = validators.EqualTo("password_repeat",
                                               "Passwords do not match.")
 password_length_validator = validators.Length(min=8,
@@ -52,6 +65,7 @@ class RegisterForm(Form):
                        validators=[required_validator,
                                    email_equal_validator,
                                    email_length_validator,
+                                   email_unique_validator,
                                    ]
                        )
 
