@@ -7,7 +7,7 @@ from fluxscoreboard.models.challenge import Challenge, Submission, \
     check_submission
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.team import Team, get_team_solved_subquery, \
-    get_number_solved_subquery, get_team
+    get_number_solved_subquery, get_team, register_team, confirm_registration
 from fluxscoreboard.util import not_logged_in
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
@@ -306,29 +306,13 @@ class UserView(BaseView):
     @not_logged_in("You are logged in. Why register again?")
     def register(self):
         """
-        Display and handle registration of new teams. Also sends a confirmation
-        mail to verify the teams email address.
+        Display and handle registration of new teams.
         """
         form = RegisterForm(self.request.POST)
         if self.request.method == 'POST':
             if not form.validate():
                 return {'form': form}
-            team = Team(name=form.name.data,
-                        email=form.email.data,
-                        password=form.password.data,
-                        country=form.country.data,
-                        timezone=form.timezone.data,
-                        )
-            DBSession().add(team)
-            mailer = get_mailer(self.request)
-            message = Message(subject="Your hack.lu 2013 CTF Registration",
-                              recipients=[team.email],
-                              html=render('mail_register.mako',
-                                          {'team': team},
-                                          request=self.request,
-                                          )
-                              )
-            mailer.send(message)
+            team = register_team(form, self.request)
             self.request.session.flash("Your team was registered. Please "
                                        "verify it by clicking on the "
                                        "verification link that was sent to %s"
@@ -346,18 +330,13 @@ class UserView(BaseView):
         """
         # TODO: Its probably a better idea if the token contained the userid
         token = self.request.matchdict.get('token', None)
-        if token is None:
+        if confirm_registration(token):
             self.request.session.flash("Invalid token")
             raise HTTPFound(location=self.request.route_url('login'))
-        try:
-            team = DBSession().query(Team).filter(Team.token == token).one()
-        except NoResultFound:
-            self.request.session.flash("Invalid token")
-            raise HTTPFound(location=self.request.route_url('login'))
-        team.active = True
-        self.request.session.flash("Your account is active, you may now log "
-                                   "in.")
-        return HTTPFound(location=self.request.route_url('login'))
+        else:
+            self.request.session.flash("Your account is active, you may now "
+                                       "log in.")
+            return HTTPFound(location=self.request.route_url('login'))
 
     @logged_in_view(route_name='profile', renderer='profile.mako')
     def profile(self):
@@ -377,3 +356,6 @@ class UserView(BaseView):
             self.request.session.flash('Your profile has been updated')
             return HTTPFound(location=self.request.route_url('profile'))
         return retparams
+
+
+    # TODO: create forgot password view

@@ -3,7 +3,10 @@ from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Submission, Challenge
 from fluxscoreboard.util import bcrypt_split, encrypt_pw
+from pyramid.renderers import render
 from pyramid.security import authenticated_userid, unauthenticated_userid
+from pyramid_mailer import get_mailer
+from pyramid_mailer.message import Message
 from pytz import utc, timezone, all_timezones
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
@@ -114,6 +117,60 @@ def get_team(request):
     return request.team
 
 
+def register_team(form, request):
+    """
+    Create a new team from a form and send a confirmaion email.
+
+    Args:
+        ``form``: A filled out :class:`forms.RegistrationForm`.
+
+        ``request``: The corresponding request.
+
+    Returns:
+        The :class:`Team` that was created.
+    """
+    team = Team(name=form.name.data,
+                email=form.email.data,
+                password=form.password.data,
+                country=form.country.data,
+                timezone=form.timezone.data,
+                )
+    dbsession = DBSession()
+    dbsession.add(team)
+    mailer = get_mailer(request)
+    message = Message(subject="Your hack.lu 2013 CTF Registration",
+                      recipients=[team.email],
+                      html=render('mail_register.mako',
+                                  {'team': team},
+                                  request=request,
+                                  )
+                      )
+    mailer.send(message)
+    return team
+
+
+def confirm_registration(token):
+    """
+    For a token, check the database for the corresponding team and activate it
+    if found.
+
+    Args:
+        ``token``: The token that was sent to the user (a string)
+
+    Returns:
+        Either ``True`` or ``False`` depending on whether the confirmation was
+        successful.
+    """
+    if token is None:
+        return False
+    try:
+        team = DBSession().query(Team).filter(Team.token == token).one()
+    except NoResultFound:
+        return False
+    team.active = True
+    return True
+
+
 class Team(Base):
     """
     A team represented in the database.
@@ -165,14 +222,19 @@ class Team(Base):
             self.token = binascii.hexlify(os.urandom(32)).decode("ascii")
         Base.__init__(self, *args, **kwargs)
 
+    def __repr__(self):
+        return (('<Team name=%s, email=%s, local=%s, active=%s>'
+                % (self.name, self.email, self.local, self.active)).
+                encode("utf-8"))
+
     def validate_password(self, password):
         """
         Validate the password agains the team. If it matches return ``True``
         else raise a :exc:`ValueError`.
         """
         salt, __ = bcrypt_split(self.password)
-        referenece_pw = encrypt_pw(password, salt)
-        if self.password != referenece_pw:
+        reference_pw = encrypt_pw(password, salt)
+        if self.password != reference_pw:
             raise ValueError("Passwords do not match")
         else:
             return True
