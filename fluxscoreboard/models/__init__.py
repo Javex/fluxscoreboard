@@ -4,11 +4,10 @@ from __future__ import unicode_literals, absolute_import, print_function
 from sqlalchemy.orm.scoping import scoped_session
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.ext.declarative.api import declarative_base
-from zope.sqlalchemy import ZopeTransactionExtension  # @UnresolvedImport
 from pyramid.security import Allow
 
 
-DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
+DBSession = scoped_session(sessionmaker())
 """Database session factory. Returns the current threadlocal session."""
 
 
