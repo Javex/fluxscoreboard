@@ -174,6 +174,39 @@ def confirm_registration(token):
     return True
 
 
+def login(email, password):
+    """
+    Check a combination of credentials for validaity and either return a
+    reason why it failed or return the logged in team.
+
+    Args:
+        ``email``: The email address of the team.
+
+        ``password``: The corresponding password.
+
+    Returns:
+        A three-tuple of ``(result, message, team)``. ``result`` indicates
+        whether the login was successful or not. In case of failure ``msg``
+        contains a reason why it failed so it can be logged (but **not**
+        printed - we don't want to give any angle to an attacker). If the
+        login was successful, ``msg`` is ``None``. Finally, if the login
+        succeeded, ``team`` contains the found instance of :class:`Team`. If
+        login failed, ``team`` is ``None``.
+    """
+    try:
+        team = (DBSession().
+                query(Team).
+                filter(Team.email == email).
+                one())
+    except NoResultFound:
+        return False, "Team not found", None
+    if not team.validate_password(password):
+        return False, "Invalid password", None
+    if not team.active:
+        return False, "Team not activated yet", None
+    return True, None, team
+
+
 class Team(Base):
     """
     A team represented in the database.
@@ -239,7 +272,7 @@ class Team(Base):
         salt, __ = bcrypt_split(self.password)
         reference_pw = encrypt_pw(password, salt)
         if self.password != reference_pw:
-            raise ValueError("Passwords do not match")
+            return False
         else:
             return True
 

@@ -7,7 +7,7 @@ from fluxscoreboard.models.challenge import Challenge, Submission, \
     check_submission
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.team import Team, get_team_solved_subquery, \
-    get_number_solved_subquery, get_team, register_team, confirm_registration
+    get_number_solved_subquery, get_team, register_team, confirm_registration, login
 from fluxscoreboard.util import not_logged_in
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
@@ -286,25 +286,20 @@ class UserView(BaseView):
         if self.request.method == 'POST':
             if not form.validate():
                 return retparams
-            try:
-                team = (DBSession().
-                        query(Team).
-                        filter(Team.email == form.email.data).
-                        one())
-                if not team.active:
-                    raise ValueError("Team not activated yet")
-                team.validate_password(form.password.data)
-            except (NoResultFound, ValueError) as e:
+            login_success, msg, team = login(form.email.data,
+                                             form.password.data)
+            if not login_success:
                 self.request.session.flash("Login failed.")
                 log.warn("Failed login attempt for team '%(team_email)s' "
                          "with IP Address '%(ip_address)s' and reason "
                          "'%(message)s'" %
                          {'team_email': form.email.data,
                           'ip_address': self.request.client_addr,
-                          'message': e.message,
+                          'message': msg,
                           }
                          )
                 return retparams
+            # Start a new session due to new permissions
             self.request.session.invalidate()
             headers = remember(self.request, team.id)
             self.request.session.flash("You have been logged in.")
