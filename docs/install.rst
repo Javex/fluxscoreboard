@@ -63,6 +63,9 @@ After Nginx is configured this way you don't have to do much for `gunicorn`_:
 It already has a valid configuration in the default configuration file (see
 below).
 
+.. todo::
+    Configure gunicorn with proper logging.
+
 .. _gunicorn: http://gunicorn.org/
 
 Configuration
