@@ -55,6 +55,7 @@ def nl2br(text):
     Usage:
         .. code-block:: mako
 
+            <% from fluxscoreboard.util import nl2br %>
             ${some_string | nl2br}
     """
     text = unicode(text)

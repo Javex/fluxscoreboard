@@ -139,12 +139,11 @@ class FrontView(BaseView):
         team_id = authenticated_userid(self.request)
         team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
         number_of_solved_subquery = get_number_solved_subquery()
-        challenge_query = (dbsession.query(Challenge,
+        challenges = (dbsession.query(Challenge,
                                            team_solved_subquery.exists(),
                                            number_of_solved_subquery).
                            outerjoin(Submission).
                            group_by(Submission.challenge_id))
-        challenges = challenge_query.all()
         return {'challenges': challenges}
 
     @logged_in_view(route_name='challenge', renderer='challenge.mako')
@@ -207,9 +206,8 @@ class FrontView(BaseView):
         score = team_score_subquery.as_scalar()
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
-        team_query = (dbsession.query(Team, score).
+        teams = (dbsession.query(Team, score).
                       order_by(desc(score)))
-        teams = team_query.all()
         return {'teams': teams}
 
     @logged_in_view(route_name='news', renderer='announcements.mako')

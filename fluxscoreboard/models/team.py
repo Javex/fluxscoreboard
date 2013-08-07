@@ -4,14 +4,13 @@ from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Submission, Challenge
 from fluxscoreboard.util import bcrypt_split, encrypt_pw
 from pyramid.renderers import render
-from pyramid.security import authenticated_userid, unauthenticated_userid
+from pyramid.security import unauthenticated_userid
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from pytz import utc, timezone, all_timezones
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import func
 from sqlalchemy.types import Integer, Unicode, Boolean
 import binascii

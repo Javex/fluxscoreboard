@@ -11,15 +11,44 @@ coding.
 
 Depending on your goal, choose a chapter from the menu below.
 
+Documentation for Users
+-----------------------
+
 .. toctree::
    :maxdepth: 2
 
    install
    features
-   develop
-   todo
 
+Documentation for Develpers
+---------------------------
 
+Developer Narrative:
+
+.. toctree::
+   :maxdepth: 2
+
+   develop/database
+   develop/forms
+   develop/template
+   develop/times
+   develop/views
+   develop/other
+
+API documentation:
+
+.. toctree::
+    :maxdepth: 2
+
+    api
+
+ToDos
+-----
+
+.. toctree::
+    :maxdepth: 2
+
+    todo
 
 Indices and tables
 ==================

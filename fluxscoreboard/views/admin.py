@@ -11,7 +11,7 @@ from pyramid.view import view_config
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from sqlalchemy.orm import joinedload
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from webhelpers.paginate import Page, PageURL_WebOb
 import logging
 
@@ -78,7 +78,7 @@ class AdminView(object):
                                     Challenge, "Challenge")
         """
         dbsession = DBSession()
-        items_query = dbsession.query(DatabaseClass)
+        items = dbsession.query(DatabaseClass)
         item_id = self.request.matchdict.get('id', None)
         if item_id is None:
             form = FormClass(self.request.POST)
@@ -88,8 +88,8 @@ class AdminView(object):
             form = FormClass(self.request.POST, db_item)
         current_page = self.request.GET.get('page', 1)
         page_url = PageURL_WebOb(self.request)
-        page = Page(items_query, page=current_page, url=page_url,
-                    items_per_page=5, item_count=items_query.count())
+        page = Page(items, page=current_page, url=page_url,
+                    items_per_page=5, item_count=items.count())
         retparams = {'items': page.items,
                      'form': form,
                      'is_new': not bool(form.id.data),
@@ -123,28 +123,31 @@ class AdminView(object):
         with the addition of ``title_plural`` which is just a pluraized
         version of the ``title`` argument. Also returns something that can
         be returned directly to the application.
+
+        .. note::
+            To avoid problems with cascade instead of just emitting an SQL
+            ``DELETE`` statement, this queries for all affected objects
+            (should be one) and deletes them afterwards. This ensures that the
+            Python-side cascades appropriately delete all dependent objects.
         """
         item_id = self.request.matchdict["id"]
         current_page = self.request.GET.get('page', 1)
         dbsession = DBSession()
-        delete_query = (dbsession.query(DatabaseClass).
-                        filter(DatabaseClass.id == item_id))
-        objs = delete_query.all()
-        rows_deleted = 0
-        for obj in objs:
-            dbsession.delete(obj)
-            rows_deleted += 1
-        if rows_deleted == 0:
+        try:
+            obj = (dbsession.query(DatabaseClass).
+                            filter(DatabaseClass.id == item_id))
+            dbsession.delete(obj.one())
+        except NoResultFound:
             self.request.session.flash("The %s to be deleted was "
                                        "not found!" % title.lower(),
                                        "error"
                                        )
-        elif rows_deleted > 1:
-            log.error("Deleted multiple %s with query %s"
-                      % (title_plural.lower(), delete_query))
-            raise ValueError("Multiple %s were found and deleted. "
-                             "This should not be possible!"
-                             % title_plural.lower())
+        except MultipleResultsFound:
+            log.error("Multiple %s would have been deleted with the query "
+                      "'%s' so the process was aborted."
+                      % (title_plural.lower(), obj))
+            raise ValueError("Multiple %s were found. This should never "
+                             "happen!" % title_plural.lower())
         else:
             self.request.session.flash("%s deleted!" % title)
         return HTTPFound(location=self.request.route_url(route_name, _query={'page': current_page}))

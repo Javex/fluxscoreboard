@@ -1,3 +1,8 @@
+:mod:`fluxscoreboard.views`
+---------------------------
+
+.. automodule:: fluxscoreboard.views
+
 :mod:`fluxscoreboard.views.front`
 ---------------------------------
 

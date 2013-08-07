@@ -99,7 +99,12 @@ todo_include_todos = True
 # Dict of intersphinx mapping
 intersphinx_mapping = {
     'python': ('http://docs.python.org/2', None),
-    'pyramid':('http://docs.pylonsproject.org/projects/pyramid/en/latest', None),
+    'pyramid': ('http://docs.pylonsproject.org/projects/pyramid/en/latest', None),
+    'sqlalchemy': ('http://docs.sqlalchemy.org/en/rel_0_8/', None),
+    'webhelpers': ('http://sluggo.scrapping.cc/python/WebHelpers/', None),
+    'wtforms': ('http://wtforms.simplecodes.com/docs/1.0.4/', None),
+    'mako': ('http://docs.makotemplates.org/en/latest/', None),
+    'pytz': ('http://pytz.sourceforge.net/', None),
     }
 
 
