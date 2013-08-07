@@ -33,6 +33,8 @@ However, validatation restrictions (e.g. length) are enforced. But alone,
 without a database to persist them, they are mostly useless.
 """
 
+# TODO: Reduce requests per second on CSS and JS
+
 
 log = logging.getLogger(__name__)
 

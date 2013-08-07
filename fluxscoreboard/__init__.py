@@ -13,6 +13,8 @@ from sqlalchemy import engine_from_config
 
 __version__ = '0.1'
 
+# TODO: CSRF TOKENS!!!
+
 
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
