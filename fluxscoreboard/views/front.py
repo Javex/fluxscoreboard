@@ -296,7 +296,7 @@ class UserView(BaseView):
                 team.validate_password(form.password.data)
             except (NoResultFound, ValueError) as e:
                 self.request.session.flash("Login failed.")
-                log.info("Failed login attempt for team '%(team_email)s' "
+                log.warn("Failed login attempt for team '%(team_email)s' "
                          "with IP Address '%(ip_address)s' and reason "
                          "'%(message)s'" %
                          {'team_email': form.email.data,
@@ -340,7 +340,7 @@ class UserView(BaseView):
         """
         # TODO: Its probably a better idea if the token contained the userid
         token = self.request.matchdict.get('token', None)
-        if confirm_registration(token):
+        if not confirm_registration(token):
             self.request.session.flash("Invalid token")
             raise HTTPFound(location=self.request.route_url('login'))
         else:
