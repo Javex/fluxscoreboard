@@ -15,6 +15,11 @@ use = egg:fluxscoreboard
 # Whether submission of solutions should be disabled
 submission_disabled = False
 
+# The domain on which the site runs
+domain = localhost
+
+# The CSP header values to set
+csp_headers = default-src 'self;
 
 # Enter your database credentials here
 db.user = hacklu
@@ -45,6 +50,8 @@ session.secret =
 session.lock_dir = %(here)s/data/session/lock
 session.key = session
 session.cookie_on_exception = True
+session.secure = True
+session.cookie_domain = %(domain)s
 
 # Default session: File
 # Disable these two lines if you use another session

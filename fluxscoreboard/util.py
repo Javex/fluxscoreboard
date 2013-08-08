@@ -6,6 +6,7 @@ import random
 import string
 from pyramid.security import authenticated_userid
 from pyramid.httpexceptions import HTTPFound
+from pyramid.events import NewResponse, subscriber
 
 
 def encrypt_pw(pw, salt=None):
@@ -103,3 +104,14 @@ class not_logged_in(object):
                 return HTTPFound(location=self_wrap.request.route_url('home'))
             return func(self_wrap, *args, **kwargs)
         return _redirect_if_logged_in
+
+
+@subscriber(NewResponse)
+def add_header_x_frame_options(event):
+    settings = event.request.registry.settings
+    if "X-Frame-Options" not in event.response.headers:
+        event.response.headers[b"X-Frame-Options"] = b"DENY"
+    # Add CSP header
+    csp = settings.get("csp_headers", "").encode("ascii")
+    if csp:
+        event.response.headers[b"Content-Security-Policy"] = csp
