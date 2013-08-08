@@ -16,3 +16,6 @@ Utility Functions
 
 .. autoclass:: not_logged_in
 
+.. autofunction:: add_header_x_frame_options
+
+.. autofunction:: add_header_csp
