@@ -161,7 +161,7 @@ Try out the server by visiting the domain configured for Nginx. Fix any errors
 that appear, then enable the ``daemon = True`` option for gunicorn in
 ``production.ini``. You are now good to go. A simple setup is to just run it
 and close the shell. However, with this way you have no service, no monitoring
-and now restarting.
+and no restarting.
 
 .. todo::
     There is no section on having a service yet. That has to be added. See

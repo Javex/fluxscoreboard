@@ -2,7 +2,6 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from functools import wraps
 import bcrypt
-import markupsafe
 import random
 import string
 from pyramid.security import authenticated_userid

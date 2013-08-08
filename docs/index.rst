@@ -34,6 +34,7 @@ Developer Narrative:
    develop/times
    develop/views
    develop/other
+   develop/tests
 
 API documentation:
 

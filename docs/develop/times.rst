@@ -22,7 +22,7 @@ also be helpful sometimes).
 
 - timestamp --> datetime: :meth:`datetime.datetime.utcfromtimestamp`
 - datetime --> timestamp: :meth:`datetime.datetime.utctimetuple` and
-  :meth:`calendar.timegm`
+  :func:`calendar.timegm`
 
 
 Displaying Times
@@ -43,7 +43,7 @@ This is very easy because the team property is available in the request and it
 already know the teams timezone. Where you get the timestamp depends on what
 you are working on. For example, all timestamps in the database are managed in
 such a way that they already have the UTC timezone attached. Thus, for
-example, to display an announcements time, you would go like this:
+example, to display an announcements' time, you would go like this:
 
 .. code-block:: python
 

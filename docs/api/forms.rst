@@ -4,10 +4,20 @@
 Form classes exist to define, render and validate form submission. See
 :ref:`dev_forms` for details.
 
+Custom Fields
+#############
+
+.. automodule:: fluxscoreboard.forms
+
+.. autoclass:: IntegerOrEvaluatedField
+
+:mod:`fluxscreoboard.forms.front`
+---------------------------------
+
 Frontend Forms
 ##############
 
-.. automodule:: fluxscoreboard.forms
+.. automodule:: fluxscoreboard.forms.front
 
 .. autoclass:: RegisterForm
 
@@ -20,17 +30,13 @@ Frontend Forms
 
 .. autoclass:: SolutionSubmitListForm
 
-.. todo::
-    Document and include all the validators and stuff thats still missing here.
-
-
-:mod:`fluxscoreboard.forms_admin`
+:mod:`fluxscoreboard.forms.admin`
 ---------------------------------
 
 Administrative Forms
 ####################
 
-.. automodule:: fluxscoreboard.forms_admin
+.. automodule:: fluxscoreboard.forms.admin
 
 .. autoclass:: NewsForm
 
@@ -42,12 +48,14 @@ Administrative Forms
 
 .. autoclass:: MassMailForm
 
+:mod:`fluxscoreboard.forms.validators`
+--------------------------------------
 
-Validators & Fields
-###################
+.. automodule:: fluxscoreboard.forms.validators
 
 .. autofunction:: password_length_validator_conditional
 
 .. autofunction:: password_required_if_new
 
-.. autoclass:: IntegerOrEvaluatedField
+.. todo::
+    Document and include all the validators and stuff thats still missing here.

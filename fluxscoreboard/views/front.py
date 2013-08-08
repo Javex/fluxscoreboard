@@ -1,24 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
-from fluxscoreboard.forms import RegisterForm, LoginForm, SolutionSubmitForm, \
-    SolutionSubmitListForm, ProfileForm
+from fluxscoreboard.forms.front import LoginForm, RegisterForm, ProfileForm, \
+    SolutionSubmitForm, SolutionSubmitListForm
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission, \
     check_submission
 from fluxscoreboard.models.news import News
-from fluxscoreboard.models.team import Team, get_team_solved_subquery, \
-    get_number_solved_subquery, get_team, register_team, confirm_registration, login
+from fluxscoreboard.models.team import Team, login, get_team_solved_subquery, \
+    get_number_solved_subquery, get_team, register_team, confirm_registration
 from fluxscoreboard.util import not_logged_in
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
-from pyramid.renderers import render
 from pyramid.security import remember, authenticated_userid, forget
 from pyramid.view import view_config, forbidden_view_config, \
     notfound_view_config
-from pyramid_mailer import get_mailer
-from pyramid_mailer.message import Message
 from sqlalchemy.orm import subqueryload
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import func, desc
 import functools
 import logging

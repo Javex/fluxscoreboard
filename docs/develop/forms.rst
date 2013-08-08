@@ -55,7 +55,7 @@ To get validation, we define a list of validators on a field. For example:
 
 .. code-block:: python
 
-    from fluxscoreboard.forms import required_validator
+    from fluxscoreboard.forms.validators import required_validator
     class SampleForm(Form):
         text = TextField("Sample Text",
                          validators=[required_validator]
@@ -63,7 +63,7 @@ To get validation, we define a list of validators on a field. For example:
         ...
 
 For details on validators already provided, see the documentation for
-:mod:`fluxscoreboard.forms` and :mod:`fluxscoreboard.forms_admin`. There are
+:mod:`fluxscoreboard.forms.validators`. There are
 already some common validators for length and other stuff defined. Also pay
 attention that you should have a validator that checks for the allowed database
 length (e.g. if you database column is ``Unicode(255)`` check that it is not

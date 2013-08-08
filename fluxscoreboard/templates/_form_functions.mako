@@ -1,8 +1,9 @@
 <%def name="render_form(action, form, legend, display_cancel=True)">
-<% from fluxscoreboard.forms import required_validator %>
+<% from fluxscoreboard.forms.validators import required_validator %>
+<% from fluxscoreboard.forms import IntegerOrEvaluatedField %>
 <% from wtforms.fields.core import IntegerField %>
 <% from wtforms.fields.simple import TextAreaField, TextField %>
-<% from wtforms.fields.html5 import EmailField %>
+<% from wtforms.fields.html5 import EmailField, IntegerField as IntegerFieldHtml5 %>
 <form method="POST" action="${action}" class="form-horizontal">
     <legend>${legend}</legend>
     % for field in [item for item in form if item.name not in ["id", "submit", "cancel"]]:
@@ -14,7 +15,7 @@
             field_kwargs = {}
             if required_validator in field.validators:
                 field_kwargs["required"] = "required"
-            for type_ in [TextField, TextAreaField, EmailField, IntegerField]:
+            for type_ in [TextField, TextAreaField, EmailField, IntegerField, IntegerOrEvaluatedField, IntegerFieldHtml5]:
                 if isinstance(field, type_):
                     field_kwargs["placeholder"] = field.label.text
                     break

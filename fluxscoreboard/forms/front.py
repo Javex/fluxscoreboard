@@ -1,57 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.models import DBSession
+from fluxscoreboard.forms.validators import name_length_validator, \
+    email_length_validator, password_min_length_validator, \
+    password_max_length_validator, required_validator, email_equal_validator, \
+    email_unique_validator, password_equal_validator
 from fluxscoreboard.models.challenge import get_unsolved_challenges
 from fluxscoreboard.models.country import get_all_countries
-from fluxscoreboard.models.team import TEAM_NAME_MAX_LENGTH, \
-    TEAM_MAIL_MAX_LENGTH, Team, TEAM_PASSWORD_MAX_LENGTH
 from pytz import common_timezones, utc
-from wtforms import validators
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.fields.core import SelectField
 from wtforms.fields.html5 import EmailField
 from wtforms.fields.simple import TextField, SubmitField, PasswordField
 from wtforms.form import Form
-
-
-email_validator = validators.Email("Please enter a valid E-Mail Address.")
-email_equal_validator = validators.EqualTo("email_repeat",
-                                            "E-Mail Addressed do not match.")
-email_length_validator = validators.Length(min=5, max=TEAM_MAIL_MAX_LENGTH,
-                                           message=("Team email must "
-                                                    "have a length between "
-                                                    "%(min)d and %(max)d "
-                                                    "characters")
-                                           )
-
-
-def email_unique_validator(form, field):
-    email = field.data
-    dbsession = DBSession()
-    email_exists = dbsession.query(Team).filter(Team.email == email).all()
-    if len(email_exists) > 0:
-        raise ValueError("This email is already registered.")
-    else:
-        return True
-
-
-password_equal_validator = validators.EqualTo("password_repeat",
-                                              "Passwords do not match.")
-password_min_length_validator = validators.Length(
-    min=8, message=("Oh boy, shorter than %(min)d characters. You should be "
-                    "ashamed!"))
-password_max_length_validator = validators.Length(
-    max=TEAM_PASSWORD_MAX_LENGTH,
-    message=("Wow! I am proud of you. But don't you think %(max)d characters "
-             "should be secure enough?"))
-name_length_validator = validators.Length(min=5, max=TEAM_NAME_MAX_LENGTH,
-                                          message=("Team name must have "
-                                                   "a length between %(min)d "
-                                                   "and %(max)d characters")
-                                          )
-required_validator = validators.Required(
-    "This field is mandatory, please enter a valid value."
-    )
 
 
 class RegisterForm(Form):
@@ -88,6 +48,7 @@ class RegisterForm(Form):
            'pw_min': password_min_length_validator.min,
            'pw_max': password_max_length_validator.max,
            }
+
     name = TextField("Team Name",
                      validators=[required_validator,
                                  name_length_validator,

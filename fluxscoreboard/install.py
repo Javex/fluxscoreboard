@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.models import DBSession, Base, Challenge, News, \
-    Submission, Team, Country, MassMail
-from importlib import import_module
-import logging
-import json
-import transaction
-import random
-import string
+from fluxscoreboard.models import DBSession, Base, Challenge, News, Submission, \
+    Team, Country, MassMail
 from fluxscoreboard.util import random_str
+import json
+import logging
+import random
+import transaction
 
 __doc__ = """
 Installation module that provides the application with mechanisms for

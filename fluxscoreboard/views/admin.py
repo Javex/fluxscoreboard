@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
-from fluxscoreboard.forms_admin import NewsForm, ChallengeForm, TeamForm, \
+from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, TeamForm, \
     SubmissionForm, MassMailForm
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission
@@ -212,6 +212,8 @@ class AdminView(object):
         A view to list, add and edit announcements. Implemented with
         :meth:`_admin_list`.
         """
+        # TODO: When an announcement is turned into a general (i.e. no
+        # challenge ID) it gets deleted. Why?
         return self._admin_list('admin_news', NewsForm, News, "Announcement")
 
     @view_config(route_name='admin_news_delete')

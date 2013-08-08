@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
 from sqlalchemy.schema import Column
-from sqlalchemy.types import Integer, Unicode, UnicodeText
+from sqlalchemy.types import Integer, UnicodeText
 
 
 def get_all_countries():

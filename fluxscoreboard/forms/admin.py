@@ -1,65 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.forms import required_validator, name_length_validator, \
-    email_length_validator, password_min_length_validator, \
-    password_max_length_validator
+from fluxscoreboard.forms import IntegerOrEvaluatedField
+from fluxscoreboard.forms.validators import email_length_validator, \
+    password_length_validator_conditional, password_required_if_new, \
+    required_validator, name_length_validator
 from fluxscoreboard.models.challenge import get_online_challenges, \
     get_all_challenges
 from fluxscoreboard.models.country import get_all_countries
 from fluxscoreboard.models.team import get_active_teams
 from wtforms import validators
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
-from wtforms.fields.core import IntegerField, BooleanField
-from wtforms.fields.html5 import EmailField
+from wtforms.fields.core import BooleanField
+from wtforms.fields.html5 import EmailField, IntegerField
 from wtforms.fields.simple import TextAreaField, SubmitField, HiddenField, \
     TextField, PasswordField
 from wtforms.form import Form
-
-
-def password_length_validator_conditional(form, field):
-    """
-    A validator that only checks the length of the password if one was
-    provided and otherwise just returns ``True``. Used so an item can be
-    edited without entering the password for the team.
-    """
-    if field.data:
-        min_len = password_min_length_validator(form, field)
-        max_len = password_max_length_validator(form, field)
-        return min_len and max_len
-    else:
-        return True
-
-
-def password_required_if_new(form, field):
-    """
-    A validator that only requires a password if the team is newly created,
-    i.e. its id is ``None``.
-    """
-    if form.id.data is None:
-        return required_validator(form, field)
-    else:
-        return True
-
-
-class IntegerOrEvaluatedField(IntegerField):
-    """
-    A field that is basically an integer but with the added exception that,
-    if the challenge is manual, it will contain the value ``"evaulauted"``
-    which is also valid.
-    """
-
-    def process_formdata(self, valuelist):
-        [value] = valuelist
-        if valuelist:
-            if value == 'evaluated':
-                self.data = None
-                return True
-            else:
-                try:
-                    self.data = int(value)
-                except ValueError:
-                    self.data = None
-                    raise ValueError(self.gettext('Not a valid integer value'))
 
 
 class NewsForm(Form):
@@ -156,7 +111,7 @@ class ChallengeForm(Form):
 class TeamForm(Form):
     """
     Form to add or edit a team. The same restrictions as on
-    :class:`fluxscoreboard.forms.RegisterForm` apply.
+    :class:`fluxscoreboard.forms.front.RegisterForm` apply.
 
     Attrs:
         ``name``: The name of the name of the team. Required.
@@ -218,7 +173,7 @@ class SubmissionForm(Form):
         ``challenge``: The :class:`fluxscoreboard.models.challenge.Challenge`
         to be chosen from a list. Required.
 
-        ``team``: The :class:`fluxscoreboard.models.team.team` to be chosem
+        ``team``: The :class:`fluxscoreboard.models.team.Team` to be chosem
         from a list. Required.
 
         ``bonus``: How many bonus points the team gets. Defaults to 0.

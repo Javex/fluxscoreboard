@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.forms import LoginForm
+from fluxscoreboard.forms.front import LoginForm
 from fluxscoreboard.tests import app, settings, dbsession, pyramid_request, \
     config
 from fluxscoreboard.tests.test_models_team import team
