@@ -13,7 +13,7 @@ use = egg:fluxscoreboard
 #
 
 # Whether submission of solutions should be disabled
-submission_disabled = True
+submission_disabled = False
 
 
 # Enter your database credentials here
@@ -95,9 +95,11 @@ host = 127.0.0.1
 port = 6875
 workers = 8
 #daemon = True
-pidfile = fluxscoreboard.pid
+pidfile = tmp/fluxscoreboard.pid
 user = http
 group = http
+error-logfile = log/gunicorn_error.log
+access-logfile = log/gunicorn_access.log
 
 ###
 # logging configuration
@@ -131,8 +133,8 @@ qualname = sqlalchemy.engine
 # "level = WARN" logs neither.  (Recommended for production systems.)
 
 [handler_console]
-class = StreamHandler
-args = (sys.stderr,)
+class = FileHandler
+args = ('%(here)s/log/fluxscoreboard.log', 'w')
 level = NOTSET
 formatter = generic
 
