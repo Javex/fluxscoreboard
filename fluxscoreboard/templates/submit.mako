@@ -22,7 +22,10 @@
     </div>
     <div class="form-group">
         <div class="col-2"></div>
-        <div class="col-2">${form.submit(class_='form-control btn btn-default')}</div>
+        <div class="col-2">
+            ${form.csrf_token}
+            ${form.submit(class_='form-control btn btn-default')}
+        </div>
     </div>
 </form>
 % else:

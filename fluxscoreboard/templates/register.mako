@@ -69,6 +69,7 @@
         </div>
         <div class="col-4"></div>
         <div class="col-8">
+            ${form.csrf_token}
             ${form.submit(class_="btn btn-primary")}
         </div>
     </form>

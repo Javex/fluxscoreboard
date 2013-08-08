@@ -20,7 +20,10 @@
                         <div class="alert alert-danger">${msg}</div>
                     % endfor
                 </div>
-                <div class="col-2">${form.submit(class_='form-control btn btn-default')}</div>
+                <div class="col-2">
+                    ${form.csrf_token}
+                    ${form.submit(class_='form-control btn btn-default')}
+                </div>
             </form>
         % elif is_solved:
             <p class="text-success text-center">Congratulations! You have already solved this challenge.</p>

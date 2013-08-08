@@ -6,7 +6,7 @@
 <% from wtforms.fields.html5 import EmailField, IntegerField as IntegerFieldHtml5 %>
 <form method="POST" action="${action}" class="form-horizontal">
     <legend>${legend}</legend>
-    % for field in [item for item in form if item.name not in ["id", "submit", "cancel"]]:
+    % for field in [item for item in form if item.name not in ["id", "submit", "cancel", "csrf_token"]]:
     <div class="form-group">
         ${field.label(class_="col-4 control-label")}
         <div class="col-8">
@@ -29,6 +29,7 @@
     % endfor
     <div class="col-4"></div>
     <div class="col-8">
+        ${form.csrf_token}
         % if getattr(form, 'id', None) is not None:
             ${form.id()}
         % endif

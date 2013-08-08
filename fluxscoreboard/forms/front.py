@@ -11,10 +11,10 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.fields.core import SelectField
 from wtforms.fields.html5 import EmailField
 from wtforms.fields.simple import TextField, SubmitField, PasswordField
-from wtforms.form import Form
+from fluxscoreboard.forms import CSRFForm
 
 
-class RegisterForm(Form):
+class RegisterForm(CSRFForm):
     __doc__ = """
     Registration form for new teams.
 
@@ -94,7 +94,7 @@ class RegisterForm(Form):
     submit = SubmitField("Register")
 
 
-class LoginForm(Form):
+class LoginForm(CSRFForm):
     """
     Login form for teams that are activated.
 
@@ -114,7 +114,7 @@ class LoginForm(Form):
     login = SubmitField("Login")
 
 
-class ProfileForm(Form):
+class ProfileForm(CSRFForm):
     """
     A form to edit a team's profile.
 
@@ -150,7 +150,7 @@ class ProfileForm(Form):
     cancel = SubmitField("Cancel")
 
 
-class SolutionSubmitForm(Form):
+class SolutionSubmitForm(CSRFForm):
     """
     A form to submit a solution for a challenge on a single challenge view.
     This form does not keep track of which challenge this is.

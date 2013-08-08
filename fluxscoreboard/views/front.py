@@ -161,7 +161,7 @@ class FrontView(BaseView):
                                                 team_solved_subquery.exists()).
                                  filter(Challenge.id == challenge_id).
                                  options(subqueryload('announcements')).one())
-        form = SolutionSubmitForm(self.request.POST)
+        form = SolutionSubmitForm(self.request.POST, csrf_context=self.request)
         retparams = {'challenge': challenge,
                      'form': form,
                      'is_solved': is_solved,
@@ -227,7 +227,8 @@ class FrontView(BaseView):
         The difference here is that the challenge is chosen from a select list.
         Otherwise it is basically the same and boils down to the same logic.
         """
-        form = SolutionSubmitListForm(self.request.params)
+        form = SolutionSubmitListForm(self.request.params,
+                                      csrf_context=self.request)
         team_id = authenticated_userid(self.request)
         retparams = {'form': form}
         if self.request.method == 'POST':
@@ -276,7 +277,7 @@ class UserView(BaseView):
         ``POST`` request, handles the login by checking whether it is valid.
         If it is, the user is logged in and redirected to the frontpage.
         """
-        form = LoginForm(self.request.POST)
+        form = LoginForm(self.request.POST, csrf_context=self.request)
         retparams = {'form': form,
                      }
         if self.request.method == 'POST':
@@ -309,7 +310,7 @@ class UserView(BaseView):
         """
         Display and handle registration of new teams.
         """
-        form = RegisterForm(self.request.POST)
+        form = RegisterForm(self.request.POST, csrf_context=self.request)
         if self.request.method == 'POST':
             if not form.validate():
                 return {'form': form}
@@ -346,7 +347,8 @@ class UserView(BaseView):
         location or timezone. The team name is fixed and can only be changed
         by administrators.
         """
-        form = ProfileForm(self.request.POST, self.team)
+        form = ProfileForm(self.request.POST, self.team,
+                           csrf_context=self.request)
         retparams = {'form': form,
                      'team': self.team,
                      }

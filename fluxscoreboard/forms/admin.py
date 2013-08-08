@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.forms import IntegerOrEvaluatedField
+from fluxscoreboard.forms import IntegerOrEvaluatedField, CSRFForm
 from fluxscoreboard.forms.validators import email_length_validator, \
     password_length_validator_conditional, password_required_if_new, \
     required_validator, name_length_validator
@@ -14,10 +14,9 @@ from wtforms.fields.core import BooleanField
 from wtforms.fields.html5 import EmailField, IntegerField
 from wtforms.fields.simple import TextAreaField, SubmitField, HiddenField, \
     TextField, PasswordField
-from wtforms.form import Form
 
 
-class NewsForm(Form):
+class NewsForm(CSRFForm):
     """
     Form to add or edit an announcement.
 
@@ -53,7 +52,7 @@ class NewsForm(Form):
     cancel = SubmitField("Cancel")
 
 
-class ChallengeForm(Form):
+class ChallengeForm(CSRFForm):
     """
     Form to add or edit a challenge.
 
@@ -108,7 +107,7 @@ class ChallengeForm(Form):
     cancel = SubmitField("Cancel")
 
 
-class TeamForm(Form):
+class TeamForm(CSRFForm):
     """
     Form to add or edit a team. The same restrictions as on
     :class:`fluxscoreboard.forms.front.RegisterForm` apply.
@@ -165,7 +164,7 @@ class TeamForm(Form):
     cancel = SubmitField("Cancel")
 
 
-class SubmissionForm(Form):
+class SubmissionForm(CSRFForm):
     """
     Form to add or edit a submission of a team.
 
@@ -195,7 +194,7 @@ class SubmissionForm(Form):
     cancel = SubmitField("Cancel")
 
 
-class MassMailForm(Form):
+class MassMailForm(CSRFForm):
     """
     A form to send a massmail to all users.
 

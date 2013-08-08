@@ -81,7 +81,7 @@ class AdminView(object):
         items = dbsession.query(DatabaseClass)
         item_id = self.request.matchdict.get('id', None)
         if item_id is None:
-            form = FormClass(self.request.POST)
+            form = FormClass(self.request.POST, csrf_context=self.request)
         else:
             db_item = (dbsession.query(DatabaseClass).
                        filter(DatabaseClass.id == item_id).one())
@@ -315,7 +315,7 @@ class AdminView(object):
         challenge_id = self.request.matchdict.get('cid', None)
         team_id = self.request.matchdict.get('tid', None)
         if challenge_id is None or team_id is None:
-            form = SubmissionForm(self.request.POST)
+            form = SubmissionForm(self.request.POST, csrf_context=self.request)
         else:
             db_item = (dbsession.query(Submission).
                        filter(Submission.team_id == team_id).
@@ -395,7 +395,7 @@ class AdminView(object):
         sent messages.
         """
         dbsession = DBSession()
-        form = MassMailForm(self.request.POST)
+        form = MassMailForm(self.request.POST, csrf_context=self.request)
         if not form.from_.data:
             settings = self.request.registry.settings
             form.from_.data = settings["mail.default_sender"]
