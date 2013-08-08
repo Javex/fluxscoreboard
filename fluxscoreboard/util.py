@@ -108,9 +108,22 @@ class not_logged_in(object):
 
 @subscriber(NewResponse)
 def add_header_x_frame_options(event):
-    settings = event.request.registry.settings
+    """
+    Subscribe to the :class:`pyramid.events.NewResponse` event and add the
+    ``X-Frame-Options: DENY`` header.
+    """
     if "X-Frame-Options" not in event.response.headers:
         event.response.headers[b"X-Frame-Options"] = b"DENY"
+
+
+@subscriber(NewResponse)
+def add_header_csp(event):
+    """
+    Subscribe to the :class:`pyramid.events.NewResponse` event and add the
+    ``Content-Security-Policy`` header. The value of that header depends on
+    the setting ``csp_headers`` from the application configuration.
+    """
+    settings = event.request.registry.settings
     # Add CSP header
     csp = settings.get("csp_headers", "").encode("ascii")
     if csp:
