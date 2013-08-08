@@ -3,6 +3,7 @@ from __future__ import unicode_literals, absolute_import, print_function
 from wtforms.ext.csrf.form import SecureForm
 from wtforms.fields.html5 import IntegerField
 from wtforms.fields.simple import HiddenField
+from wtforms.widgets.core import html_params, HTMLString
 import logging
 
 
@@ -27,6 +28,26 @@ class CSRFForm(SecureForm):
                      % (", ".join(self.csrf_token.errors),
                         self.request.client_addr))
         return result
+
+
+class ButtonWidget(object):
+    """
+    .. todo::
+        Document
+    """
+    html_params = staticmethod(html_params)
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __call__(self, field, **kwargs):
+        kwargs.setdefault('id', field.id)
+        val = field.label.text
+        out = ('<button %s>%s</button>' %
+               (self.html_params(name=field.name, **kwargs),
+                val)
+               )
+        return HTMLString(out)
 
 
 class IntegerOrEvaluatedField(IntegerField):

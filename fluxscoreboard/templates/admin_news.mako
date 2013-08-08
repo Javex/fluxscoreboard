@@ -1,5 +1,6 @@
 <%inherit file="base.mako"/>
 <%namespace name="admin_funcs" file="_admin_functions.mako"/>
+<%namespace name="form_funcs" file="_form_functions.mako"/>
 <h1>Announcements</h1>
 % if items:
     <table class="table">
@@ -30,22 +31,10 @@
                     ${'Yes' if news.published else 'No'}
                 </td>
                 <td class="btn-group">
-                    <button type="button" class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown">
-                        Action <span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a href="${request.route_url('admin_news_edit', id=news.id, _query=dict(page=page.page))}">Edit</a></li>
-                        <li><a href="${request.route_url('admin_news_delete', id=news.id, _query=dict(page=page.page))}">Delete</a></li>
-                        <li>
-                            <a href="${request.route_url('admin_news_toggle_status', id=news.id, _query=dict(page=page.page))}">
-                                % if news.published:
-                                    Unpublish Announcement
-                                % else:
-                                    Publish Announcement
-                                % endif
-                            </a>
-                        </li>
-                    </ul>
+                    ${admin_funcs.display_action_list(page.page, request, news.id,
+                                                      [('admin_news_edit', "Edit"), 
+                                                       ('admin_news_delete', "Delete"), 
+                                                       ('admin_news_toggle_status', ("Unpublish" if news.published else "Publish") + " Announcement")])}
                 </td>
             </tr>
     % endfor

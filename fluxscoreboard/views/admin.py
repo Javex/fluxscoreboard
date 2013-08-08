@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, TeamForm, \
-    SubmissionForm, MassMailForm
+    SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission
 from fluxscoreboard.models.news import News, MassMail
@@ -79,22 +79,36 @@ class AdminView(object):
         """
         dbsession = DBSession()
         items = dbsession.query(DatabaseClass)
-        item_id = self.request.matchdict.get('id', None)
+        current_page = self.request.GET.get('page', 1)
+        page_url = PageURL_WebOb(self.request)
+        page = Page(items, page=current_page, url=page_url,
+                    items_per_page=5, item_count=items.count())
+        redirect = HTTPFound(
+                       location=self.request.route_url(
+                           route_name, query={'page': page.page}))
+        item_id = None
+        edit = "button" in self.request.POST
+        if self.request.method == 'POST' and edit:
+            edit_form = ButtonForm(self.request.POST,
+                                   csrf_context=self.request)
+            if not edit_form.validate():
+                # Error, most likely CSRF
+                return redirect
+            item_id = edit_form.id.data
         if item_id is None:
             form = FormClass(self.request.POST, csrf_context=self.request)
         else:
             db_item = (dbsession.query(DatabaseClass).
                        filter(DatabaseClass.id == item_id).one())
-            form = FormClass(self.request.POST, db_item)
-        current_page = self.request.GET.get('page', 1)
-        page_url = PageURL_WebOb(self.request)
-        page = Page(items, page=current_page, url=page_url,
-                    items_per_page=5, item_count=items.count())
+            form = FormClass(self.request.POST if not edit else None, db_item,
+                             csrf_context=self.request)
         retparams = {'items': page.items,
                      'form': form,
                      'is_new': not bool(form.id.data),
-                     'page': page}
-        if self.request.method == 'POST':
+                     'page': page,
+                     'ButtonForm': ButtonForm,
+                     }
+        if self.request.method == 'POST' and "button" not in self.request.POST:
             if form.submit.data:
                 if not form.validate():
                     return retparams
@@ -109,11 +123,7 @@ class AdminView(object):
                 form.populate_obj(db_item)
                 if db_item.id == '':
                     db_item.id = None
-            return HTTPFound(
-                location=self.request.route_url(route_name,
-                                                 _query={'page': page.page},
-                                                 )
-                             )
+            return redirect
         return retparams
 
     def _admin_delete(self, route_name, DatabaseClass, title, title_plural):
@@ -130,9 +140,14 @@ class AdminView(object):
             (should be one) and deletes them afterwards. This ensures that the
             Python-side cascades appropriately delete all dependent objects.
         """
-        item_id = self.request.matchdict["id"]
+        delete_form = ButtonForm(self.request.POST, csrf_context=self.request)
         current_page = self.request.GET.get('page', 1)
         dbsession = DBSession()
+        redirect = HTTPFound(location=self.request.route_url(route_name, _query={'page': current_page}))
+        if not delete_form.validate():
+            self.request.session.flash("Delete failed.")
+            return redirect
+        item_id = delete_form.id.data
         try:
             obj = (dbsession.query(DatabaseClass).
                             filter(DatabaseClass.id == item_id))
@@ -150,7 +165,7 @@ class AdminView(object):
                              "happen!" % title_plural.lower())
         else:
             self.request.session.flash("%s deleted!" % title)
-        return HTTPFound(location=self.request.route_url(route_name, _query={'page': current_page}))
+        return redirect
 
     def _admin_toggle_status(self, route_name, DatabaseClass, title='',
                              status_types={False: False, True: True},
@@ -186,10 +201,15 @@ class AdminView(object):
         Returns:
             A dictionary or similar that can be directly returned from a view.
         """
-        item_id = self.request.matchdict["id"]
         current_page = self.request.GET.get('page', 1)
         dbsession = DBSession()
         inverse_status_types = {}
+        toggle_form = ButtonForm(self.request.POST, csrf_context=self.request)
+        redirect = HTTPFound(location=self.request.route_url(route_name, _query={'page': current_page}))
+        if not toggle_form.validate():
+            self.request.session.flash("Toggle failed.")
+            return redirect
+        item_id = toggle_form.id.data
         for key, value in status_types.items():
             inverse_status_types[value] = key
         item = (dbsession.query(DatabaseClass).
@@ -198,7 +218,7 @@ class AdminView(object):
         setattr(item, status_variable_name, status_types[not status])
         self.request.session.flash(status_messages[not status]
                                    % {'title': title.lower()})
-        return HTTPFound(location=self.request.route_url(route_name, _query={'page': current_page}))
+        return redirect
 
     @view_config(route_name='admin')
     def admin(self):
@@ -308,12 +328,31 @@ class AdminView(object):
         But in the end it is basically the same functionality as with the other
         list views.
         """
+        # TODO: Possibly we need a way to distinguish between someone selecting
+        # an existing Challenge/Team combo and clicking the "Edit" button.
+        # Currently the former is somewhat buggy...
         dbsession = DBSession()
-        submissions_query = (dbsession.query(Submission).
+        submissions = (dbsession.query(Submission).
                              options(joinedload('challenge')).
                              options(joinedload('team')))
-        challenge_id = self.request.matchdict.get('cid', None)
-        team_id = self.request.matchdict.get('tid', None)
+        current_page = self.request.GET.get('page', 1)
+        page_url = PageURL_WebOb(self.request)
+        page = Page(submissions, page=current_page, url=page_url,
+                    items_per_page=5, item_count=submissions.count())
+        redirect = HTTPFound(
+                       location=self.request.route_url(
+                           'admin_submissions', _query={'page': page.page}))
+        challenge_id = None
+        team_id = None
+        edit = "button" in self.request.POST
+        if self.request.method == 'POST' and edit:
+            edit_form = SubmissionButtonForm(self.request.POST,
+                                             csrf_context=self.request)
+            if not edit_form.validate():
+                # Error, most likely CSRF
+                return redirect
+            challenge_id = edit_form.challenge_id.data
+            team_id = edit_form.team_id.data
         if challenge_id is None or team_id is None:
             form = SubmissionForm(self.request.POST, csrf_context=self.request)
         else:
@@ -321,16 +360,15 @@ class AdminView(object):
                        filter(Submission.team_id == team_id).
                        filter(Submission.challenge_id == challenge_id).
                        one())
-            form = SubmissionForm(self.request.POST, db_item)
-        current_page = self.request.GET.get('page', 1)
-        page_url = PageURL_WebOb(self.request)
-        page = Page(submissions_query, page=current_page, url=page_url,
-                    items_per_page=5, item_count=submissions_query.count())
+            form = SubmissionForm(self.request.POST if not edit else None,
+                                  db_item, csrf_context=self.request)
         retparams = {'items': page.items,
                      'form': form,
                      'is_new': True,
-                     'page': page}
-        if self.request.method == 'POST':
+                     'page': page,
+                     'ButtonForm': SubmissionButtonForm,
+                     }
+        if self.request.method == 'POST' and "button" not in self.request.POST:
             if form.submit.data:
                 if not form.validate():
                     return retparams
@@ -350,41 +388,45 @@ class AdminView(object):
                     self.request.session.flash("Submission added!")
                 form.populate_obj(db_item)
                 retparams["is_new"] = is_new
-            return HTTPFound(
-                location=self.request.route_url('admin_submissions',
-                                                _query={'page': page.page}
-                                                ),
-                )
+            return redirect
         return retparams
 
     @view_config(route_name='admin_submissions_delete')
     def sbumissions_delete(self):
         """Delete a submission."""
-        team_id = self.request.matchdict["tid"]
-        challenge_id = self.request.matchdict["cid"]
+        delete_form = SubmissionButtonForm(self.request.POST,
+                                           csrf_context=self.request)
         current_page = self.request.GET.get('page', 1)
         dbsession = DBSession()
-        delete_query = (dbsession.query(Submission).
+        redirect = HTTPFound(
+                       location=self.request.route_url(
+                           'admin_submissions',
+                           _query={'page': current_page},
+                           )
+                         )
+        if not delete_form.validate():
+            self.request.session.flash("Delete failed.")
+            return redirect
+        challenge_id = delete_form.challenge_id.data
+        team_id = delete_form.team_id.data
+        submission = (dbsession.query(Submission).
                         filter(Submission.challenge_id == challenge_id).
                         filter(Submission.team_id == team_id))
-        rows_deleted = delete_query.delete()
-        if rows_deleted == 0:
+        try:
+            dbsession.delete(submission.one())
+        except NoResultFound:
             self.request.session.flash("The Submission to be deleted was "
                                        "not found!",
                                        "error"
                                        )
-        elif rows_deleted > 1:
+        except MultipleResultsFound:
             log.error("Deleted multiple Submissions with query %s"
-                      % delete_query)
+                      % submission)
             raise ValueError("Multiple Submissions were found and deleted. "
                              "This should not be possible!")
         else:
             self.request.session.flash("Submission deleted!")
-        return HTTPFound(
-            location=self.request.route_url('admin_submissions',
-                                            _query={'page': current_page},
-                                            )
-                         )
+        return redirect
 
     @view_config(route_name='admin_massmail',
                        renderer='admin_massmail.mako')
@@ -394,6 +436,7 @@ class AdminView(object):
         mail and its recipients in the database to keep a permanent record of
         sent messages.
         """
+        # TODO: CSRF for massmail
         dbsession = DBSession()
         form = MassMailForm(self.request.POST, csrf_context=self.request)
         if not form.from_.data:

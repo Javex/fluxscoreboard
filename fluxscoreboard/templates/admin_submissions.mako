@@ -1,5 +1,6 @@
 <%inherit file="base.mako"/>
 <%namespace name="admin_funcs" file="_admin_functions.mako"/>
+<%namespace name="form_funcs" file="_form_functions.mako"/>
 <h1>Submissions</h1>
 
 % if items:
@@ -25,8 +26,12 @@
                         Action <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a href="${request.route_url('admin_submissions_edit', cid=submission.challenge_id, tid=submission.team_id, _query=dict(page=page.page))}">Edit</a></li>
-                        <li><a href="${request.route_url('admin_submissions_delete', cid=submission.challenge_id, tid=submission.team_id, _query=dict(page=page.page))}">Delete</a></li>
+                        <li>
+                            ${form_funcs.render_submission_button_form(request.route_url('admin_submissions_edit', _query=dict(page=page.page)), submission.challenge_id, submission.team_id, "Edit", request)}
+                        </li>
+                        <li>
+                            ${form_funcs.render_submission_button_form(request.route_url('admin_submissions_delete', _query=dict(page=page.page)), submission.challenge_id, submission.team_id, "Delete", request)}
+                        </li>
                     </ul>
                 </td>
             </tr>

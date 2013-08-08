@@ -125,3 +125,8 @@ gets submitted we now load the form data into the database item.
     liket the id in a field and use that to query the database and also have
     some nice wrapping stuff that displays messages, redirects on success and
     notifies the user of any problems.
+
+.. todo::
+    There is currently an ugly display of buttons on the Action listings as
+    they don't have a 100% width. However setting it to 100% causes Overflow of
+    larger text. Both is not nice :(

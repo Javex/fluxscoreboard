@@ -29,31 +29,11 @@
                     ${team.active}
                 </td>
                 <td class="btn-group">
-                    <button type="button" class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown">
-                        Action <span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a href="${request.route_url('admin_teams_edit', id=team.id, _query=dict(page=page.page))}">Edit</a></li>
-                        <li><a href="${request.route_url('admin_teams_delete', id=team.id, _query=dict(page=page.page))}">Delete</a></li>
-                        <li>
-                            <a href="${request.route_url('admin_teams_activate', id=team.id, _query=dict(page=page.page))}">
-                                % if team.active:
-                                    Deactivate Team
-                                % else:
-                                    Activate Team
-                                % endif
-                            </a>
-                        </li>
-                        <li>
-                            <a href="${request.route_url('admin_teams_toggle_local', id=team.id, _query=dict(page=page.page))}">
-                                % if team.local:
-                                    Make Team Remote
-                                % else:
-                                    Make Team Local
-                                % endif
-                            </a>
-                        </li>
-                    </ul>
+                        ${admin_funcs.display_action_list(page.page, request, team.id,
+                                                        [('admin_teams_edit', "Edit"), 
+                                                         ('admin_teams_delete', "Delete"), 
+                                                         ('admin_teams_activate', ("Deactivate" if team.active else "Activate") + " Team"),
+                                                         ('admin_teams_toggle_local', "Make Team " + ("Remote" if team.local else "Local"))])}
                 </td>
             </tr>
     % endfor

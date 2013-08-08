@@ -29,3 +29,28 @@ div.select2-container.select2 > a.select2-choice {
 	height: 38px;
 	line-height: 38px;
 }
+
+/* Make a button in a btn-group look like an entry */
+.btn-group ul.dropdown-menu li {
+    width: 100%;
+}
+
+.btn-group ul.dropdown-menu li button {
+    border: none;
+    padding: 6px 20px;
+    background-color: white;
+    color: #333333;
+    display: block;
+    text-align: left;
+    border-radius: 0px;
+    white-space: nowrap;
+}
+
+
+.btn-group ul.dropdown-menu li button:hover {
+    background-color: #357EBD;
+    background-image: linear-gradient(to bottom, #428BCA 0px, #357EBD 100%);
+    background-repeat: repeat-x;
+    color: #FFFFFF;
+    text-decoration: none;
+}

@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.forms import IntegerOrEvaluatedField, CSRFForm
+from fluxscoreboard.forms import IntegerOrEvaluatedField, CSRFForm, ButtonWidget
 from fluxscoreboard.forms.validators import email_length_validator, \
     password_length_validator_conditional, password_required_if_new, \
     required_validator, name_length_validator
-from fluxscoreboard.models.challenge import get_online_challenges, \
-    get_all_challenges
+from fluxscoreboard.models.challenge import get_all_challenges
 from fluxscoreboard.models.country import get_all_countries
-from fluxscoreboard.models.team import get_active_teams
+from fluxscoreboard.models.team import get_all_teams
 from wtforms import validators
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.fields.core import BooleanField
@@ -182,10 +181,10 @@ class SubmissionForm(CSRFForm):
         ``cancel``: Abort.
     """
     challenge = QuerySelectField("Challenge",
-                                 query_factory=get_online_challenges)
+                                 query_factory=get_all_challenges)
 
     team = QuerySelectField("Team",
-                            query_factory=get_active_teams)
+                            query_factory=get_all_teams)
 
     bonus = IntegerField("Bonus", default=0)
 
@@ -226,3 +225,24 @@ class MassMailForm(CSRFForm):
     submit = SubmitField("Send")
 
     cancel = SubmitField("Cancel")
+
+
+class ButtonForm(CSRFForm):
+    button = SubmitField(widget=ButtonWidget())
+    id = HiddenField(validators=[required_validator])
+
+    def __init__(self, formdata=None, obj=None, prefix='',
+                 csrf_context=None, title=None, **kwargs):
+        CSRFForm.__init__(self, formdata, obj, prefix, csrf_context, **kwargs)
+        self.button.label.text = title
+
+
+class SubmissionButtonForm(CSRFForm):
+    button = SubmitField(widget=ButtonWidget())
+    challenge_id = HiddenField(validators=[required_validator])
+    team_id = HiddenField(validators=[required_validator])
+
+    def __init__(self, formdata=None, obj=None, prefix='',
+                 csrf_context=None, title=None, **kwargs):
+        CSRFForm.__init__(self, formdata, obj, prefix, csrf_context, **kwargs)
+        self.button.label.text = title

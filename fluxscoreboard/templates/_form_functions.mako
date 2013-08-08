@@ -40,3 +40,30 @@
     </div>
 </form>
 </%def>
+
+<%def name="render_button_form(action, id_, title, request)">
+<%
+from fluxscoreboard.forms.admin import ButtonForm 
+from webob.multidict import MultiDict
+form = ButtonForm(MultiDict(id=id_), csrf_context=request, title=title)
+%>
+<form method="POST" action="${action}">
+    ${form.button(class_="btn btn-primary")}
+    ${form.csrf_token}
+    ${form.id}
+</form>
+</%def>
+
+<%def name="render_submission_button_form(action, challenge_id, team_id, title, request)">
+<%
+from fluxscoreboard.forms.admin import SubmissionButtonForm 
+from webob.multidict import MultiDict
+form = SubmissionButtonForm(MultiDict(challenge_id=challenge_id, team_id=team_id), csrf_context=request, title=title)
+%>
+<form method="POST" action="${action}">
+    ${form.button(class_="btn btn-primary")}
+    ${form.csrf_token}
+    ${form.challenge_id}
+    ${form.team_id}
+</form>
+</%def>

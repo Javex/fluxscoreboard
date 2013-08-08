@@ -29,22 +29,10 @@
                     ${'Yes' if challenge.published else 'No'}
                 </td>
                 <td class="btn-group">
-                    <button type="button" class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown">
-                        Action <span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a href="${request.route_url('admin_challenges_edit', id=challenge.id, _query=dict(page=page.page))}">Edit</a></li>
-                        <li><a href="${request.route_url('admin_challenges_delete', id=challenge.id, _query=dict(page=page.page))}">Delete</a></li>
-                        <li>
-                            <a href="${request.route_url('admin_challenges_toggle_status', id=challenge.id, _query=dict(page=page.page))}">
-                                % if challenge.published:
-                                    Unpublish Challenge
-                                % else:
-                                    Publish Challenge
-                                % endif
-                            </a>
-                        </li>
-                    </ul>
+                    ${admin_funcs.display_action_list(page.page, request, challenge.id,
+                                                      [('admin_challenges_edit', "Edit"), 
+                                                       ('admin_challenges_delete', "Delete"), 
+                                                       ('admin_challenges_toggle_status', ("Unpublish" if challenge.published else "Publish") + " Challenge")])}
                 </td>
             </tr>
     % endfor
