@@ -16,14 +16,12 @@ Script to help with application installation.
 ROOT_PATH = os.path.dirname(__file__)
 
 if __name__ == '__main__':
-    filename = 'development.ini'
+    filename = 'production.ini'
+    config_file = os.path.abspath(os.path.join(ROOT_PATH, filename))
     if len(sys.argv) >= 3:
         filename = sys.argv[2]
-    settings = appconfig('config:' + os.path.abspath(
-                   os.path.join(ROOT_PATH, filename)
-                   )
-                )
-    setup_logging('' + os.path.join(ROOT_PATH, 'development.ini') + '#loggers')
+    settings = appconfig('config:' + config_file)
+    setup_logging(config_file + '#loggers')
     task = sys.argv[1]
     if task in ["install", "install_test"]:
         engine = engine_from_config(settings, 'sqlalchemy.')

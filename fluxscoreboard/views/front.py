@@ -33,6 +33,8 @@ However, validatation restrictions (e.g. length) are enforced. But alone,
 without a database to persist them, they are mostly useless.
 """
 
+# TODO: Reduce requests per second on CSS and JS
+
 
 log = logging.getLogger(__name__)
 
@@ -218,7 +220,7 @@ class FrontView(BaseView):
         """
         announcements = (DBSession().query(News).
                          filter(News.published == True).
-                         order_by(desc(News._timestamp)).all())
+                         order_by(desc(News._timestamp)))
         return {'announcements': announcements}
 
     @logged_in_view(route_name='submit', renderer='submit.mako')
@@ -294,7 +296,7 @@ class UserView(BaseView):
                 team.validate_password(form.password.data)
             except (NoResultFound, ValueError) as e:
                 self.request.session.flash("Login failed.")
-                log.info("Failed login attempt for team '%(team_email)s' "
+                log.warn("Failed login attempt for team '%(team_email)s' "
                          "with IP Address '%(ip_address)s' and reason "
                          "'%(message)s'" %
                          {'team_email': form.email.data,
@@ -338,7 +340,7 @@ class UserView(BaseView):
         """
         # TODO: Its probably a better idea if the token contained the userid
         token = self.request.matchdict.get('token', None)
-        if confirm_registration(token):
+        if not confirm_registration(token):
             self.request.session.flash("Invalid token")
             raise HTTPFound(location=self.request.route_url('login'))
         else:

@@ -12,14 +12,32 @@ the WSGI protocol.
 Quickstart
 ----------
 
-.. todo::
-    Write this section
+This gives an installation example. Adjust the paths to your liking.
 
-Nginx + gunicorn
-----------------
+.. code-block:: bash
 
-.. todo::
-    Try this yourself and fill it with content
+    mkdir /var/www/hacklu
+    cd /var/www/hacklu
+    chown http:http .
+    virtualenv .
+    . bin/activate
+    tar -xzf fluxscoreboard.tar.gz
+    cd fluxscoreboard/
+    python setup.py install
+
+Now create the MySQL database and a user:
+
+.. code-block:: mysql
+
+    -- Choose a secure password here!
+    CREATE USER 'hacklu'@'localhost' IDENTIFIED BY 'mypass';
+    CREATE DATABASE scoreboard;
+    GRANT ALL ON scoreboard.* TO 'hacklu'@'localhost';
+
+Now create a valid `Configuration`_.
+
+Webserver Nginx + gunicorn
+--------------------------
 
 This is an example configuration file that can be used with `Nginx`_. For this
 server you additionally need a reverse proxy that handles the WSGI protocol.
@@ -29,12 +47,26 @@ server you additionally need a reverse proxy that handles the WSGI protocol.
 .. literalinclude:: examples/nginx.conf
     :language: nginx
 
-In our case this is `gunicorn`_, a fast and easy to set up WSGI server.
+This defines the base application. It is configured for SSL only access and
+automatically redirects any HTTP requests. There is not much to change here
+except that you might want a different path for your application. However,
+there is a second file that contains the actual options:
+
+.. literalinclude:: examples/nginx_proxy.conf
+    :language: nginx
+
+This file has to be saved somewhere *as-is* and the path in the main
+configuration has to be adjusted in such a way that it points to it relative to
+the Nginx main configuration directory (see comments in file). Restart Nginx.
+
+After Nginx is configured this way you don't have to do much for `gunicorn`_:
+It already has a valid configuration in the default configuration file (see
+below).
+
+.. todo::
+    Configure gunicorn with proper logging.
 
 .. _gunicorn: http://gunicorn.org/
-
-.. literalinclude:: examples/gunicorn.conf
-    :language: ini
 
 Configuration
 =============
@@ -62,7 +94,8 @@ To get started you at least have to enter the database connection values:
 
 You also need to create that user and the default database (``scoreboard``) or
 the one you entered and grant the user all permissions on it (no need for
-``GRANT`` though).
+``GRANT`` though). If you have followed the steps in `Quickstart`_ then you
+already have everything and only need to enter the password you chose
 
 In the next step, you have to configure the mailing part. The mailing system
 currently only supports SMTP and no local ``sendmail`` so you have to enter
@@ -94,3 +127,44 @@ encoded string with an entropy of 256 bits, more than enough for this purpose.
 
 You can now use your application. For further configuration, take a look at the
 commented configuration file.
+
+Now install the application:
+
+.. code-block:: python
+
+    python installer.py install
+
+Finally, you should protect your backend with HTTP Auth:
+
+.. code-block:: bash
+
+    htpasswd -c -b /var/www/hacklu/fluxscoreboard/.htpasswd_admin fluxadmin secretpassword
+
+This will protect your backend from unauthorized access.
+
+Finally, you have to make sure the configuration for the gunicorn server is
+correct: The only setting that might change is the username you prefer. By
+default user and group are configured to ``http``. But you might want to choose
+any different user name (it does not have to be the one of your webserver,
+though that has to read the ``static/`` directory.
+
+Test it!
+--------
+
+This should be it. You should start the server as a test:
+
+.. code-block:: bash
+
+    gunicorn_paster production.ini
+
+Try out the server by visiting the domain configured for Nginx. Fix any errors
+that appear, then enable the ``daemon = True`` option for gunicorn in
+``production.ini``. You are now good to go. A simple setup is to just run it
+and close the shell. However, with this way you have no service, no monitoring
+and now restarting.
+
+.. todo::
+    There is no section on having a service yet. That has to be added. See
+    Pyramids documentation on `supervisord`_.
+
+.. _supervisord: http://docs.pylonsproject.org/projects/pyramid_cookbook/en/latest/deployment/nginx.html#step-4-managing-your-paster-processes-with-supervisord-optional

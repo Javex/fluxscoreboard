@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
+from fluxscoreboard import routes
 from fluxscoreboard.models import DBSession, RootFactory
 from fluxscoreboard.models.team import groupfinder
-from fluxscoreboard import routes
 from pyramid.authentication import SessionAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.settings import asbool
 from pyramid_beaker import session_factory_from_settings
-from sqlalchemy import engine_from_config, event
-from zope.sqlalchemy import ZopeTransactionExtension  # @UnresolvedImport
+from sqlalchemy import engine_from_config
 
 
 __version__ = '0.1'
+
+# TODO: CSRF TOKENS!!!
+
 
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
@@ -22,13 +24,6 @@ def main(global_config, **settings):
     # Database
     engine = engine_from_config(settings, 'sqlalchemy.')
     DBSession.configure(bind=engine)
-
-    # Database Session Events
-    ext = ZopeTransactionExtension()
-    for ev in ["after_begin", "after_attach", "after_flush",
-               "after_bulk_update", "after_bulk_delete", "before_commit"]:
-        func = getattr(ext, ev)
-        event.listen(DBSession, ev, func)
 
     # Session & Auth
     session_factory = session_factory_from_settings(settings)
