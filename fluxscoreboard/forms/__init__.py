@@ -10,6 +10,10 @@ log = logging.getLogger(__name__)
 
 
 class CSRFForm(SecureForm):
+    """
+    .. todo::
+        Document.
+    """
 
     def generate_csrf_token(self, csrf_context):
         self.request = csrf_context

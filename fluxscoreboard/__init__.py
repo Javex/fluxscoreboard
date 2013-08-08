@@ -13,7 +13,8 @@ from sqlalchemy import engine_from_config
 
 __version__ = '0.1'
 
-# TODO: CSRF TOKENS!!!
+# TODO: Modifiy some stuff so everything like delete is "POST". Then include
+# csrf_token und them as well.
 
 
 def main(global_config, **settings):
