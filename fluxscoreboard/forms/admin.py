@@ -3,7 +3,7 @@ from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import IntegerOrEvaluatedField, CSRFForm, ButtonWidget
 from fluxscoreboard.forms.validators import email_length_validator, \
     password_length_validator_conditional, password_required_if_new, \
-    required_validator, name_length_validator
+    required_validator, name_length_validator, required_or_manual
 from fluxscoreboard.models.challenge import get_all_challenges
 from fluxscoreboard.models.country import get_all_countries
 from fluxscoreboard.models.team import get_all_teams
@@ -90,9 +90,9 @@ class ChallengeForm(CSRFForm):
                          validators=[required_validator]
                          )
 
-    # TODO: This should not be required if manual is checked!
+    # This is ignored if the challenge is manual!
     points = IntegerOrEvaluatedField("Points",
-                          validators=[required_validator]
+                          validators=[required_or_manual]
                           )
 
     published = BooleanField("Published")

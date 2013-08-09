@@ -75,3 +75,13 @@ def password_required_if_new(form, field):
         return required_validator(form, field)
     else:
         return True
+
+
+def required_or_manual(form, field):
+    """
+    Enforces a "required" only if the "manual" field is not set.
+    """
+    if not form.manual.data:
+        return required_validator(form, field)
+    else:
+        return field.data is None
