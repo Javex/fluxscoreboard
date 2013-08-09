@@ -42,7 +42,7 @@ class News(Base):
 
     challenge = relationship("Challenge",
                              backref=backref("announcements",
-                                             cascade="all, delete-orphan",
+                                             cascade="all",
                                              order_by="desc(News._timestamp)"),
                              lazy='joined')
 
