@@ -20,14 +20,14 @@
                 <td>${submission.team} (${submission.team_id})</td>
                 <td>${submission.challenge} (${submission.challenge_id})</td>
                 <td>${submission.timestamp.strftime("%Y-%m-%d %H:%M:%S")}</td>
-                <td>${submission.points}</td>
+                <td>${submission.bonus}</td>
                 <td class="btn-group">
                     <button type="button" class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown">
                         Action <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu">
                         <li>
-                            ${form_funcs.render_submission_button_form(request.route_url('admin_submissions_edit', _query=dict(page=page.page)), submission.challenge_id, submission.team_id, "Edit", request)}
+                            ${form_funcs.render_submission_button_form(request.route_url('admin_submissions', _query=dict(page=page.page)), submission.challenge_id, submission.team_id, "Edit", request)}
                         </li>
                         <li>
                             ${form_funcs.render_submission_button_form(request.route_url('admin_submissions_delete', _query=dict(page=page.page)), submission.challenge_id, submission.team_id, "Delete", request)}
@@ -46,4 +46,4 @@
     </div>
 % endif
 
-${admin_funcs.display_admin_form('admin_submissions', form, "Submission", is_new, page.page)}
+${admin_funcs.display_admin_form('admin_submissions_edit', form, "Submission", is_new, page.page)}

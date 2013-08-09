@@ -32,7 +32,7 @@
                 </td>
                 <td class="btn-group">
                     ${admin_funcs.display_action_list(page.page, request, news.id,
-                                                      [('admin_news_edit', "Edit"), 
+                                                      [('admin_news', "Edit"),
                                                        ('admin_news_delete', "Delete"), 
                                                        ('admin_news_toggle_status', ("Unpublish" if news.published else "Publish") + " Announcement")])}
                 </td>
@@ -48,4 +48,4 @@
     </div>
 % endif
 
-${admin_funcs.display_admin_form('admin_news', form, "Announcement", is_new, page.page)}
+${admin_funcs.display_admin_form('admin_news_edit', form, "Announcement", is_new, page.page)}

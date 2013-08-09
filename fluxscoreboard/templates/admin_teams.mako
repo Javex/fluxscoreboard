@@ -26,11 +26,11 @@
                     ${'Yes' if team.local else 'No'}
                 </td>
                 <td class="text-${'success' if team.active else 'danger'}">
-                    ${team.active}
+                    ${'Yes' if team.active else 'No'}
                 </td>
                 <td class="btn-group">
                         ${admin_funcs.display_action_list(page.page, request, team.id,
-                                                        [('admin_teams_edit', "Edit"), 
+                                                        [('admin_teams', "Edit"),
                                                          ('admin_teams_delete', "Delete"), 
                                                          ('admin_teams_activate', ("Deactivate" if team.active else "Activate") + " Team"),
                                                          ('admin_teams_toggle_local', "Make Team " + ("Remote" if team.local else "Local"))])}
@@ -47,4 +47,4 @@
     </div>
 % endif
 
-${admin_funcs.display_admin_form('admin_teams', form, "Team", is_new, page.page)}
+${admin_funcs.display_admin_form('admin_teams_edit', form, "Team", is_new, page.page)}

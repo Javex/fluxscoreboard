@@ -3,9 +3,11 @@ from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, TeamForm, \
     SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm
 from fluxscoreboard.models import DBSession
-from fluxscoreboard.models.challenge import Challenge, Submission
+from fluxscoreboard.models.challenge import Challenge, Submission, \
+    get_submissions
 from fluxscoreboard.models.news import News, MassMail
 from fluxscoreboard.models.team import Team, get_active_teams
+from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound
 from pyramid.view import view_config
 from pyramid_mailer import get_mailer
@@ -39,6 +41,73 @@ class AdminView(object):
     @property
     def menu(self):
         return self._menu
+
+    def page(self, items):
+        """
+        Return a :class:`webhelpers.paginate.Page` instance for an ``items``
+        iterable.
+        """
+        current_page = self.request.GET.get('page', 1)
+        page_url = PageURL_WebOb(self.request)
+        page = Page(items, page=current_page, url=page_url,
+                    items_per_page=5, item_count=items.count())
+        return page
+
+    def redirect(self, route_name, current_page):
+        """
+        For a given route name and page number get a redirect to that page.
+        Convenience method for writing clean code.
+        """
+        return HTTPFound(
+            location=self.request.route_url(route_name,
+                                            query={'page': current_page})
+        )
+
+    def items(self, DatabaseClass):
+        """
+        Construct a simple query to the database. Even though it is dead simple
+        it is factored out because it is used in more than one place.
+        """
+        return DBSession().query(DatabaseClass)
+
+    def _list_retparams(self, page, form, is_new=None):
+        """
+        Get a dictionary of parameters to return to a list + edit form view.
+
+        ``page`` must be an instance of :class:`webhelpers.paginate.Page` and
+        ``form`` must be an instance of the form to be displayed (whatever
+        that is).
+        """
+        if is_new is None:
+            is_new = not bool(form.id.data)
+        return {'items': page.items,
+                'form': form,
+                'is_new': is_new,
+                'page': page,
+                'ButtonForm': ButtonForm,
+                }
+
+    def _delete_item(self, dbsession, item, title, title_plural=None):
+        # Prepare parameters
+        if title_plural is None:
+            title_plural = title + "s"
+
+        # Delete (make sure only **one** item is deleted)
+        try:
+            dbsession.delete(item.one())
+        except NoResultFound:
+            self.request.session.flash("The %s to be deleted was "
+                                       "not found!" % title.lower(),
+                                       "error"
+                                       )
+        except MultipleResultsFound:
+            log.error("Multiple %s would have been deleted with the query "
+                      "'%s' so the process was aborted."
+                      % (title_plural.lower(), item))
+            raise ValueError("Multiple %s were found. This should never "
+                             "happen!" % title_plural.lower())
+        else:
+            self.request.session.flash("%s deleted!" % title)
 
     def _admin_list(self, route_name, FormClass, DatabaseClass, title):
         """
@@ -77,56 +146,76 @@ class AdminView(object):
             return self._admin_list('admin_challenges', ChallengeForm,
                                     Challenge, "Challenge")
         """
+        # Prepare some paramters
         dbsession = DBSession()
-        items = dbsession.query(DatabaseClass)
-        current_page = self.request.GET.get('page', 1)
-        page_url = PageURL_WebOb(self.request)
-        page = Page(items, page=current_page, url=page_url,
-                    items_per_page=5, item_count=items.count())
-        redirect = HTTPFound(
-                       location=self.request.route_url(
-                           route_name, query={'page': page.page}))
+        items = self.items(DatabaseClass)
+        page = self.page(items)
+        redirect = self.redirect(route_name, page.page)
         item_id = None
-        edit = "button" in self.request.POST
-        if self.request.method == 'POST' and edit:
+        if self.request.method == 'POST':
+            # Someone wants to edit so make sure to load and check the form
+            # for CSRF and get the ID.
             edit_form = ButtonForm(self.request.POST,
                                    csrf_context=self.request)
             if not edit_form.validate():
                 # Error, most likely CSRF
                 return redirect
             item_id = edit_form.id.data
+
+        # Either load a new form or load old data into it.
         if item_id is None:
             form = FormClass(self.request.POST, csrf_context=self.request)
         else:
             db_item = (dbsession.query(DatabaseClass).
                        filter(DatabaseClass.id == item_id).one())
-            form = FormClass(self.request.POST if not edit else None, db_item,
-                             csrf_context=self.request)
-        retparams = {'items': page.items,
-                     'form': form,
-                     'is_new': not bool(form.id.data),
-                     'page': page,
-                     'ButtonForm': ButtonForm,
-                     }
-        if self.request.method == 'POST' and "button" not in self.request.POST:
-            if form.submit.data:
-                if not form.validate():
-                    return retparams
-                if not form.id.data:
-                    db_item = DatabaseClass()
-                    dbsession.add(db_item)
-                    self.request.session.flash("%s added!" % title)
-                else:
-                    db_item = (dbsession.query(DatabaseClass).
-                               filter(DatabaseClass.id == form.id.data).one())
-                    self.request.session.flash("%s edited!" % title)
-                form.populate_obj(db_item)
-                if db_item.id == '':
-                    db_item.id = None
-            return redirect
-        return retparams
+            form = FormClass(None, db_item, csrf_context=self.request)
 
-    def _admin_delete(self, route_name, DatabaseClass, title, title_plural):
+        # Display the page
+        return self._list_retparams(page, form)
+
+    def _admin_edit(self, route_name, FormClass, DatabaseClass, title):
+        """
+        A generic function for a view that is invoked after an edit (or add)
+        has been performed. It is separate from that of
+        :meth:`AdminView._admin_list` to keep the code cleaner. It has the
+        same parameters and return types but can only be invoked as a ``POST``.
+        """
+        # We don't accept GET or others here
+        assert self.request.method == "POST"
+
+        # Prepare parameters
+        dbsession = DBSession()
+        form = FormClass(self.request.POST, csrf_context=self.request)
+        page = self.page(self.items(DatabaseClass))
+        redirect = self.redirect(route_name, page.page)
+
+        # Cancel button pressed?
+        if not form.submit.data:
+            return redirect
+
+        # Form errors?
+        if not form.validate():
+            return self._list_retparams(page, form)
+
+        # New item or existing one?
+        if not form.id.data:
+            db_item = DatabaseClass()
+            dbsession.add(db_item)
+            self.request.session.flash("%s added!" % title)
+        else:
+            db_item = (dbsession.query(DatabaseClass).
+                       filter(DatabaseClass.id == form.id.data).one())
+            self.request.session.flash("%s edited!" % title)
+
+        # Transfer edits into database
+        form.populate_obj(db_item)
+        if db_item.id == '':
+            # Safe measure to ensure a clean item ID
+            db_item.id = None
+        return redirect
+
+    def _admin_delete(self, route_name, DatabaseClass, title,
+                      title_plural=None):
         """
         Generic function to delete a single item from the database. Its
         arguments have the same meaning as explained in :meth:`_admin_list`
@@ -140,31 +229,29 @@ class AdminView(object):
             (should be one) and deletes them afterwards. This ensures that the
             Python-side cascades appropriately delete all dependent objects.
         """
+        # We don't accept GET or others here
+        assert self.request.method == "POST"
+
+        # Prepare parameters
         delete_form = ButtonForm(self.request.POST, csrf_context=self.request)
-        current_page = self.request.GET.get('page', 1)
+        current_page = int(self.request.GET.get('page', 1))
         dbsession = DBSession()
-        redirect = HTTPFound(location=self.request.route_url(route_name, _query={'page': current_page}))
+        redirect = self.redirect(route_name, current_page)
+        if title_plural is None:
+            title_plural = title + "s"
+
+        # Check for errors
         if not delete_form.validate():
             self.request.session.flash("Delete failed.")
             return redirect
+
+        # Load the ID to delete
         item_id = delete_form.id.data
-        try:
-            obj = (dbsession.query(DatabaseClass).
-                            filter(DatabaseClass.id == item_id))
-            dbsession.delete(obj.one())
-        except NoResultFound:
-            self.request.session.flash("The %s to be deleted was "
-                                       "not found!" % title.lower(),
-                                       "error"
-                                       )
-        except MultipleResultsFound:
-            log.error("Multiple %s would have been deleted with the query "
-                      "'%s' so the process was aborted."
-                      % (title_plural.lower(), obj))
-            raise ValueError("Multiple %s were found. This should never "
-                             "happen!" % title_plural.lower())
-        else:
-            self.request.session.flash("%s deleted!" % title)
+
+        # Delete the item
+        item = (dbsession.query(DatabaseClass).
+                filter(DatabaseClass.id == item_id))
+        self._delete_item(dbsession, item, title, title_plural)
         return redirect
 
     def _admin_toggle_status(self, route_name, DatabaseClass, title='',
@@ -201,21 +288,35 @@ class AdminView(object):
         Returns:
             A dictionary or similar that can be directly returned from a view.
         """
-        current_page = self.request.GET.get('page', 1)
+        # We don't accept GET or others here
+        assert self.request.method == "POST"
+
+        # Prepare parameters
         dbsession = DBSession()
-        inverse_status_types = {}
+        current_page = int(self.request.GET.get('page', 1))
+        redirect = self.redirect(route_name, current_page)
+
+        # Load and check form (csrf check!)
         toggle_form = ButtonForm(self.request.POST, csrf_context=self.request)
-        redirect = HTTPFound(location=self.request.route_url(route_name, _query={'page': current_page}))
         if not toggle_form.validate():
             self.request.session.flash("Toggle failed.")
             return redirect
-        item_id = toggle_form.id.data
+
+        # Generate a dict of inverted status types
+        inverse_status_types = {}
         for key, value in status_types.items():
             inverse_status_types[value] = key
+
+        # Fetch the item to toggle
         item = (dbsession.query(DatabaseClass).
-                filter(DatabaseClass.id == item_id).one())
+                filter(DatabaseClass.id == toggle_form.id.data).one())
+
+        # Read the current status
         status = inverse_status_types[getattr(item, status_variable_name)]
+        # Set the inverse
         setattr(item, status_variable_name, status_types[not status])
+
+        # Finish the request
         self.request.session.flash(status_messages[not status]
                                    % {'title': title.lower()})
         return redirect
@@ -226,26 +327,32 @@ class AdminView(object):
         return HTTPFound(location=self.request.route_url('admin_news'))
 
     @view_config(route_name='admin_news', renderer='admin_news.mako')
-    @view_config(route_name='admin_news_edit', renderer='admin_news.mako')
     def news(self):
         """
         A view to list, add and edit announcements. Implemented with
         :meth:`_admin_list`.
         """
-        # TODO: When an announcement is turned into a general (i.e. no
-        # challenge ID) it gets deleted. Why?
         return self._admin_list('admin_news', NewsForm, News, "Announcement")
 
-    @view_config(route_name='admin_news_delete')
+    @view_config(route_name='admin_news_edit', renderer='admin_news.mako',
+                 request_method='POST')
+    def news_edit(self):
+        """
+        This view accepts an edit form, handles it and reacts accordingly
+        (either redirect or, on error, show errors). Implemented with
+        :meth:`_admin_edit`.
+        """
+        return self._admin_edit('admin_news', NewsForm, News, "Announcement")
+
+    @view_config(route_name='admin_news_delete', request_method='POST')
     def news_delete(self):
         """
         A view to delete an announcement. Implemented with
         :meth:`_admin_delete`.
         """
-        return self._admin_delete('admin_news', News,
-                                  "Announcement", "Announcements")
+        return self._admin_delete('admin_news', News, "Announcement")
 
-    @view_config(route_name='admin_news_toggle_status')
+    @view_config(route_name='admin_news_toggle_status', request_method='POST')
     def news_toggle_status(self):
         """
         A view to publish or unpublish an announcement. Implemented with
@@ -254,9 +361,9 @@ class AdminView(object):
         return self._admin_toggle_status('admin_news', News, "Announcement")
 
     @view_config(route_name='admin_challenges',
-                       renderer='admin_challenges.mako')
+                 renderer='admin_challenges.mako')
     @view_config(route_name='admin_challenges_edit',
-                       renderer='admin_challenges.mako')
+                 renderer='admin_challenges.mako')
     def challenges(self):
         """
         A view to list, add and edit challenges. Implemented with
@@ -265,15 +372,26 @@ class AdminView(object):
         return self._admin_list('admin_challenges', ChallengeForm,
                                 Challenge, "Challenge")
 
-    @view_config(route_name='admin_challenges_delete')
+    @view_config(route_name='admin_challenges_edit',
+                 renderer='admin_challenges.mako', request_method='POST')
+    def challenge_edit(self):
+        """
+        This view accepts an edit form, handles it and reacts accordingly
+        (either redirect or, on error, show errors). Implemented with
+        :meth:`_admin_edit`.
+        """
+        return self._admin_edit('admin_challenges', ChallengeForm, Challenge,
+                                "Challenge")
+
+    @view_config(route_name='admin_challenges_delete', request_method='POST')
     def challenge_delete(self):
         """
         A view to delete a challenge. Implemented with :meth:`_admin_delete`.
         """
-        return self._admin_delete('admin_challenges', Challenge,
-                                  "Challenge", "Challenges")
+        return self._admin_delete('admin_challenges', Challenge, "Challenge")
 
-    @view_config(route_name='admin_challenges_toggle_status')
+    @view_config(route_name='admin_challenges_toggle_status',
+                 request_method='POST')
     def challenge_toggle_status(self):
         """
         A view to toggle the online/offline status of a challenge.
@@ -292,12 +410,23 @@ class AdminView(object):
         """
         return self._admin_list('admin_teams', TeamForm, Team, "Team")
 
-    @view_config(route_name='admin_teams_delete')
+    @view_config(route_name='admin_teams_edit',
+                 renderer='admin_teams.mako', request_method='POST')
+    def team_edit(self):
+        """
+        This view accepts an edit form, handles it and reacts accordingly
+        (either redirect or, on error, show errors). Implemented with
+        :meth:`_admin_edit`.
+        """
+        return self._admin_edit('admin_teams', TeamForm, Team,
+                                "team")
+
+    @view_config(route_name='admin_teams_delete', request_method='POST')
     def team_delete(self):
         """Delete a team."""
-        return self._admin_delete('admin_teams', Team, "Team", "Teams")
+        return self._admin_delete('admin_teams', Team, "Team")
 
-    @view_config(route_name='admin_teams_activate')
+    @view_config(route_name='admin_teams_activate', request_method='POST')
     def team_activate(self):
         """De-/Activate a team."""
         return self._admin_toggle_status('admin_teams', Team, "Team",
@@ -307,7 +436,7 @@ class AdminView(object):
                                           True: 'Activated %(title)s'}
                                          )
 
-    @view_config(route_name='admin_teams_toggle_local')
+    @view_config(route_name='admin_teams_toggle_local', request_method='POST')
     def team_toggle_local(self):
         """Toggle the local attribute of a team."""
         return self._admin_toggle_status(
@@ -319,8 +448,6 @@ class AdminView(object):
 
     @view_config(route_name='admin_submissions',
                  renderer='admin_submissions.mako')
-    @view_config(route_name='admin_submissions_edit',
-                       renderer='admin_submissions.mako')
     def submissions(self):
         """
         List, add or edit a submission. This is different because it consists
@@ -331,21 +458,23 @@ class AdminView(object):
         # TODO: Possibly we need a way to distinguish between someone selecting
         # an existing Challenge/Team combo and clicking the "Edit" button.
         # Currently the former is somewhat buggy...
+        # TODO: Additionally, we need a way to exclude already existing
+        # combinations in the list selection. This can likely only be done
+        # with JS or needs a complete restructuring of the view thingy to
+        # go like this: "Select Challenge" -> "Add Team Submission" or
+        # "Select Team" -> "Add Challenge Submission"... Decide what's best
+        # here...
+
+        # Prepare parameters
         dbsession = DBSession()
-        submissions = (dbsession.query(Submission).
-                             options(joinedload('challenge')).
-                             options(joinedload('team')))
-        current_page = self.request.GET.get('page', 1)
-        page_url = PageURL_WebOb(self.request)
-        page = Page(submissions, page=current_page, url=page_url,
-                    items_per_page=5, item_count=submissions.count())
-        redirect = HTTPFound(
-                       location=self.request.route_url(
-                           'admin_submissions', _query={'page': page.page}))
+        submissions = get_submissions()
+        page = self.page(submissions)
+        redirect = self.redirect('admin_submissions', page.page)
         challenge_id = None
         team_id = None
-        edit = "button" in self.request.POST
-        if self.request.method == 'POST' and edit:
+        if self.request.method == 'POST':
+            # Someone wants to edit so make sure to load and check the form
+            # for CSRF and get the ID.
             edit_form = SubmissionButtonForm(self.request.POST,
                                              csrf_context=self.request)
             if not edit_form.validate():
@@ -353,79 +482,82 @@ class AdminView(object):
                 return redirect
             challenge_id = edit_form.challenge_id.data
             team_id = edit_form.team_id.data
+
+        # Either load a new form or load old data into it.
         if challenge_id is None or team_id is None:
             form = SubmissionForm(self.request.POST, csrf_context=self.request)
         else:
-            db_item = (dbsession.query(Submission).
+            submission = (dbsession.query(Submission).
                        filter(Submission.team_id == team_id).
                        filter(Submission.challenge_id == challenge_id).
                        one())
-            form = SubmissionForm(self.request.POST if not edit else None,
-                                  db_item, csrf_context=self.request)
-        retparams = {'items': page.items,
-                     'form': form,
-                     'is_new': True,
-                     'page': page,
-                     'ButtonForm': SubmissionButtonForm,
-                     }
-        if self.request.method == 'POST' and "button" not in self.request.POST:
-            if form.submit.data:
-                if not form.validate():
-                    return retparams
+            form = SubmissionForm(None, submission, csrf_context=self.request)
 
-                try:
-                    db_item = (dbsession.query(Submission).
-                               filter(Submission.challenge_id ==
-                                      form.challenge.data.id).
-                               filter(Submission.team_id == form.team.data.id).
-                               one())
-                    is_new = False
-                    self.request.session.flash("Submission edited!")
-                except NoResultFound:
-                    db_item = Submission()
-                    dbsession.add(db_item)
-                    is_new = True
-                    self.request.session.flash("Submission added!")
-                form.populate_obj(db_item)
-                retparams["is_new"] = is_new
+        # Display the page
+        is_new = not bool(form.challenge.data and form.team.data)
+        return self._list_retparams(page, form, is_new=is_new)
+
+    @view_config(route_name='admin_submissions_edit',
+                 renderer='admin_submissions.mako',
+                 request_method='POST')
+    def submissions_edit(self):
+        # Prepare parameters
+        dbsession = DBSession()
+        form = SubmissionForm(self.request.POST, csrf_context=self.request)
+        submissions = get_submissions()
+        page = self.page(submissions)
+        redirect = self.redirect('admin_submissions', page.page)
+
+        # Cancel button pressed?
+        if not form.submit.data:
             return redirect
-        return retparams
 
-    @view_config(route_name='admin_submissions_delete')
+        is_new = not bool(form.challenge.data and form.team.data)
+        # Form errors?
+        if not form.validate():
+            return self._list_retparams(page, form, is_new=is_new)
+
+        # New item or existing one?
+        try:
+            submission = (dbsession.query(Submission).
+                          filter(Submission.challenge_id ==
+                                 form.challenge.data.id).
+                          filter(Submission.team_id == form.team.data.id).
+                          one())
+            self.request.session.flash("Submission edited!")
+        except NoResultFound:
+            submission = Submission()
+            dbsession.add(submission)
+            self.request.session.flash("Submission added!")
+
+        # Transfer edits into databse
+        form.populate_obj(submission)
+        return redirect
+
+    @view_config(route_name='admin_submissions_delete', request_method='POST')
     def sbumissions_delete(self):
         """Delete a submission."""
+        # Prepare parameters
         delete_form = SubmissionButtonForm(self.request.POST,
                                            csrf_context=self.request)
-        current_page = self.request.GET.get('page', 1)
+        current_page = int(self.request.GET.get('page', 1))
         dbsession = DBSession()
-        redirect = HTTPFound(
-                       location=self.request.route_url(
-                           'admin_submissions',
-                           _query={'page': current_page},
-                           )
-                         )
+        redirect = self.redirect('admin_submissions', current_page)
+
+        # Check for errors
         if not delete_form.validate():
             self.request.session.flash("Delete failed.")
             return redirect
+
+        # Load the IDs to delete and build query
         challenge_id = delete_form.challenge_id.data
         team_id = delete_form.team_id.data
         submission = (dbsession.query(Submission).
                         filter(Submission.challenge_id == challenge_id).
                         filter(Submission.team_id == team_id))
-        try:
-            dbsession.delete(submission.one())
-        except NoResultFound:
-            self.request.session.flash("The Submission to be deleted was "
-                                       "not found!",
-                                       "error"
-                                       )
-        except MultipleResultsFound:
-            log.error("Deleted multiple Submissions with query %s"
-                      % submission)
-            raise ValueError("Multiple Submissions were found and deleted. "
-                             "This should not be possible!")
-        else:
-            self.request.session.flash("Submission deleted!")
+
+        # Delete the item
+        self._delete_item(dbsession, submission, "Submission")
         return redirect
 
     @view_config(route_name='admin_massmail',

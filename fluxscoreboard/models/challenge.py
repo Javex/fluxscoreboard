@@ -5,7 +5,7 @@ from fluxscoreboard.models import Base, DBSession
 from pyramid.security import authenticated_userid
 from pyramid.threadlocal import get_current_request
 from pytz import utc
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.sql.expression import not_
 from sqlalchemy.types import Integer, Unicode, Boolean, DateTime, UnicodeText
@@ -60,6 +60,16 @@ def get_solvable_challenges():
     """
     unsolved = get_unsolved_challenges()
     return unsolved.filter(Challenge.manual == False)
+
+
+def get_submissions():
+    """
+    Creates a query to **eagerly** load all submissions. That is, all teams
+    and challenges that are attached to the submissions are fetched with them.
+    """
+    return (DBSession().query(Submission).
+            options(joinedload('challenge')).
+            options(joinedload('team')))
 
 
 def check_submission(challenge, solution, team_id, settings):
