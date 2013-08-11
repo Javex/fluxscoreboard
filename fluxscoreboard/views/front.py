@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.front import LoginForm, RegisterForm, ProfileForm, \
-    SolutionSubmitForm, SolutionSubmitListForm
+    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,\
+    ResetPasswordForm
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission, \
     check_submission
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.team import Team, login, get_team_solved_subquery, \
-    get_number_solved_subquery, get_team, register_team, confirm_registration
+    get_number_solved_subquery, get_team, register_team, confirm_registration, \
+    password_reminder, check_password_reset_token
 from fluxscoreboard.util import not_logged_in
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
@@ -323,6 +325,8 @@ class UserView(BaseView):
         return {'form': form}
 
     @view_config(route_name='confirm')
+    @not_logged_in("Erm... Your account is active since you are already "
+                   "logged in. WTF?")
     def confirm_registration(self):
         """
         After a registration has been made, the team recieves a confirmation
@@ -360,5 +364,39 @@ class UserView(BaseView):
             return HTTPFound(location=self.request.route_url('profile'))
         return retparams
 
+    @view_config(route_name='reset-password-start',
+                 renderer='reset_password_start.mako')
+    def reset_password_start(self):
+        # TODO: The token should probably contain the userid here as well
+        form = ForgotPasswordForm(self.request.POST, csrf_context=self.request)
+        retparams = {'form': form}
+        if self.request.method == 'POST':
+            if not form.validate():
+                return retparams
+            password_reminder(form.email.data, self.request)
+            self.request.session.flash("An email has been sent to the "
+                                       "provided address with further "
+                                       "information.")
+            return HTTPFound(
+                location=self.request.route_url('reset-password-start')
+            )
+        return retparams
 
-    # TODO: create forgot password view
+    @view_config(route_name='reset-password', renderer='reset_password.mako')
+    def reset_password(self):
+        form = ResetPasswordForm(self.request.POST, csrf_context=self.request)
+        redirect = HTTPFound(location=self.request.route_url('login'))
+        token = self.request.matchdict["token"]
+        retparams = {'form': form, 'token': token}
+        team = check_password_reset_token(token)
+        if not team:
+            self.request.session.flash("Reset failed.")
+            raise redirect
+        if self.request.method == 'POST':
+            if not form.validate():
+                return retparams
+            team.reset_token = None
+            team.password = form.password.data
+            self.request.session.flash("Your password has been reset.")
+            return redirect
+        return retparams

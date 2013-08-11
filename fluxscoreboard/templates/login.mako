@@ -26,6 +26,7 @@
         <div class="col-8">
             ${form.csrf_token}
             ${form.login(class_="btn btn-primary")}
+            <a href="${request.route_url('reset-password-start')}" class="btn btn-default btn-small">Forgot Password?</a>
         </div>
     </form>
 </div>

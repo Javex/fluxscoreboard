@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
+from fluxscoreboard.forms import CSRFForm
 from fluxscoreboard.forms.validators import name_length_validator, \
     email_length_validator, password_min_length_validator, \
     password_max_length_validator, required_validator, email_equal_validator, \
@@ -11,7 +12,6 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.fields.core import SelectField
 from wtforms.fields.html5 import EmailField
 from wtforms.fields.simple import TextField, SubmitField, PasswordField
-from fluxscoreboard.forms import CSRFForm
 
 
 class RegisterForm(CSRFForm):
@@ -112,6 +112,32 @@ class LoginForm(CSRFForm):
                              validators=[required_validator])
 
     login = SubmitField("Login")
+
+
+class ForgotPasswordForm(CSRFForm):
+    """
+    A form to get an email for a forgotten password.
+    """
+    email = EmailField("Team E-Mail", validators=[required_validator])
+
+    submit = SubmitField("Send Reset E-Mail")
+
+
+class ResetPasswordForm(CSRFForm):
+    """
+    A form to finish a started reset process.
+    """
+    password = PasswordField("New Password",
+                             validators=[required_validator,
+                                         password_equal_validator,
+                                         password_min_length_validator,
+                                         password_max_length_validator,
+                                         ])
+
+    password_repeat = PasswordField("Repeat New Password",
+                                    validators=[required_validator])
+
+    submit = SubmitField("Set New Password")
 
 
 class ProfileForm(CSRFForm):

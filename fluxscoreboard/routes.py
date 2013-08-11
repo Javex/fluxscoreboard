@@ -24,6 +24,8 @@ routes = [('home', '/'),
           ('register', '/register'),
           ('confirm', '/confirm/{token}'),
           ('profile', '/profile'),
+          ('reset-password-start', '/reset-password'),
+          ('reset-password', '/reset-password/{token}'),
           # Administration routes
           ('admin', '/admin'),
           ('admin_news', '/admin/news'),

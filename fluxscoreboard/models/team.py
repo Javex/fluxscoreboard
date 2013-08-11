@@ -207,6 +207,43 @@ def login(email, password):
     return True, None, team
 
 
+def password_reminder(email, request):
+    """
+    For an email address, find the corresponding team and send a password
+    reset token. If no team is found send an email that no user was found for
+    this address.
+    """
+    dbsession = DBSession()
+    mailer = get_mailer(request)
+    team = dbsession.query(Team).filter(Team.email == email).first()
+    if team:
+        # send mail with reset token
+        team.reset_token = binascii.hexlify(os.urandom(32)).decode("ascii")
+        html = render('mail_password_reset_valid.mako', {'team': team},
+                      request=request)
+        recipients = [team.email]
+    else:
+        # send mail with information that no team was found for that address.
+        html = render('mail_password_reset_invalid.mako', {'email': email},
+                      request=request)
+        recipients = [email]
+    message = Message(subject="Password Reset for Hack.lu 2013",
+                      recipients=recipients,
+                      html=html,
+                      )
+    mailer.send(message)
+
+
+def check_password_reset_token(token):
+    """
+    Check if an entered password reset token actually exists in the database.
+    """
+    dbsession = DBSession()
+    team = (dbsession.query(Team).
+            filter(Team.reset_token == token).first())
+    return team
+
+
 class Team(Base):
     """
     A team represented in the database.
@@ -247,6 +284,7 @@ class Team(Base):
     country_id = Column(Integer, ForeignKey('country.id'), nullable=False)
     local = Column(Boolean, default=False)
     token = Column(Unicode(64), nullable=False, unique=True)
+    reset_token = Column(Unicode(64), unique=True)
     active = Column(Boolean, default=False)
     _timezone = Column('timezone', Unicode(30),
                        default=lambda: unicode(utc.zone),

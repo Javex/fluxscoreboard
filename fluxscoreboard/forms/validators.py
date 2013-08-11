@@ -4,6 +4,7 @@ from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.team import TEAM_MAIL_MAX_LENGTH, Team, \
     TEAM_PASSWORD_MAX_LENGTH, TEAM_NAME_MAX_LENGTH
 from wtforms import validators
+from sqlalchemy.orm.exc import NoResultFound
 
 __doc__ = """
 Contains validators for forms with custom messages. Some validators are based
