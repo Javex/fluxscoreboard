@@ -19,7 +19,7 @@ submission_disabled = False
 domain = localhost
 
 # The CSP header values to set
-csp_headers = default-src 'self;
+csp_headers = default-src 'self';
 
 # Enter your database credentials here
 db.user = hacklu
