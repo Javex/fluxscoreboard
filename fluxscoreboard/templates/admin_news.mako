@@ -7,9 +7,9 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Time (UTC)</td>
-                <th>Message</td>
-                <th>Challenge</td>
+                <th>Time (UTC)</th>
+                <th>Message</th>
+                <th>Challenge</th>
                 <th>Published</th>
                 <th>Action</th>
             </tr>
