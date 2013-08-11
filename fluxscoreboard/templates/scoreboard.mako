@@ -11,7 +11,7 @@
     </thead>
     <tbody>
     % for index, (team, points) in enumerate(teams, 1):
-        <tr class="${'success bold' if team.id == request.team.id else ''}">
+        <tr class="${'success bold' if request.team and team.id == request.team.id else ''}">
             <td>${index}</td>
             <td>${team.name}</td>
             <td>${team.country}</td>
