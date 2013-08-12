@@ -5,7 +5,7 @@ from fluxscoreboard.forms.validators import name_length_validator, \
     email_length_validator, password_min_length_validator, \
     password_max_length_validator, required_validator, email_equal_validator, \
     email_unique_validator, password_equal_validator
-from fluxscoreboard.models.challenge import get_unsolved_challenges
+from fluxscoreboard.models.challenge import get_solvable_challenges
 from fluxscoreboard.models.country import get_all_countries
 from pytz import common_timezones, utc
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
@@ -203,5 +203,5 @@ class SolutionSubmitListForm(SolutionSubmitForm):
         ``challenge``: A list of challenges to choose from. Required.
     """
     challenge = QuerySelectField("Challenge",
-                                 query_factory=get_unsolved_challenges,
+                                 query_factory=get_solvable_challenges,
                                  )
