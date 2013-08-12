@@ -7,11 +7,9 @@
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/bootstrap.min.js')}"></script>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/hacklu.js')}"></script>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/sorttable.js')}"></script>
-        <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/select2/select2.js')}"></script>
         
         <link href="${request.static_url('fluxscoreboard:static/css/bootstrap.min.css')}" rel="stylesheet" />
         <link href="${request.static_url('fluxscoreboard:static/css/hacklu.css')}" rel="stylesheet" />
-        <link href="${request.static_url('fluxscoreboard:static/select2/select2.css')}" rel="stylesheet" />
         
         <title>Hack.lu 2013 CTF</title>
     </head>

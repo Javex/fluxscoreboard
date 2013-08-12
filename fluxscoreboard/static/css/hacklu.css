@@ -20,16 +20,6 @@ table.sortable th:hover{
 	cursor:pointer;
 }
 
-/* Replicate a bootstrap similar display for a select2 list*/
-div.select2-container.select2 {
-	width: 100%;
-}
-
-div.select2-container.select2 > a.select2-choice {
-	height: 38px;
-	line-height: 38px;
-}
-
 /* Make a button in a btn-group look like an entry */
 .btn-group ul.dropdown-menu li {
     width: 100%;

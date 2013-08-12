@@ -86,9 +86,9 @@ class RegisterForm(CSRFForm):
                                )
 
     timezone = SelectField("Timezone",
-                           choices=([('', '')] +
+                           choices=([(utc.zone,
+                                      '-- Please choose a timezone --')] +
                                     [(tz, tz) for tz in common_timezones]),
-                           default=((utc.zone, utc.zone)),
                            )
 
     submit = SubmitField("Register")
