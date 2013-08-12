@@ -60,7 +60,7 @@ class AdminView(object):
         """
         return HTTPFound(
             location=self.request.route_url(route_name,
-                                            query={'page': current_page})
+                                            _query={'page': current_page})
         )
 
     def items(self, DatabaseClass):
