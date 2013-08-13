@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import DBSession, Base, Challenge, News, Submission, \
-    Team, Country, MassMail
+    Team, Country, MassMail, Category
 from fluxscoreboard.util import random_str
 import json
 import logging
@@ -59,9 +59,20 @@ def install_test_data(dbsession, settings):
         teams.append(team)
     dbsession.add_all(teams)
 
+    # Categories
+    categories = []
+    for __ in xrange(5):
+        cat = Category(name=random_str(10))
+        categories.append(cat)
+    dbsession.add_all(categories)
+
     # Challenges
     challenges = []
     for __ in xrange(27):
+        if random.randint(0, 100) < 80:
+            cat = random.choice(categories)
+        else:
+            cat = None
         challenge = Challenge(title=random_str(10),
                               text=random_str(50),
                               solution=random_str(10),
@@ -69,6 +80,7 @@ def install_test_data(dbsession, settings):
                               published=random.choice([True, True, False]),
                               manual=(True if random.randint(0, 100) < 90
                                       else False),
+                              category=cat,
                               )
         challenges.append(challenge)
     dbsession.add_all(challenges)

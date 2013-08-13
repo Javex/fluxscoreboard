@@ -2,7 +2,12 @@
 <%namespace name="announcements" file="announcements.mako"/>
 <div class="panel panel-primary">
     <div class="panel-heading">
-        <h3 class="panel-title">${challenge.title}</h3>
+        <h3 class="panel-title">
+            ${challenge.title}
+            % if challenge.category:
+            (Category: ${challenge.category})
+            % endif
+        </h3>
     </div>
     <div class="col-12">
         <div class="row">

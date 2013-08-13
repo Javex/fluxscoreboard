@@ -4,7 +4,8 @@ from fluxscoreboard.forms import IntegerOrEvaluatedField, CSRFForm, ButtonWidget
 from fluxscoreboard.forms.validators import email_length_validator, \
     password_length_validator_conditional, password_required_if_new, \
     required_validator, name_length_validator, required_or_manual
-from fluxscoreboard.models.challenge import get_all_challenges
+from fluxscoreboard.models.challenge import get_all_challenges, \
+    get_all_categories
 from fluxscoreboard.models.country import get_all_countries
 from fluxscoreboard.models.team import get_all_teams
 from wtforms import validators
@@ -95,9 +96,40 @@ class ChallengeForm(CSRFForm):
                           validators=[required_or_manual]
                           )
 
+    category = QuerySelectField("Category",
+                                query_factory=get_all_categories,
+                                allow_blank=True,
+                                blank_text='-- No category --')
+
     published = BooleanField("Published")
 
     manual = BooleanField("Manual Challenge")
+
+    id = HiddenField()
+
+    submit = SubmitField("Save")
+
+    cancel = SubmitField("Cancel")
+
+
+class CategoryForm(CSRFForm):
+    """
+    Form to add or edit a category.
+
+    Attrs:
+        ``name``: Title of the category. Required.
+
+        ``id``: Track the id of the category.
+
+        ``submit``: Save category.
+
+        ``cancel``: Abort saving.
+    """
+    name = TextField("Name",
+                      validators=[required_validator,
+                                  validators.Length(max=255),
+                                  ]
+                      )
 
     id = HiddenField()
 

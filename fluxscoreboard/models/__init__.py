@@ -32,7 +32,7 @@ class RootFactory(object):
         pass
 
 
-from fluxscoreboard.models.challenge import Challenge, Submission
+from fluxscoreboard.models.challenge import Challenge, Submission, Category
 from fluxscoreboard.models.country import Country
 from fluxscoreboard.models.news import News, MassMail
 from fluxscoreboard.models.team import Team
