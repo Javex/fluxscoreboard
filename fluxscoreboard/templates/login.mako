@@ -7,7 +7,7 @@
         <div class="form-group">
             ${form.email.label(class_="col-4 control-label")}
             <div class="col-8">
-                ${form.email(class_="form-control", placeholder=form.email.label.text, required=True)}
+                ${form.email(class_="form-control", placeholder=form.email.label.text, required=True, autocomplete="off")}
                 % for msg in form.errors.get("email", []):
                     <div class="alert alert-danger">${msg}</div>
                 % endfor
@@ -16,7 +16,7 @@
         <div class="form-group">
             ${form.password.label(class_="col-4 control-label")}
             <div class="col-8">
-                ${form.password(class_="form-control", placeholder=form.password.label.text, required=True)}
+                ${form.password(class_="form-control", placeholder=form.password.label.text, required=True, autocomplete="off")}
                 % for msg in form.errors.get("password", []):
                     <div class="alert alert-danger">${msg}</div>
                 % endfor
