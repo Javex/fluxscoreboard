@@ -72,6 +72,10 @@ def get_submissions():
             options(joinedload('team')))
 
 
+def get_all_categories():
+    return DBSession().query(Category)
+
+
 def check_submission(challenge, solution, team_id, settings):
     """
     Check a solution for a challenge submitted by a team and add it to the
@@ -171,10 +175,14 @@ class Challenge(Base):
     _points = Column('points', Integer, default=0)
     published = Column(Boolean, default=False)
     manual = Column(Boolean, default=False)
+    category_id = Column(Integer, ForeignKey('category.id'))
+
+    category = relationship("Category", backref="challenges", lazy="joined")
 
     def __init__(self, *args, **kwargs):
         if kwargs.get("manual", False) and kwargs.get("points", 0):
             raise ValueError("A manual challenge cannot have points!")
+        Base.__init__(self, *args, **kwargs)
 
     def __str__(self):
         return unicode(self).encode("utf-8")
@@ -197,6 +205,28 @@ class Challenge(Base):
     @points.setter
     def points(self, points):
         self._points = points
+
+
+class Category(Base):
+    """
+    A category for challenges.
+
+    Attributes:
+        ``id``: Primary key of category.
+
+        ``name``: Name of the category.
+
+        ``challenges``: List of challenges in that category.
+    """
+    __tablename__ = 'category'
+    id = Column(Integer, primary_key=True)
+    name = Column(Unicode(255))
+
+    def __str__(self):
+        return unicode(self).encode("utf-8")
+
+    def __unicode__(self):
+        return self.name
 
 
 class Submission(Base):

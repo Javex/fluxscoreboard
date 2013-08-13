@@ -8,6 +8,7 @@
             <tr>
                 <th>ID</th>
                 <th>Title</th>
+                <th>Category</th>
                 <th>Solution</th>
                 <th>Points</th>
                 <th>Manual</th>
@@ -16,11 +17,18 @@
             </tr>
         </thead>
         <tbody>
-    % for challenge in items:
+        % for challenge in items:
             <tr class="${'success' if form.id.data == challenge.id else ''}">
                 <td>${challenge.id}</td>
                 <td>${challenge.title}</td>
-                <td>${challenge.solution}</td>
+                <td>
+                % if challenge.category:
+                    ${challenge.category}
+                % else:
+                    <em>None</em>
+                % endif
+                </td>
+                <td><em>Hidden</em></td>
                 <td>${challenge.points}</td>
                 <td class="text-${'success' if challenge.manual else 'danger'}">
                     ${'Yes' if challenge.manual else 'No'}
@@ -35,7 +43,7 @@
                                                        ('admin_challenges_toggle_status', ("Unpublish" if challenge.published else "Publish") + " Challenge")])}
                 </td>
             </tr>
-    % endfor
+        % endfor
         </tbody>
     </table>
     

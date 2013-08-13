@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, TeamForm, \
-    SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm
+    SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission, \
-    get_submissions
+    get_submissions, Category
 from fluxscoreboard.models.news import News, MassMail
 from fluxscoreboard.models.team import Team, get_active_teams
 from pyramid.decorator import reify
@@ -30,6 +30,7 @@ class AdminView(object):
 
     _menu = [('admin_news', 'Announcements'),
              ('admin_challenges', 'Challenges'),
+             ('admin_categories', 'Categories'),
              ('admin_teams', 'Teams'),
              ('admin_submissions', 'Submissions'),
              ('admin_massmail', 'Mass Mail'),
@@ -399,6 +400,36 @@ class AdminView(object):
         """
         return self._admin_toggle_status('admin_challenges', Challenge,
                                          "Challenge")
+
+    @view_config(route_name='admin_categories',
+                 renderer='admin_categories.mako')
+    @view_config(route_name='admin_categories_edit',
+                 renderer='admin_categories.mako')
+    def categories(self):
+        """
+        A view to list, add and edit categories. Implemented with
+        :meth:`_admin_list`.
+        """
+        return self._admin_list('admin_categories', CategoryForm,
+                                Category, "Category")
+
+    @view_config(route_name='admin_categories_edit',
+                 renderer='admin_categories.mako', request_method='POST')
+    def category_edit(self):
+        """
+        This view accepts an edit form, handles it and reacts accordingly
+        (either redirect or, on error, show errors). Implemented with
+        :meth:`_admin_edit`.
+        """
+        return self._admin_edit('admin_categories', CategoryForm, Category,
+                                "Category")
+
+    @view_config(route_name='admin_categories_delete', request_method='POST')
+    def category_delete(self):
+        """
+        A view to delete a category. Implemented with :meth:`_admin_delete`.
+        """
+        return self._admin_delete('admin_categories', Category, "Category")
 
     @view_config(route_name='admin_teams',
                        renderer='admin_teams.mako')
