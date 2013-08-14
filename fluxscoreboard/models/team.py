@@ -276,6 +276,8 @@ class Team(Base):
         :class:`fluxscoreboard.models.country.Country` attribute.
     """
     __tablename__ = 'team'
+    __table_args__ = {'mysql_engine': 'InnoDB',
+                      'mysql_charset': 'utf8'}
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(TEAM_NAME_MAX_LENGTH), nullable=False)
     _password = Column('password', Unicode(TEAM_PASSWORD_MAX_LENGTH),

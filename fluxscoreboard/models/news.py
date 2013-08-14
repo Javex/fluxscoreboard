@@ -31,6 +31,8 @@ class News(Base):
         ``challenge``: Direct access to the challenge, if any.
     """
     __tablename__ = 'news'
+    __table_args__ = {'mysql_engine': 'InnoDB',
+                      'mysql_charset': 'utf8'}
     id = Column(Integer, primary_key=True)
     timestamp = Column(TZDateTime,
                         nullable=False,
@@ -74,6 +76,8 @@ class MassMail(Base):
         mail.
     """
     __tablename__ = 'massmail'
+    __table_args__ = {'mysql_engine': 'InnoDB',
+                      'mysql_charset': 'utf8'}
     id = Column(Integer, primary_key=True)
     timestamp = Column(TZDateTime,
                         nullable=False,

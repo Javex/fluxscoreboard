@@ -168,6 +168,8 @@ class Challenge(Base):
     """
     # TODO: change ``published`` to ``online``.
     __tablename__ = 'challenge'
+    __table_args__ = {'mysql_engine': 'InnoDB',
+                      'mysql_charset': 'utf8'}
     id = Column(Integer, primary_key=True)
     title = Column(Unicode(255))
     text = Column(UnicodeText)
@@ -219,6 +221,8 @@ class Category(Base):
         ``challenges``: List of challenges in that category.
     """
     __tablename__ = 'category'
+    __table_args__ = {'mysql_engine': 'InnoDB',
+                      'mysql_charset': 'utf8'}
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(255))
 
@@ -251,6 +255,8 @@ class Submission(Base):
         ``challenge``: Direct access to the challenge.
     """
     __tablename__ = 'submission'
+    __table_args__ = {'mysql_engine': 'InnoDB',
+                      'mysql_charset': 'utf8'}
     team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
     challenge_id = Column(Integer, ForeignKey('challenge.id'),
                           primary_key=True)
