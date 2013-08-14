@@ -2,10 +2,10 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
 from fluxscoreboard.models import Base
-from pytz import utc
+from fluxscoreboard.models.types import TZDateTime, JSONList
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.schema import Column, ForeignKey
-from sqlalchemy.types import Integer, DateTime, UnicodeText, Boolean
+from sqlalchemy.types import Integer, UnicodeText, Boolean
 import json
 
 
@@ -32,7 +32,7 @@ class News(Base):
     """
     __tablename__ = 'news'
     id = Column(Integer, primary_key=True)
-    _timestamp = Column('timestamp', DateTime,
+    timestamp = Column(TZDateTime,
                         nullable=False,
                         default=datetime.utcnow
                         )
@@ -43,23 +43,13 @@ class News(Base):
     challenge = relationship("Challenge",
                              backref=backref("announcements",
                                              cascade="all",
-                                             order_by="desc(News._timestamp)"),
+                                             order_by="desc(News.timestamp)"),
                              lazy='joined')
 
     def __init__(self, *args, **kwargs):
         if "timestamp" not in kwargs:
             self.timestamp = datetime.utcnow()
         Base.__init__(self, *args, **kwargs)
-
-    @property
-    def timestamp(self):
-        return utc.localize(self._timestamp)
-
-    @timestamp.setter
-    def timestamp(self, dt):
-        if dt.tzinfo is None:
-            dt = utc.localize(dt)
-        self._timestamp = dt.astimezone(utc)
 
 
 class MassMail(Base):
@@ -85,29 +75,11 @@ class MassMail(Base):
     """
     __tablename__ = 'massmail'
     id = Column(Integer, primary_key=True)
-    _timestamp = Column('timestamp', DateTime,
+    timestamp = Column(TZDateTime,
                         nullable=False,
                         default=datetime.utcnow
                         )
     subject = Column(UnicodeText, nullable=False)
     message = Column(UnicodeText, nullable=False)
-    _recipients = Column('recipients', UnicodeText, nullable=False)
+    recipients = Column(JSONList, nullable=False)
     from_ = Column(UnicodeText, nullable=False)
-
-    @property
-    def recipients(self):
-        return json.loads(self._recipients)
-
-    @recipients.setter
-    def recipients(self, addr_list):
-        self._recipients = json.dumps(addr_list)
-
-    @property
-    def timestamp(self):
-        return utc.localize(self._timestamp)
-
-    @timestamp.setter
-    def timestamp(self, dt):
-        if dt.tzinfo is None:
-            dt = utc.localize(dt)
-        self._timestamp = dt.astimezone(utc)

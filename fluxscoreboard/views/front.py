@@ -218,7 +218,7 @@ class FrontView(BaseView):
         """
         announcements = (DBSession().query(News).
                          filter(News.published == True).
-                         order_by(desc(News._timestamp)))
+                         order_by(desc(News.timestamp)))
         return {'announcements': announcements}
 
     @logged_in_view(route_name='submit', renderer='submit.mako')

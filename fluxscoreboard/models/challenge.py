@@ -2,13 +2,13 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
 from fluxscoreboard.models import Base, DBSession
+from fluxscoreboard.models.types import TZDateTime
 from pyramid.security import authenticated_userid
 from pyramid.threadlocal import get_current_request
-from pytz import utc
 from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.sql.expression import not_
-from sqlalchemy.types import Integer, Unicode, Boolean, DateTime, UnicodeText
+from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText
 
 
 bonus_map = {0: (3, 'first'),
@@ -254,7 +254,7 @@ class Submission(Base):
     team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
     challenge_id = Column(Integer, ForeignKey('challenge.id'),
                           primary_key=True)
-    _timestamp = Column('timestamp', DateTime,
+    timestamp = Column(TZDateTime,
                         nullable=False,
                         default=datetime.utcnow
                         )
@@ -277,13 +277,3 @@ class Submission(Base):
     def points(self):
         # TODO: remove
         return self.challenge.points + self.bonus
-
-    @property
-    def timestamp(self):
-        return utc.localize(self._timestamp)
-
-    @timestamp.setter
-    def timestamp(self, dt):
-        if dt.tzinfo is None:
-            dt = utc.localize(dt)
-        self._timestamp = dt.astimezone(utc)
