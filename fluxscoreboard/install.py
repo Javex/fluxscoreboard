@@ -114,7 +114,7 @@ def install_test_data(dbsession, settings):
         mail = MassMail(subject=random_str(10),
                         message=random_str(100),
                         recipients=recipients,
-                        from_=settings["mail.default_sender"],
+                        from_=unicode(settings["mail.default_sender"]),
                         )
         mails.append(mail)
     dbsession.add_all(mails)
