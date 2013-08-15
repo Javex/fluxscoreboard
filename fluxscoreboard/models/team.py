@@ -275,9 +275,6 @@ class Team(Base):
         ``country``: Direct access to the teams
         :class:`fluxscoreboard.models.country.Country` attribute.
     """
-    __tablename__ = 'team'
-    __table_args__ = {'mysql_engine': 'InnoDB',
-                      'mysql_charset': 'utf8'}
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(TEAM_NAME_MAX_LENGTH), nullable=False)
     _password = Column('password', Unicode(TEAM_PASSWORD_MAX_LENGTH),
@@ -288,6 +285,7 @@ class Team(Base):
     token = Column(Unicode(64), nullable=False, unique=True)
     reset_token = Column(Unicode(64), unique=True)
     active = Column(Boolean, default=False)
+    # TODO: Timezone as seperate type
     _timezone = Column('timezone', Unicode(30),
                        default=lambda: unicode(utc.zone),
                        nullable=False)
