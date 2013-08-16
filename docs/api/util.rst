@@ -10,6 +10,8 @@ Utility Functions
 
 .. autofunction:: bcrypt_split
 
+.. autofunction:: random_token
+
 .. autofunction:: nl2br
 
 .. autofunction:: tz_str
@@ -19,3 +21,5 @@ Utility Functions
 .. autofunction:: add_header_x_frame_options
 
 .. autofunction:: add_header_csp
+
+.. autofunction:: add_header_x_xss_protection

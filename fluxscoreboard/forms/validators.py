@@ -25,6 +25,10 @@ email_length_validator = validators.Length(min=5, max=TEAM_MAIL_MAX_LENGTH,
 
 
 def email_unique_validator(form, field):
+    """
+    A validator to make sure the entered email is unique and does not exist
+    yet.
+    """
     email = field.data
     dbsession = DBSession()
     email_exists = dbsession.query(Team).filter(Team.email == email).all()
@@ -138,7 +142,7 @@ class AvatarDimensions(object):
 
     .. note::
         This validator requires access to a PIL Image, for example from the
-        :class:`forms.fields.AvatarField`.
+        :class:`fluxscoreboard.forms.fields.AvatarField`.
     """
 
     def __init__(self, max_width, max_height, message=None):

@@ -125,7 +125,7 @@ def register_team(form, request):
     Create a new team from a form and send a confirmaion email.
 
     Args:
-        ``form``: A filled out :class:`forms.RegistrationForm`.
+        ``form``: A filled out :class:`fluxscoreboard.forms.front.RegisterForm`.
 
         ``request``: The corresponding request.
 
@@ -308,7 +308,7 @@ class Team(Base):
     def validate_password(self, password):
         """
         Validate the password agains the team. If it matches return ``True``
-        else raise a :exc:`exceptions.ValueError`.
+        else return ``False``.
         """
         salt, __ = bcrypt_split(self.password)
         reference_pw = encrypt_pw(password, salt)

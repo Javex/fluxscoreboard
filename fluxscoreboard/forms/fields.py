@@ -8,6 +8,11 @@ from wtforms.fields.simple import FileField
 from wtforms.widgets.core import FileInput, HTMLString, html_params
 
 
+__doc__ = """
+This module contains some custom fields and widgets.
+"""
+
+
 class AvatarWidget(FileInput):
     """
     A widget that renders the current avatar above the form to upload a new

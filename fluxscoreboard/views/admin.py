@@ -126,7 +126,7 @@ class AdminView(object):
 
             ``FormClass``: The class of the form that should be displayed at
             the bottom of the page to edit or add items. For example
-            :class:`fluxscoreboard.forms_admin.ChallengeForm`.
+            :class:`fluxscoreboard.forms.admin.ChallengeForm`.
 
             ``DatabaseClass``: The ORM class from the model that is used to
             add and fetch items. For example

@@ -12,6 +12,9 @@ Challenge Models & Functions
 .. autoclass:: Challenge
     :members:
 
+.. autoclass:: Category
+    :members:
+
 .. autoclass:: Submission
     :members:
 
@@ -22,6 +25,10 @@ Challenge Models & Functions
 .. autofunction:: get_unsolved_challenges
 
 .. autofunction:: get_solvable_challenges
+
+.. autofunction:: get_submissions
+
+.. autofunction:: get_all_categories
 
 .. autofunction:: check_submission
 
@@ -70,7 +77,21 @@ Team Models & Functions
 
 .. autofunction:: confirm_registration
 
+.. autofunction:: login
+
+.. autofunction:: password_reminder
+
+.. autofunction:: check_password_reset_token
+
 .. autodata:: TEAM_GROUPS
 
 .. autofunction:: groupfinder
 
+Custom Column Types
+###################
+
+.. automodule:: fluxscoreboard.models.types
+
+.. autoclass:: TZDateTime
+
+.. autoclass:: JSONList

@@ -73,6 +73,7 @@ def get_submissions():
 
 
 def get_all_categories():
+    """Get a list of all available categories."""
     return DBSession().query(Category)
 
 
@@ -165,6 +166,10 @@ class Challenge(Base):
         ``published``: Whether the challenge is online.
 
         ``manual``: If the points for this challenge are awareded manually.
+
+        ``category_id``: ID of the associated category.
+
+        ``category``: Direct access to the :class:`Category`.
     """
     # TODO: change ``published`` to ``online``.
     id = Column(Integer, primary_key=True)

@@ -261,6 +261,12 @@ class MassMailForm(CSRFForm):
 
 
 class ButtonForm(CSRFForm):
+    """
+    A form that gives a button and an ID. Useful for having a simple action
+    that is identified in the forms ``action`` attribute. This provides
+    CSRF support and the ability to POST submit commands such as edit or
+    delete.
+    """
     button = SubmitField(widget=ButtonWidget())
     id = HiddenField(validators=[required_validator])
 
@@ -271,6 +277,12 @@ class ButtonForm(CSRFForm):
 
 
 class SubmissionButtonForm(CSRFForm):
+    """
+    Special variante of :class:`ButtonForm` that is tailored for the composite
+    primary key table ``submission``. Instead of having one ``id`` field it has
+    one field ``challenge_id`` identifying the challenge and a field
+    ``team_id`` identifiying the team.
+    """
     button = SubmitField(widget=ButtonWidget())
     challenge_id = HiddenField(validators=[required_validator])
     team_id = HiddenField(validators=[required_validator])

@@ -18,6 +18,16 @@ from wtforms.fields.html5 import EmailField
 from wtforms.fields.simple import TextField, SubmitField, PasswordField
 
 
+__doc__ = """
+This module contains all forms for the frontend. Backend forms can be found
+in :mod:`fluxscoreboard.forms.admin`. The forms here and there are described
+as they should behave, e.g. "Save the challenge", however, this behaviour has
+to be implemented by the developer and is not done automatically by it.
+However, validatation restrictions (e.g. length) are enforced. But alone,
+without a database to persist them, they are mostly useless.
+"""
+
+
 class RegisterForm(CSRFForm):
     __doc__ = """
     Registration form for new teams.
@@ -151,7 +161,13 @@ class ProfileForm(CSRFForm):
     Attrs:
         ``email``: The email address. Required
 
+        ``old_password``: The old password, needed only for a password change.
+
         ``password``: The password. Optional, only needed if wanting to change.
+
+        ``password_repeat``: Repeat the new password.
+
+        ``avatar``: Display an avatar and upload a new one.
 
         ``country``: Change location. Required.
 

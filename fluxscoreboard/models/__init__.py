@@ -12,7 +12,14 @@ DBSession = scoped_session(sessionmaker())
 """Database session factory. Returns the current threadlocal session."""
 
 
-class Base(object):
+class BaseCFG(object):
+    """
+    Class that contains custom configuration for a
+    :func:`sqlalchemy.ext.declarative.declarative_base` to be used with the
+    ORM. It automatically figures out a tablename (thus no need to set
+    ``__tablename__``) and sets some custom MySQL args (for instance it
+    defaults the engine to ``InnoDB`` to have transaction support).
+    """
 
     @declared_attr
     def __tablename__(cls):  # @NoSelf
@@ -21,8 +28,8 @@ class Base(object):
     __table_args__ = {'mysql_engine': 'InnoDB',
                       'mysql_charset': 'utf8'}
 
-Base = declarative_base(cls=Base)
-"""Base class for all ORM classes."""
+Base = declarative_base(cls=BaseCFG)
+"""Base class for all ORM classes. Uses :class:`BaseCFG` configuration."""
 
 
 # Set the database session events
