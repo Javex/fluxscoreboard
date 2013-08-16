@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from functools import wraps
+from pyramid.events import NewResponse, subscriber
+from pyramid.httpexceptions import HTTPFound
+from pyramid.security import authenticated_userid
 import bcrypt
+import binascii
+import os
 import random
 import string
-from pyramid.security import authenticated_userid
-from pyramid.httpexceptions import HTTPFound
-from pyramid.events import NewResponse, subscriber
 
 
 def encrypt_pw(pw, salt=None):
@@ -46,6 +48,16 @@ def bcrypt_split(value):
     with :func:`encrypt_pw`. Returns a tuple of ``(salt, pw)``.
     """
     return value[:29], value[29:]
+
+
+def random_token(length=64):
+    """
+    Generate a random token hex-string of ``length`` characters. Due to it
+    being encoded hex, its entropy is only half, so if you require a 256 bit
+    entropy string, passing in ``64`` as length will yield exactly
+    ``64 / 2 * 8 = 256`` bits entropy.
+    """
+    return binascii.hexlify(os.urandom(length / 2)).decode("ascii")
 
 
 def nl2br(text):

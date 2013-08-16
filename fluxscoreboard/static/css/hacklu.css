@@ -44,3 +44,11 @@ table.sortable th:hover{
     color: #FFFFFF;
     text-decoration: none;
 }
+
+img.avatar {
+    width: 90px;
+}
+
+img.avatar-large {
+    width: 200px;
+}

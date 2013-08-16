@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
+from fluxscoreboard.forms.fields import AvatarField
 from fluxscoreboard.forms.validators import name_length_validator, \
     email_length_validator, password_min_length_validator, \
     password_max_length_validator, required_validator, email_equal_validator, \
-    email_unique_validator, password_equal_validator, password_required_and_valid_if_pw_change
+    email_unique_validator, password_equal_validator, \
+    password_required_and_valid_if_pw_change, password_min_length_if_set_validator, \
+    password_max_length_if_set_validator, avatar_dimensions_validator, \
+    avatar_size_validator
 from fluxscoreboard.models.challenge import get_solvable_challenges
 from fluxscoreboard.models.country import get_all_countries
 from pytz import common_timezones, utc
@@ -162,18 +166,31 @@ class ProfileForm(CSRFForm):
 
     old_password = PasswordField(
         "Old Password", validators=[password_required_and_valid_if_pw_change],
-        description=("This only needs to be entered if wish to change your "
-        "password, otherwise, it is not required."),
+        description=("This only needs to be entered if you wish to change "
+        "your password, otherwise, it is not required."),
     )
 
     password = PasswordField("New Password",
                              validators=[password_equal_validator,
-                                         password_min_length_validator,
-                                         password_max_length_validator,
+                                         password_min_length_if_set_validator,
+                                         password_max_length_if_set_validator,
                                          ]
                              )
 
     password_repeat = PasswordField("Repeat New Password")
+
+    avatar = AvatarField("Avatar",
+                       description=("Upload an avatar image. The File must "
+                                    "not be larger than %d%s and must have "
+                                    "maximum dimensions of %dx%dpx"
+                                    % (avatar_size_validator.max_size,
+                                       avatar_size_validator.unit,
+                                       avatar_dimensions_validator.max_width,
+                                       avatar_dimensions_validator.max_height)
+                                    ),
+                         validators=[avatar_dimensions_validator,
+                                     avatar_size_validator],
+                         )
 
     country = QuerySelectField("Country/State",
                                query_factory=get_all_countries
@@ -187,6 +204,12 @@ class ProfileForm(CSRFForm):
     submit = SubmitField("Save")
 
     cancel = SubmitField("Cancel")
+
+    def __init__(self, formdata=None, obj=None, prefix='', csrf_context=None,
+                 **kwargs):
+        if obj is None:
+            raise ValueError("Must always provide an existing team")
+        CSRFForm.__init__(self, formdata, obj, prefix, csrf_context, **kwargs)
 
 
 class SolutionSubmitForm(CSRFForm):

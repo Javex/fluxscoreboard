@@ -218,6 +218,7 @@ def password_reminder(email, request):
     team = dbsession.query(Team).filter(Team.email == email).first()
     if team:
         # send mail with reset token
+        # TODO: use random_token function
         team.reset_token = binascii.hexlify(os.urandom(32)).decode("ascii")
         html = render('mail_password_reset_valid.mako', {'team': team},
                       request=request)
@@ -289,11 +290,13 @@ class Team(Base):
     _timezone = Column('timezone', Unicode(30),
                        default=lambda: unicode(utc.zone),
                        nullable=False)
+    avatar_filename = Column(Unicode(68), unique=True)
 
     country = relationship("Country", lazy='joined')
 
     def __init__(self, *args, **kwargs):
         if "token" not in kwargs:
+            # TODO: use random_token function
             self.token = binascii.hexlify(os.urandom(32)).decode("ascii")
         Base.__init__(self, *args, **kwargs)
 

@@ -4,7 +4,6 @@ from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.team import TEAM_MAIL_MAX_LENGTH, Team, \
     TEAM_PASSWORD_MAX_LENGTH, TEAM_NAME_MAX_LENGTH
 from wtforms import validators
-from sqlalchemy.orm.exc import NoResultFound
 from pyramid.threadlocal import get_current_request
 
 __doc__ = """
@@ -86,10 +85,34 @@ def password_required_and_valid_if_pw_change(form, field):
     the entered password is correct.
     """
     request = get_current_request()
-    if form.password.data and not field.data:
-        raise ValueError("The old password is required if setting a new one.")
-    elif not request.team.validate_password(field.data):
-        raise ValueError("The old password is invalid.")
+    if form.password.data:
+        if not field.data:
+            raise ValueError("The old password is required if setting a new "
+                             "one.")
+        elif not request.team.validate_password(field.data):
+            raise ValueError("The old password is invalid.")
+    else:
+        return True
+
+
+def password_max_length_if_set_validator(form, field):
+    """
+    Only apply the ``password_max_length_validator`` if the field is set at
+    all.
+    """
+    if field.data:
+        return password_max_length_validator(form, field)
+    else:
+        return True
+
+
+def password_min_length_if_set_validator(form, field):
+    """
+    Only apply the ``password_min_length_validator`` if the field is set at
+    all.
+    """
+    if field.data:
+        return password_min_length_validator(form, field)
     else:
         return True
 
@@ -104,3 +127,70 @@ def required_or_manual(form, field):
         # TODO: Shouldn't this part raise a ValueError if field.data is not
         # None?
         return field.data is None
+
+
+class AvatarDimensions(object):
+    """
+    A validator for image dimensions. Pass it a maximum width and height with
+    the ``max_width`` and ``max_height`` parameters and optionally a custom
+    message that has access to both parameters:
+    ``"Maximum dimensions: (%(max_width)d, %(max_height)d)"``.
+
+    .. note::
+        This validator requires access to a PIL Image, for example from the
+        :class:`forms.fields.AvatarField`.
+    """
+
+    def __init__(self, max_width, max_height, message=None):
+        self.max_width = max_width
+        self.max_height = max_height
+        if message is None:
+            message = ('Invalid dimensions. The maximum allowed width is '
+                       '%(max_width)dpx and the maximum allowed height is '
+                       '%(max_height)dpx.')
+        self.message = message % locals()
+
+    def __call__(self, form, field):
+        if field.data == '' or field.data is None:
+            return True
+        if field.image is None:
+            raise ValueError("Invalid image.")
+        width, height = field.image.size
+        if width > self.max_width or height > self.max_height:
+            raise ValueError(self.message)
+        else:
+            return True
+
+
+class AvatarSize(object):
+    """
+    A validator class for the size of a file. Pass it a ``max_size`` to set
+    the value of maximum size. The unit is determined by the ``unit`` parameter
+    and defaults to 'MB'. Supported units are 'B', 'KB' and 'GB'. Optionally,
+    you can pass in a custom message which has access to the ``max_size`` and
+    ``unit`` parameters: ``"Maximum size: %(max_size)d%(unit)s"``.
+    """
+
+    unit_mult = {'B': 1, 'KB': 1024.0, 'MB': 1024.0 ** 2, 'GB': 1024.0 ** 3}
+
+    def __init__(self, max_size, unit='MB', message=None):
+        self.max_size = max_size
+        self.unit = unit.upper()
+        if message is None:
+            message = ('File too large. Maximum allowed size '
+                       'is %(max_size)d%(unit)s')
+        self.message = message % locals()
+
+    def __call__(self, form, field):
+        if field.data == '' or field.data is None:
+            return True
+        byte_size = len(field.data.value)
+        unit_size = byte_size / self.unit_mult[self.unit]
+        if unit_size > self.max_size:
+            raise ValueError(self.message)
+        else:
+            return True
+
+
+avatar_dimensions_validator = AvatarDimensions(450, 200)
+avatar_size_validator = AvatarSize(1)

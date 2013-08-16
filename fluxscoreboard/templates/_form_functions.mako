@@ -1,10 +1,10 @@
-<%def name="render_form(action, form, legend, display_cancel=True)">
+<%def name="render_form(action, form, legend, display_cancel=True, enctype='application/x-www-form-urlencoded')">
 <% from fluxscoreboard.forms.validators import required_validator %>
 <% from fluxscoreboard.forms import IntegerOrEvaluatedField %>
 <% from wtforms.fields.core import IntegerField %>
-<% from wtforms.fields.simple import TextAreaField, TextField %>
+<% from wtforms.fields.simple import TextAreaField, TextField, FileField %>
 <% from wtforms.fields.html5 import EmailField, IntegerField as IntegerFieldHtml5 %>
-<form method="POST" action="${action}" class="form-horizontal">
+<form method="POST" action="${action}" class="form-horizontal" enctype="${enctype}">
     <legend>${legend}</legend>
     % for field in [item for item in form if item.name not in ["id", "submit", "cancel", "csrf_token"]]:
     <div class="form-group">
@@ -20,7 +20,7 @@
                     field_kwargs["placeholder"] = field.label.text
                     break
             %>
-            ${field(class_="form-control", **field_kwargs)}
+            ${field(class_="form-control" if not isinstance(field, FileField) else "", **field_kwargs)}
             % if field.description:
                 <span class="help-block">${field.description}</span>
             % endif

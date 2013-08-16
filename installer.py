@@ -16,7 +16,7 @@ Script to help with application installation.
 """
 
 ROOT_PATH = os.path.dirname(__file__)
-EXISTING_SUBDIRS = ["tmp", "log"]
+EXISTING_SUBDIRS = ["tmp", "log", "fluxscoreboard/static/images/avatars"]
 STATIC_PATH = os.path.abspath(os.path.join(ROOT_PATH,
                                            'fluxscoreboard',
                                            'static'))

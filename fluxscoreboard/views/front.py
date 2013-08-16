@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.front import LoginForm, RegisterForm, ProfileForm, \
-    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,\
+    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm, \
     ResetPasswordForm
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission, \
@@ -10,7 +10,7 @@ from fluxscoreboard.models.news import News
 from fluxscoreboard.models.team import Team, login, get_team_solved_subquery, \
     get_number_solved_subquery, get_team, register_team, confirm_registration, \
     password_reminder, check_password_reset_token
-from fluxscoreboard.util import not_logged_in
+from fluxscoreboard.util import not_logged_in, random_token
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.security import remember, authenticated_userid, forget
@@ -359,6 +359,13 @@ class UserView(BaseView):
         if self.request.method == 'POST':
             if not form.validate():
                 return retparams
+            if form.avatar.data is not None and form.avatar.data != '':
+                # Handle new avatar
+                if not self.team.avatar_filename:
+                    self.team.avatar_filename = random_token() + ".png"
+                fpath = ("fluxscoreboard/static/images/avatars/%s"
+                         % self.team.avatar_filename)
+                form.avatar.image.save(fpath)
             form.populate_obj(self.team)
             self.request.session.flash('Your profile has been updated')
             return HTTPFound(location=self.request.route_url('profile'))
