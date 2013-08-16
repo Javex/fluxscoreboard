@@ -4,7 +4,7 @@ from fluxscoreboard.forms import CSRFForm
 from fluxscoreboard.forms.validators import name_length_validator, \
     email_length_validator, password_min_length_validator, \
     password_max_length_validator, required_validator, email_equal_validator, \
-    email_unique_validator, password_equal_validator
+    email_unique_validator, password_equal_validator, password_required_and_valid_if_pw_change
 from fluxscoreboard.models.challenge import get_solvable_challenges
 from fluxscoreboard.models.country import get_all_countries
 from pytz import common_timezones, utc
@@ -160,7 +160,20 @@ class ProfileForm(CSRFForm):
     email = EmailField("Team E-Mail",
                        validators=[required_validator])
 
-    password = PasswordField("Password")
+    old_password = PasswordField(
+        "Old Password", validators=[password_required_and_valid_if_pw_change],
+        description=("This only needs to be entered if wish to change your "
+        "password, otherwise, it is not required."),
+    )
+
+    password = PasswordField("New Password",
+                             validators=[password_equal_validator,
+                                         password_min_length_validator,
+                                         password_max_length_validator,
+                                         ]
+                             )
+
+    password_repeat = PasswordField("Repeat New Password")
 
     country = QuerySelectField("Country/State",
                                query_factory=get_all_countries

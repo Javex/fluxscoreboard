@@ -21,6 +21,9 @@
                     break
             %>
             ${field(class_="form-control", **field_kwargs)}
+            % if field.description:
+                <span class="help-block">${field.description}</span>
+            % endif
             % for msg in getattr(field, 'errors', []):
                 <div class="alert alert-danger">${msg}</div>
             % endfor

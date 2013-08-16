@@ -5,6 +5,7 @@ from fluxscoreboard.models.team import TEAM_MAIL_MAX_LENGTH, Team, \
     TEAM_PASSWORD_MAX_LENGTH, TEAM_NAME_MAX_LENGTH
 from wtforms import validators
 from sqlalchemy.orm.exc import NoResultFound
+from pyramid.threadlocal import get_current_request
 
 __doc__ = """
 Contains validators for forms with custom messages. Some validators are based
@@ -78,6 +79,21 @@ def password_required_if_new(form, field):
         return True
 
 
+def password_required_and_valid_if_pw_change(form, field):
+    """
+    A validator that only requires a field to be set if a password change is
+    intended, i.e. if the ``password`` field is set. It also checks that
+    the entered password is correct.
+    """
+    request = get_current_request()
+    if form.password.data and not field.data:
+        raise ValueError("The old password is required if setting a new one.")
+    elif not request.team.validate_password(field.data):
+        raise ValueError("The old password is invalid.")
+    else:
+        return True
+
+
 def required_or_manual(form, field):
     """
     Enforces a "required" only if the "manual" field is not set.
@@ -85,4 +101,6 @@ def required_or_manual(form, field):
     if not form.manual.data:
         return required_validator(form, field)
     else:
+        # TODO: Shouldn't this part raise a ValueError if field.data is not
+        # None?
         return field.data is None
