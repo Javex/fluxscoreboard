@@ -33,6 +33,7 @@ requires = [
     'waitress',  # Dev Server
     'pytest',  # Testing
     'webtest',  # Testing
+    'PIL',  # Avatars
     ]
 
 setup(name='fluxscoreboard',
