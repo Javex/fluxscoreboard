@@ -9,6 +9,11 @@ the WSGI protocol.
     complete ``/admin`` subdomain is protected by external measures (e.g. HTTP
     Basic Auth). The backend has no separate protection.
 
+.. warning::
+    If not using Nginx, you have to make sure **manually** to set the ``Host``
+    header to a static value and not trust the client as Pyramid relies on it
+    to generate URLs!
+
 Quickstart
 ----------
 
@@ -58,6 +63,12 @@ there is a second file that contains the actual options:
 This file has to be saved somewhere *as-is* and the path in the main
 configuration has to be adjusted in such a way that it points to it relative to
 the Nginx main configuration directory (see comments in file). Restart Nginx.
+
+.. note::
+    The sample configuration sets the 'Host' header **statically** to whatever
+    ``server_name`` setting you chose. Do not trust the ``$host`` header of
+    the client: It may be spoofed but Pyramid relies on it so we have to make
+    sure it is a trusted value!
 
 After Nginx is configured this way you don't have to do much for `gunicorn`_:
 It already has a valid configuration in the default configuration file (see
