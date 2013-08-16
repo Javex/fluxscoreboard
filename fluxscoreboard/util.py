@@ -128,3 +128,10 @@ def add_header_csp(event):
     csp = settings.get("csp_headers", "").encode("ascii")
     if csp:
         event.response.headers[b"Content-Security-Policy"] = csp
+
+
+@subscriber(NewResponse)
+def add_header_x_xss_protection(event):
+    """Add the ``X-XSS-Protection: 0`` header."""
+    if "X-XSS-Protection" not in event.response.headers:
+        event.response.headers[b"X-XSS-Protection"] = b"0"
