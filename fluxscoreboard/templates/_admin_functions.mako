@@ -29,7 +29,7 @@ ${form_funcs.render_form(request.route_url(route_name, _query=dict(page=current_
 </button>
 <ul class="dropdown-menu">
 % for route, title in routes:
-    <li>
+    <li class="${'confirm-delete' if route.endswith('delete') else ''}">
         ${form_funcs.render_button_form(request.route_url(route, _query=dict(page=page)), id_, title, request)}
     </li>
 % endfor

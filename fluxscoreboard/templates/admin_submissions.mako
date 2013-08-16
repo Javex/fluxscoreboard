@@ -29,7 +29,7 @@
                         <li>
                             ${form_funcs.render_submission_button_form(request.route_url('admin_submissions', _query=dict(page=page.page)), submission.challenge_id, submission.team_id, "Edit", request)}
                         </li>
-                        <li>
+                        <li class="confirm-delete">
                             ${form_funcs.render_submission_button_form(request.route_url('admin_submissions_delete', _query=dict(page=page.page)), submission.challenge_id, submission.team_id, "Delete", request)}
                         </li>
                     </ul>
