@@ -23,7 +23,7 @@ class AvatarWidget(FileInput):
         if filename:
             fpath = request.static_url("fluxscoreboard:static/images/avatars/%s"
                                        % filename)
-        out.append('<img class="avatar-large" src="%s" />' % fpath)
+            out.append('<img class="avatar-large" src="%s" />' % fpath)
         out.append(FileInput.__call__(self, field, **kwargs))
         return HTMLString(''.join(out))
 
