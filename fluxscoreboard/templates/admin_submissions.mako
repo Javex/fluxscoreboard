@@ -10,7 +10,7 @@
                 <th>Team (ID)</th>
                 <th>Challenge (ID)</th>
                 <th>Timestamp (UTC)</th>
-                <th>Points</th>
+                <th>Bonus</th>
                 <th>Action</th>
             </tr>
         </thead>
