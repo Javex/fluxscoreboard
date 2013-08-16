@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Submission, Challenge
-from fluxscoreboard.util import bcrypt_split, encrypt_pw
+from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token
 from pyramid.renderers import render
 from pyramid.security import unauthenticated_userid
 from pyramid_mailer import get_mailer
@@ -218,8 +218,7 @@ def password_reminder(email, request):
     team = dbsession.query(Team).filter(Team.email == email).first()
     if team:
         # send mail with reset token
-        # TODO: use random_token function
-        team.reset_token = binascii.hexlify(os.urandom(32)).decode("ascii")
+        team.reset_token = random_token()
         html = render('mail_password_reset_valid.mako', {'team': team},
                       request=request)
         recipients = [team.email]
@@ -296,8 +295,7 @@ class Team(Base):
 
     def __init__(self, *args, **kwargs):
         if "token" not in kwargs:
-            # TODO: use random_token function
-            self.token = binascii.hexlify(os.urandom(32)).decode("ascii")
+            self.token = random_token()
         Base.__init__(self, *args, **kwargs)
 
     def __repr__(self):
