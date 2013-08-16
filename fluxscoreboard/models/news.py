@@ -30,9 +30,6 @@ class News(Base):
 
         ``challenge``: Direct access to the challenge, if any.
     """
-    __tablename__ = 'news'
-    __table_args__ = {'mysql_engine': 'InnoDB',
-                      'mysql_charset': 'utf8'}
     id = Column(Integer, primary_key=True)
     timestamp = Column(TZDateTime,
                         nullable=False,
@@ -61,8 +58,8 @@ class MassMail(Base):
     Attributes:
         ``id``: The primary key.
 
-        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. If setting
-        always only pass either a timezone-aware object or a naive UTC
+        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. If
+        setting always only pass either a timezone-aware object or a naive UTC
         datetime. Defaults to :meth:`datetime.datetime.utcnow`.
 
         ``subject``: The subject of the mail
@@ -75,9 +72,6 @@ class MassMail(Base):
         ``from_``: The address which was used as the ``From:`` field of the
         mail.
     """
-    __tablename__ = 'massmail'
-    __table_args__ = {'mysql_engine': 'InnoDB',
-                      'mysql_charset': 'utf8'}
     id = Column(Integer, primary_key=True)
     timestamp = Column(TZDateTime,
                         nullable=False,

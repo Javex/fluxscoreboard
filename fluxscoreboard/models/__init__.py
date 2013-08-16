@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from pyramid.security import Allow
 from sqlalchemy import event
-from sqlalchemy.ext.declarative.api import declarative_base
+from sqlalchemy.ext.declarative.api import declarative_base, declared_attr
 from sqlalchemy.orm.scoping import scoped_session
 from sqlalchemy.orm.session import sessionmaker
 from zope.sqlalchemy import ZopeTransactionExtension  # @UnresolvedImport
@@ -11,7 +11,17 @@ from zope.sqlalchemy import ZopeTransactionExtension  # @UnresolvedImport
 DBSession = scoped_session(sessionmaker())
 """Database session factory. Returns the current threadlocal session."""
 
-Base = declarative_base()
+
+class Base(object):
+
+    @declared_attr
+    def __tablename__(cls):  # @NoSelf
+        return cls.__name__.lower()
+
+    __table_args__ = {'mysql_engine': 'InnoDB',
+                      'mysql_charset': 'utf8'}
+
+Base = declarative_base(cls=Base)
 """Base class for all ORM classes."""
 
 

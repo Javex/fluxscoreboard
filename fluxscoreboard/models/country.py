@@ -17,9 +17,6 @@ class Country(Base):
     A country in the database. Basically only a name for different locations
     of teams.
     """
-    __tablename__ = 'country'
-    __table_args__ = {'mysql_engine': 'InnoDB',
-                      'mysql_charset': 'utf8'}
     id = Column(Integer, primary_key=True)
     name = Column(UnicodeText)
 
