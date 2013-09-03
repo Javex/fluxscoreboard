@@ -106,8 +106,7 @@ class RegisterForm(CSRFForm):
                                     [(tz, tz) for tz in common_timezones]),
                            )
 
-    # TODO: Make team_size_field as well!
-    size = IntegerField("Team Size")
+    size = team_size_field()
 
     submit = SubmitField("Register")
 
