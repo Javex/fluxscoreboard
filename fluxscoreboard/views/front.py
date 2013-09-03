@@ -302,7 +302,9 @@ class UserView(BaseView):
         """
         Display and handle registration of new teams.
         """
-        form = RegisterForm(self.request.POST, csrf_context=self.request)
+        ip = self.request.client_addr
+        form = RegisterForm(self.request.POST, csrf_context=self.request,
+                            captcha={'ip_address': ip})
         if self.request.method == 'POST':
             if not form.validate():
                 return {'form': form}

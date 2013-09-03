@@ -80,6 +80,15 @@
                 % endfor
             </div>
         </div>
+        <div class="form-group">
+            ${form.captcha.label(class_="col-4 control-label")}
+            <div class="col-8">
+                ${form.captcha(class_="form-control")}
+                % for msg in form.errors.get("captcha", []):
+                    <div class="alert alert-danger">${msg}</div>
+                % endfor
+            </div>
+        </div>
         <div class="col-4"></div>
         <div class="col-8">
             ${form.csrf_token}

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard import routes
+from fluxscoreboard.forms.fields import RecaptchaField
+from fluxscoreboard.forms.front import RegisterForm
 from fluxscoreboard.models import DBSession, RootFactory
 from fluxscoreboard.models.team import groupfinder
 from pyramid.authentication import SessionAuthenticationPolicy
@@ -27,6 +29,12 @@ def main(global_config, **settings):
     session_factory = session_factory_from_settings(settings)
     authn_policy = SessionAuthenticationPolicy(callback=groupfinder)
     authz_policy = ACLAuthorizationPolicy()
+
+    # Add reCAPTCHA to registration form
+    pub_key = settings["recaptcha.public_key"]
+    priv_key = settings["recaptcha.private_key"]
+    RegisterForm.captcha = RecaptchaField(public_key=pub_key,
+                                          private_key=priv_key)
 
     config = Configurator(settings=settings,
                           session_factory=session_factory,
