@@ -346,7 +346,11 @@ class UserView(BaseView):
         retparams = {'form': form,
                      'team': self.team,
                      }
+        redirect = HTTPFound(location=self.request.route_url('profile'))
         if self.request.method == 'POST':
+            if form.cancel.data:
+                self.request.session.flash("Edit aborted")
+                return redirect
             if not form.validate():
                 return retparams
             if form.avatar.data is not None and form.avatar.data != '':
@@ -358,7 +362,7 @@ class UserView(BaseView):
                 form.avatar.image.save(fpath)
             form.populate_obj(self.team)
             self.request.session.flash('Your profile has been updated')
-            return HTTPFound(location=self.request.route_url('profile'))
+            return redirect
         return retparams
 
     @view_config(route_name='reset-password-start',

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import AvatarField
+from fluxscoreboard.forms.fields import AvatarField, BootstrapWidget
 from fluxscoreboard.forms.validators import name_length_validator, \
     email_length_validator, password_min_length_validator, \
     password_max_length_validator, required_validator, email_equal_validator, \
@@ -14,7 +14,7 @@ from fluxscoreboard.models.country import get_all_countries
 from pytz import common_timezones, utc
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.fields.core import SelectField
-from wtforms.fields.html5 import EmailField
+from wtforms.fields.html5 import EmailField, IntegerField
 from wtforms.fields.simple import TextField, SubmitField, PasswordField
 
 
@@ -104,6 +104,8 @@ class RegisterForm(CSRFForm):
                                       '-- Please choose a timezone --')] +
                                     [(tz, tz) for tz in common_timezones]),
                            )
+
+    size = IntegerField("Team Size")
 
     submit = SubmitField("Register")
 
@@ -216,6 +218,19 @@ class ProfileForm(CSRFForm):
                            choices=[(tz, tz) for tz in common_timezones],
                            default=((utc.zone, utc.zone)),
                            )
+
+    size = IntegerField("Team Size",
+                        description=("For statistical purposes we would "
+                                     "like to know how many you are. "
+                                     "There is no limitation on the number "
+                                     "of people each team may bring, we "
+                                     "just like to know the sizes of "
+                                     "teams."),
+                        widget=BootstrapWidget(
+                            'number',
+                            group_after=['Members'],
+                            default_classes=['text-right'])
+                        )
 
     submit = SubmitField("Save")
 

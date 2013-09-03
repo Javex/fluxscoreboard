@@ -5,7 +5,8 @@ from pyramid.threadlocal import get_current_request
 from wtforms.fields.core import _unset_value
 from wtforms.fields.html5 import IntegerField
 from wtforms.fields.simple import FileField
-from wtforms.widgets.core import FileInput, HTMLString, html_params
+from wtforms.widgets.core import FileInput, HTMLString, html_params, Input
+from wtforms.widgets.html5 import NumberInput
 
 
 __doc__ = """
@@ -89,3 +90,33 @@ class IntegerOrEvaluatedField(IntegerField):
                 except ValueError:
                     self.data = None
                     raise ValueError(self.gettext('Not a valid integer value'))
+
+
+class BootstrapWidget(Input):
+
+    def __init__(self, input_type=None, group_before=None, group_after=None,
+                 default_classes=None):
+        self.group_before = group_before or []
+        self.group_after = group_after or []
+        self.default_classes = default_classes or []
+        Input.__init__(self, input_type=input_type)
+
+    def __call__(self, field, **kwargs):
+        html = []
+        html.append('<div class="input-group">')
+
+        for text in self.group_before:
+            html.append('<span class="input-group-addon">%s</span>' % text)
+
+        classes = kwargs.get("class_", "").split(" ")
+        for class_ in self.default_classes:
+            classes.append(class_)
+        kwargs["class_"] = " ".join(classes)
+        html.append(Input.__call__(self, field, **kwargs))
+
+        for text in self.group_after:
+            html.append('<span class="input-group-addon">%s</span>' % text)
+
+        html.append('</div>')
+
+        return HTMLString("".join(html))

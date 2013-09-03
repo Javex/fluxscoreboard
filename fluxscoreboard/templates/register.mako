@@ -50,6 +50,22 @@
             </div>
         </div>
         <div class="form-group">
+            ${form.size.label(class_="col-4 control-label")}
+            <div class="col-8">
+                <div class="input-group">
+                    ${form.size(class_="form-control text-right", placeholder=form.size.label.text)}
+                    <span class="input-group-addon">Members</span>
+                </div>
+                <span class="help-block">
+                    For statistical purposes we would like to know how many you are. 
+                    There is no limitation on the number of people each team may bring, we just like to know the sizes of teams.
+                </span>
+                % for msg in form.errors.get("size", []):
+                    <div class="alert alert-danger">${msg}</div>
+                % endfor
+            </div>
+        </div>
+        <div class="form-group">
             ${form.country.label(class_="col-4 control-label")}
             <div class="col-8">
                 ${form.country(class_="form-control")}

@@ -304,9 +304,8 @@ class AdminView(object):
             return redirect
 
         # Generate a dict of inverted status types
-        inverse_status_types = {}
-        for key, value in status_types.items():
-            inverse_status_types[value] = key
+        inverse_status_types = dict((value, key)
+                                    for key, value in status_types.items())
 
         # Fetch the item to toggle
         item = (dbsession.query(DatabaseClass).

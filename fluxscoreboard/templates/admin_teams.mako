@@ -12,6 +12,7 @@
                 <th>Country</th>
                 <th>Local</th>
                 <th>Active</th>
+                <th>Size</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -27,6 +28,13 @@
                 </td>
                 <td class="text-${'success' if team.active else 'danger'}">
                     ${'Yes' if team.active else 'No'}
+                </td>
+                <td>
+                    % if team.size:
+                        ${team.size}
+                    % else:
+                        <em>None</em>
+                    % endif
                 </td>
                 <td class="btn-group">
                         ${admin_funcs.display_action_list(page.page, request, team.id,
