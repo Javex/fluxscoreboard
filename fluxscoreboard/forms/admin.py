@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import IntegerOrEvaluatedField, ButtonWidget
+from fluxscoreboard.forms.fields import IntegerOrEvaluatedField, ButtonWidget, \
+    team_size_field
 from fluxscoreboard.forms.validators import email_length_validator, \
     password_length_validator_conditional, password_required_if_new, \
     required_validator, name_length_validator, required_or_manual
@@ -180,6 +181,8 @@ class TeamForm(CSRFForm):
                                    email_length_validator,
                                    ]
                        )
+
+    size = team_size_field()
 
     country = QuerySelectField("Country/State",
                                query_factory=get_all_countries

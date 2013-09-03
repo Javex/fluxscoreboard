@@ -120,3 +120,18 @@ class BootstrapWidget(Input):
         html.append('</div>')
 
         return HTMLString("".join(html))
+
+
+def team_size_field():
+    return IntegerField("Team Size",
+                        description=("For statistical purposes we would "
+                                     "like to know how many you are. "
+                                     "There is no limitation on the number "
+                                     "of people each team may bring, we "
+                                     "just like to know the sizes of "
+                                     "teams."),
+                        widget=BootstrapWidget(
+                            'number',
+                            group_after=['Members'],
+                            default_classes=['text-right'])
+                        )
