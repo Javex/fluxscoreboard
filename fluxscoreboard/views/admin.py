@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
-from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, TeamForm, \
-    SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm
+from fluxscoreboard.forms.admin import (NewsForm, ChallengeForm, TeamForm,
+    SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm,
+    TeamCleanupForm)
 from fluxscoreboard.models import DBSession
-from fluxscoreboard.models.challenge import Challenge, Submission, \
-    get_submissions, Category
+from fluxscoreboard.models.challenge import (Challenge, Submission,
+    get_submissions, Category)
 from fluxscoreboard.models.news import News, MassMail
 from fluxscoreboard.models.team import Team, get_active_teams
 from pyramid.decorator import reify
@@ -14,6 +15,7 @@ from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from sqlalchemy.sql.expression import not_
 from webhelpers.paginate import Page, PageURL_WebOb
 import logging
 
@@ -438,7 +440,12 @@ class AdminView(object):
         """
         List, add or edit a team.
         """
-        return self._admin_list('admin_teams', TeamForm, Team, "Team")
+        retval = self._admin_list('admin_teams', TeamForm, Team, "Team")
+        if isinstance(retval, dict) and self.request.method == "GET":
+            cleanup_form = TeamCleanupForm(csrf_context=self.request,
+                                           title="Clean Up Inactive Teams")
+            retval["cleanup_form"] = cleanup_form
+        return retval
 
     @view_config(route_name='admin_teams_edit',
                  renderer='admin_teams.mako', request_method='POST')
@@ -475,6 +482,24 @@ class AdminView(object):
             status_messages={False: 'Set team as a remote team',
                              True: 'Set team as a local team'}
             )
+
+    @view_config(route_name='admin_teams_cleanup', request_method='POST')
+    def team_cleanup(self):
+        """Remove ALL inactive teams. Warning: **DANGEROUS**"""
+        dbsession = DBSession()
+        form = TeamCleanupForm(self.request.POST, csrf_context=self.request)
+        redirect = self.redirect('admin_teams',
+                                 int(self.request.GET.get("page", 1)))
+        if not form.validate():
+            return redirect
+        if not form.team_cleanup.data:
+            return redirect
+        inactive_teams = dbsession.query(Team).filter(not_(Team.active)).all()
+        delete_count = len(inactive_teams)
+        for team in inactive_teams:
+            dbsession.delete(team)
+        self.request.session.flash("Deleted %d teams" % delete_count)
+        return redirect
 
     @view_config(route_name='admin_submissions',
                  renderer='admin_submissions.mako')

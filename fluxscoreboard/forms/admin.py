@@ -294,3 +294,12 @@ class SubmissionButtonForm(CSRFForm):
                  csrf_context=None, title=None, **kwargs):
         CSRFForm.__init__(self, formdata, obj, prefix, csrf_context, **kwargs)
         self.button.label.text = title
+
+
+class TeamCleanupForm(CSRFForm):
+    team_cleanup = SubmitField(widget=ButtonWidget())
+
+    def __init__(self, formdata=None, obj=None, prefix='', csrf_context=None,
+                 title=None, **kwargs):
+        CSRFForm.__init__(self, formdata, obj, prefix, csrf_context, **kwargs)
+        self.team_cleanup.label.text = title

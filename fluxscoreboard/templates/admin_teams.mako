@@ -2,6 +2,11 @@
 <%namespace name="admin_funcs" file="_admin_functions.mako"/>
 <h1>Teams</h1>
 
+<form method="POST" action="${request.route_url('admin_teams_cleanup')}">
+    ${cleanup_form.team_cleanup(class_="btn btn-danger pull-right")}
+    ${cleanup_form.csrf_token}
+</form>
+
 % if items:
     <table class="table">
         <thead>
