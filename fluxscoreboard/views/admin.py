@@ -441,7 +441,7 @@ class AdminView(object):
         List, add or edit a team.
         """
         retval = self._admin_list('admin_teams', TeamForm, Team, "Team")
-        if isinstance(retval, dict) and self.request.method == "GET":
+        if isinstance(retval, dict):
             cleanup_form = TeamCleanupForm(csrf_context=self.request,
                                            title="Clean Up Inactive Teams")
             retval["cleanup_form"] = cleanup_form
