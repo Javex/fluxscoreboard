@@ -15,11 +15,14 @@ use = egg:fluxscoreboard
 # Whether submission of solutions should be disabled
 submission_disabled = True
 
+# Whether the CTF has already started, enable this when launching the CTF.
+ctf_started = False
+
 # The domain on which the site runs
 domain = localhost
 
 # The CSP header values to set (inactive in dev version)
-#csp_headers = default-src 'self;
+#csp_headers = default-src 'self';
 
 
 # Enter your database credentials here
