@@ -19,12 +19,12 @@ class TZDateTime(TypeDecorator):
     impl = DateTime
 
     def process_bind_param(self, value, dialect):
-        if value.tzinfo is not None:
+        if hasattr(value, 'tzinfo') and value.tzinfo is not None:
             value = value.astimezone(utc).replace(tzinfo=None)
         return value
 
     def process_result_value(self, value, dialect):
-        if value.tzinfo is None:
+        if hasattr(value, 'tzinfo') and value.tzinfo is None:
             value = utc.localize(value)
         return value
 

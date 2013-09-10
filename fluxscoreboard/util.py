@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
+from datetime import datetime
+from fluxscoreboard.models import settings
 from functools import wraps
 from pyramid.events import NewResponse, subscriber
 from pyramid.httpexceptions import HTTPFound
 from pyramid.security import authenticated_userid
+from pytz import utc
 import bcrypt
 import binascii
 import os
@@ -34,7 +37,7 @@ def display_design(request):
         return False
 
     # If the CTF has started, display the real design.
-    if request.registry.settings.ctf_started:
+    if settings.get().ctf_started:
         return True
 
     # If no route was matched, it's 404 and that is public, too.
@@ -49,6 +52,13 @@ def display_design(request):
         return False
     else:
         return True
+
+
+def now():
+    """
+    Return the current timestamp localized to UTC.
+    """
+    return utc.localize(datetime.utcnow())
 
 
 def encrypt_pw(pw, salt=None):

@@ -52,4 +52,5 @@ routes = [('home', '/'),
            '/admin/submissions/delete'),
           ('admin_massmail', '/admin/massmail'),
           ('admin_massmail_single', '/admin/massmail/{id}'),
+          ('admin_settings', '/admin/settings'),
           ]

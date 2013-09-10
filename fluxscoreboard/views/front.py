@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
-from fluxscoreboard.forms.front import LoginForm, RegisterForm, ProfileForm, \
-    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm, \
-    ResetPasswordForm
-from fluxscoreboard.models import DBSession
-from fluxscoreboard.models.challenge import Challenge, Submission, \
-    check_submission
+from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
+    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
+    ResetPasswordForm)
+from fluxscoreboard.models import DBSession, settings
+from fluxscoreboard.models.challenge import (Challenge, Submission,
+    check_submission)
 from fluxscoreboard.models.news import News
-from fluxscoreboard.models.team import Team, login, get_team_solved_subquery, \
-    get_number_solved_subquery, get_team, register_team, confirm_registration, \
-    password_reminder, check_password_reset_token
+from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
+    get_number_solved_subquery, get_team, register_team, confirm_registration,
+    password_reminder, check_password_reset_token)
 from fluxscoreboard.util import not_logged_in, random_token
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.security import remember, authenticated_userid, forget
-from pyramid.view import view_config, forbidden_view_config, \
-    notfound_view_config
+from pyramid.view import (view_config, forbidden_view_config,
+    notfound_view_config)
 from sqlalchemy.orm import subqueryload
 from sqlalchemy.sql.expression import func, desc
 import functools
@@ -164,7 +164,7 @@ class FrontView(BaseView):
             is_solved, msg = check_submission(challenge,
                                            form.solution.data,
                                            team_id,
-                                           self.request.registry.settings,
+                                           settings.get(),
                                            )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
@@ -229,7 +229,7 @@ class FrontView(BaseView):
             is_solved, msg = check_submission(form.challenge.data,
                                               form.solution.data,
                                               team_id,
-                                              self.request.registry.settings,
+                                              settings.get(),
                                               )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')

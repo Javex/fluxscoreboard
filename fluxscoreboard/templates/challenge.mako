@@ -1,5 +1,8 @@
 <%inherit file="base.mako"/>
 <%namespace name="announcements" file="announcements.mako"/>
+<%
+from fluxscoreboard.models import settings
+%>
 <div class="panel panel-primary">
     <div class="panel-heading">
         <h3 class="panel-title">
@@ -15,7 +18,7 @@
         </div>
         <div class="row">&nbsp;</div>
         <div class="row">
-        % if not is_solved and challenge.published and not challenge.manual and not request.registry.settings["submission_disabled"]:
+        % if not is_solved and challenge.published and not challenge.manual and not settings.get().submission_disabled:
             <form method="POST" action="${request.route_url('challenge', id=challenge.id)}" class="form-horizontal">
                 <legend>Enter solution for challenge</legend>
                 ${form.solution.label(class_='control-label col-2')}
@@ -34,7 +37,7 @@
             <p class="text-success text-center">Congratulations! You have already solved this challenge.</p>
         % elif challenge.manual:
             <p class="text-warning text-center">This challenge is evaluated manually, you cannot submit a solution for it.</p>
-        % elif request.registry.settings["submission_disabled"]:
+        % elif settings.get().submission_disabled:
             <p class="text-info text-center">Submission of solution is currently disabled, sorry.</p>
         % elif not challenge.published:
             <p class="text-warning text-center">This challenge is currently offline, check back later.</p>

@@ -98,7 +98,7 @@ def check_submission(challenge, solution, team_id, settings):
     """
     dbsession = DBSession()
 
-    if settings["submission_disabled"]:
+    if settings.submission_disabled:
         return False, "Submission is currently disabled"
 
     if not challenge.published:

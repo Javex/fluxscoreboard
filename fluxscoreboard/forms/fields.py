@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from PIL import Image
+from fluxscoreboard.forms.validators import RecaptchaValidator
 from pyramid.threadlocal import get_current_request
+from pytz import utc
 from wtforms.fields.core import _unset_value, Field
-from wtforms.fields.html5 import IntegerField
+from wtforms.fields.html5 import IntegerField, DateTimeField
 from wtforms.fields.simple import FileField
 from wtforms.widgets.core import FileInput, HTMLString, html_params, Input
 from wtforms.widgets.html5 import NumberInput
-from fluxscoreboard.forms.validators import RecaptchaValidator
 
 
 __doc__ = """
@@ -229,3 +230,10 @@ class RecaptchaField(Field):
                 self.data = filter_(self.data)
             except ValueError, e:
                 self.process_errors.append(e.args[0])
+
+
+class TZDateTimeField(DateTimeField):
+    def process_formdata(self, valuelist):
+        DateTimeField.process_formdata(self, valuelist)
+        if self.data:
+            self.data = utc.localize(self.data)

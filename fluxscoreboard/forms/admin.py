@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import IntegerOrEvaluatedField, ButtonWidget, \
-    team_size_field
-from fluxscoreboard.forms.validators import email_length_validator, \
-    password_length_validator_conditional, password_required_if_new, \
-    required_validator, name_length_validator, required_or_manual
-from fluxscoreboard.models.challenge import get_all_challenges, \
-    get_all_categories
+from fluxscoreboard.forms.fields import (IntegerOrEvaluatedField, ButtonWidget,
+    team_size_field, TZDateTimeField)
+from fluxscoreboard.forms.validators import (email_length_validator,
+    password_length_validator_conditional, password_required_if_new,
+    required_validator, name_length_validator, required_or_manual)
+from fluxscoreboard.models.challenge import (get_all_challenges,
+    get_all_categories)
 from fluxscoreboard.models.country import get_all_countries
 from fluxscoreboard.models.team import get_all_teams
 from wtforms import validators
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.fields.core import BooleanField
 from wtforms.fields.html5 import EmailField, IntegerField
-from wtforms.fields.simple import TextAreaField, SubmitField, HiddenField, \
-    TextField, PasswordField
+from wtforms.fields.simple import (TextAreaField, SubmitField, HiddenField,
+    TextField, PasswordField)
 
 
 class NewsForm(CSRFForm):
@@ -281,7 +281,7 @@ class ButtonForm(CSRFForm):
 
 class SubmissionButtonForm(CSRFForm):
     """
-    Special variante of :class:`ButtonForm` that is tailored for the composite
+    Special variant of :class:`ButtonForm` that is tailored for the composite
     primary key table ``submission``. Instead of having one ``id`` field it has
     one field ``challenge_id`` identifying the challenge and a field
     ``team_id`` identifiying the team.
@@ -303,3 +303,20 @@ class TeamCleanupForm(CSRFForm):
                  title=None, **kwargs):
         CSRFForm.__init__(self, formdata, obj, prefix, csrf_context, **kwargs)
         self.team_cleanup.label.text = title
+
+
+class SettingsForm(CSRFForm):
+    submission_disabled = BooleanField(
+        "Submission disabled",
+        description=("When submission is disabled, no more teams can submit "
+                     "solutions to challenges until this is re-enabled. "
+                     "Beyond that, the page stays alive.")
+    )
+
+    ctf_start_date = TZDateTimeField(
+        "CTF Start Date",
+        description=("When the CTF should start, in format "
+                     "'%Y-%m-%d %H:%M:%S' and UTC timezone.")
+    )
+
+    submit = SubmitField("Send")

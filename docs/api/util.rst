@@ -8,6 +8,8 @@ Utility Functions
 
 .. autofunction:: display_design
 
+.. autofunction:: now
+
 .. autofunction:: encrypt_pw
 
 .. autofunction:: bcrypt_split

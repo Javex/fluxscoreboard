@@ -87,6 +87,16 @@ Team Models & Functions
 
 .. autofunction:: groupfinder
 
+Settings Models & Functions
+###########################
+
+.. automodule:: fluxscoreboard.models.settings
+
+.. autoclass:: Settings
+    :members:
+
+.. autofunction:: get
+
 Custom Column Types
 ###################
 

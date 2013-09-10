@@ -2,18 +2,16 @@
 from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.admin import (NewsForm, ChallengeForm, TeamForm,
     SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm,
-    TeamCleanupForm)
-from fluxscoreboard.models import DBSession
+    TeamCleanupForm, SettingsForm)
+from fluxscoreboard.models import DBSession, settings as get_settings
 from fluxscoreboard.models.challenge import (Challenge, Submission,
     get_submissions, Category)
 from fluxscoreboard.models.news import News, MassMail
 from fluxscoreboard.models.team import Team, get_active_teams
-from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound
 from pyramid.view import view_config
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.sql.expression import not_
 from webhelpers.paginate import Page, PageURL_WebOb
@@ -36,6 +34,7 @@ class AdminView(object):
              ('admin_teams', 'Teams'),
              ('admin_submissions', 'Submissions'),
              ('admin_massmail', 'Mass Mail'),
+             ('admin_settings', 'Settings'),
              ]
 
     def __init__(self, request):
@@ -56,14 +55,15 @@ class AdminView(object):
                     items_per_page=5, item_count=items.count())
         return page
 
-    def redirect(self, route_name, current_page):
+    def redirect(self, route_name, current_page=None):
         """
         For a given route name and page number get a redirect to that page.
         Convenience method for writing clean code.
         """
+        query = {'page': current_page} if current_page is not None else None
         return HTTPFound(
             location=self.request.route_url(route_name,
-                                            _query={'page': current_page})
+                                            _query=query)
         )
 
     def items(self, DatabaseClass):
@@ -667,3 +667,21 @@ class AdminView(object):
         dbsession = DBSession()
         mail = dbsession.query(MassMail).filter(MassMail.id == id_).one()
         return {'mail': mail}
+
+    @view_config(route_name='admin_settings', renderer='admin_settings.mako')
+    def settings(self):
+        """
+        Adjust runtime application settings.
+        """
+        settings = get_settings()
+        form = SettingsForm(self.request.POST, settings,
+                            csrf_context=self.request)
+        retparams = {'form': form}
+
+        if self.request.method == "POST":
+            if not form.validate():
+                return retparams
+            form.populate_obj(settings)
+            self.request.session.flash("Settings updated!")
+            return self.redirect('admin_settings')
+        return retparams

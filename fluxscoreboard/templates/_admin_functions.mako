@@ -1,6 +1,6 @@
 <%namespace name="form_funcs" file="_form_functions.mako"/>
-<%def name="display_admin_form(route_name, form, title, is_new, current_page)">
-${form_funcs.render_form(request.route_url(route_name, _query=dict(page=current_page)),
+<%def name="display_admin_form(route_name, form, title, is_new=False, current_page=None)">
+${form_funcs.render_form(request.route_url(route_name, _query=dict(page=current_page) if current_page is not None else None),
                          form,
                          ('New ' if is_new else 'Edit') + ' ' + title,
                          display_cancel=not is_new)

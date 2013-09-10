@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.models import DBSession, Base, Challenge, News, Submission, \
-    Team, Country, MassMail, Category
+from fluxscoreboard.models import (DBSession, Base, Challenge, News, Submission,
+    Team, Country, MassMail, Category)
+from fluxscoreboard.models.settings import Settings
 from fluxscoreboard.util import random_str
 import json
 import logging
@@ -34,6 +35,8 @@ def install(settings, test_data=False):
             dbsession.add_all([Country(name=name) for name in country_names])
             if test_data:
                 install_test_data(dbsession, settings)
+        if not dbsession.query(Settings).all():
+            dbsession.add(Settings())
     except:
         transaction.abort()
         raise

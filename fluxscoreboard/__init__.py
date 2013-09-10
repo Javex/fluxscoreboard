@@ -57,5 +57,6 @@ def fix_setting_types(settings):
     Parses a settings dictionary and adjusts the types of certain settings so
     they are not all strings.
     """
-    for setting in ["submission_disabled", "ctf_started"]:
+    # currently no settings to convert
+    for setting in []:
         settings[setting] = asbool(settings[setting])
