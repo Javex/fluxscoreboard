@@ -103,6 +103,19 @@ pyramid.includes =
 # '127.0.0.1' and '::1'.
 # debugtoolbar.hosts = 127.0.0.1 ::1
 
+
+[alembic]
+# path to migration scripts
+script_location = alembic
+
+# template used to generate migration files
+# file_template = %%(rev)s_%%(slug)s
+
+# set to 'true' to run the environment during
+# the 'revision' command, regardless of autogenerate
+# revision_environment = false
+
+
 ###
 # wsgi server configuration
 ###
@@ -118,7 +131,7 @@ port = 6543
 ###
 
 [loggers]
-keys = root, fluxscoreboard, sqlalchemy
+keys = root, fluxscoreboard, sqlalchemy, alembic
 
 [handlers]
 keys = console
@@ -142,6 +155,11 @@ qualname = sqlalchemy.engine
 # "level = INFO" logs SQL queries.
 # "level = DEBUG" logs SQL queries and results.
 # "level = WARN" logs neither.  (Recommended for production systems.)
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
 
 [handler_console]
 class = StreamHandler
