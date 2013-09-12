@@ -3,11 +3,12 @@ from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.admin import (NewsForm, ChallengeForm, TeamForm,
     SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm,
     TeamCleanupForm, SettingsForm)
-from fluxscoreboard.models import DBSession, settings as get_settings
+from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import (Challenge, Submission,
     get_submissions, Category)
 from fluxscoreboard.models.news import News, MassMail
 from fluxscoreboard.models.team import Team, get_active_teams
+from fluxscoreboard.models.settings import get as get_settings
 from pyramid.httpexceptions import HTTPFound
 from pyramid.view import view_config
 from pyramid_mailer import get_mailer

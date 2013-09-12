@@ -197,3 +197,17 @@ def add_header_x_xss_protection(event):
     """Add the ``X-XSS-Protection: 0`` header."""
     if "X-XSS-Protection" not in event.response.headers:
         event.response.headers[b"X-XSS-Protection"] = b"0"
+
+
+@subscriber(NewResponse)
+def add_header_hsts(event):
+    """
+    Add the ``Strict-Transport-Security`` header. Its ``max-age`` setting is
+    controlled by the configuration file setting ``hsts.max-age`` which
+    defaults to one year (``31536000``)
+    """
+    settings = event.request.registry.settings
+    max_age = settings.get('max-age', b"31536000")
+    if "Strict-Transport-Security" not in event.response.headers:
+        header_value = b"max-age=%s" % max_age
+        event.response.headers[b"Strict-Transport-Security"] = header_value

@@ -18,6 +18,9 @@ domain = localhost
 # The CSP header values to set (inactive in dev version)
 #csp_headers = default-src 'self';
 
+# HSTS max-age setting
+#hsts.max-age = 31536000
+
 
 # Enter your database credentials here
 db.user = hacklu
