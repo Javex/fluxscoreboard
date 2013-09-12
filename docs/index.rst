@@ -39,9 +39,15 @@ Developer Narrative:
 API documentation:
 
 .. toctree::
-    :maxdepth: 2
+   :maxdepth: 1
 
-    api
+   api/models
+   api/views
+   api/forms
+   api/util
+   api/routes
+   api/install
+
 
 ToDos
 -----
