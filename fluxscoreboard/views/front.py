@@ -10,12 +10,13 @@ from fluxscoreboard.models.news import News
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
     password_reminder, check_password_reset_token)
-from fluxscoreboard.util import not_logged_in, random_token
+from fluxscoreboard.util import not_logged_in, random_token, now, tz_str
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.security import remember, authenticated_userid, forget
 from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
+from pytz import utc
 from sqlalchemy.orm import subqueryload
 from sqlalchemy.sql.expression import func, desc
 import functools
@@ -288,6 +289,16 @@ class UserView(BaseView):
                           }
                          )
                 return retparams
+            ctf_start = settings.get().ctf_start_date
+            if ctf_start > now():
+                self.request.session.flash("Your login was successful, but "
+                                           "the CTF has not started yet. "
+                                           "Please come back at "
+                                           "%s (%s), i.e. %s UTC."
+                                           % (tz_str(ctf_start, team.timezone),
+                                              team.timezone,
+                                              tz_str(ctf_start, utc)))
+                return HTTPFound(location=self.request.route_url('login'))
             # Start a new session due to new permissions
             self.request.session.invalidate()
             headers = remember(self.request, team.id)
