@@ -98,6 +98,8 @@ class ChallengeForm(CSRFForm):
                           validators=[required_or_manual]
                           )
 
+    author = TextField("Author(s)")
+
     category = QuerySelectField("Category",
                                 query_factory=get_all_categories,
                                 allow_blank=True,

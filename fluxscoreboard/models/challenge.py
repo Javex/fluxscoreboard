@@ -170,6 +170,9 @@ class Challenge(Base):
         ``category_id``: ID of the associated category.
 
         ``category``: Direct access to the :class:`Category`.
+
+        ``author``: A simple string that contains an author (or a list
+        thereof).
     """
     # TODO: change ``published`` to ``online``.
     id = Column(Integer, primary_key=True)
@@ -180,6 +183,7 @@ class Challenge(Base):
     published = Column(Boolean, default=False)
     manual = Column(Boolean, default=False)
     category_id = Column(Integer, ForeignKey('category.id'))
+    author = Column(Unicode(255))
 
     category = relationship("Category", backref="challenges", lazy="joined")
 

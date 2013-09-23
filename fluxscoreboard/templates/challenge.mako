@@ -10,6 +10,9 @@ from fluxscoreboard.models import settings
             % if challenge.category:
             (Category: ${challenge.category})
             % endif
+        % if challenge.author:
+            <em><small class="pull-right text-white">Author(s): ${challenge.author}</small></em>
+        % endif
         </h3>
     </div>
     <div class="col-12">

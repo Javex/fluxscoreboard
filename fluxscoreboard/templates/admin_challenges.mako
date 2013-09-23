@@ -11,6 +11,7 @@
                 <th>Category</th>
                 <th>Solution</th>
                 <th>Points</th>
+                <th>Author(s)</th>
                 <th>Manual</th>
                 <th>Published</th>
                 <th>Action</th>
@@ -30,6 +31,13 @@
                 </td>
                 <td><em>Hidden</em></td>
                 <td>${challenge.points}</td>
+                <td>
+                % if challenge.author:
+                    ${challenge.author}
+                % else:
+                    <em>None</em>
+                % endif
+                </td>
                 <td class="text-${'success' if challenge.manual else 'danger'}">
                     ${'Yes' if challenge.manual else 'No'}
                 </td>
