@@ -69,7 +69,7 @@ class ChallengeForm(CSRFForm):
         the challenge is not manual, otherwise not allowed to be anything other
         than 0 or empty.
 
-        ``published``: If the challenge is online.
+        ``online``: If the challenge is online.
 
         ``manual``: If the points for this challenge are given manually.
 
@@ -105,7 +105,7 @@ class ChallengeForm(CSRFForm):
                                 allow_blank=True,
                                 blank_text='-- No category --')
 
-    published = BooleanField("Published")
+    online = BooleanField("Online")
 
     manual = BooleanField("Manual Challenge")
 

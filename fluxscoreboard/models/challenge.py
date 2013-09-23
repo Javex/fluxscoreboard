@@ -32,7 +32,7 @@ def get_online_challenges():
     Return a query that gets only those challenges that are online.
     """
     return (DBSession().query(Challenge).
-            filter(Challenge.published == True))
+            filter(Challenge.online == True))
 
 
 def get_unsolved_challenges():
@@ -101,7 +101,7 @@ def check_submission(challenge, solution, team_id, settings):
     if settings.submission_disabled:
         return False, "Submission is currently disabled"
 
-    if not challenge.published:
+    if not challenge.online:
         return False, "Challenge is offline."
 
     if challenge.solution != solution:
@@ -163,7 +163,7 @@ class Challenge(Base):
 
         ``points``: How many points the challenge is worth.
 
-        ``published``: Whether the challenge is online.
+        ``online``: Whether the challenge is online.
 
         ``manual``: If the points for this challenge are awareded manually.
 
@@ -174,13 +174,12 @@ class Challenge(Base):
         ``author``: A simple string that contains an author (or a list
         thereof).
     """
-    # TODO: change ``published`` to ``online``.
     id = Column(Integer, primary_key=True)
     title = Column(Unicode(255))
     text = Column(UnicodeText)
     solution = Column(Unicode(255))
     _points = Column('points', Integer, default=0)
-    published = Column(Boolean, default=False)
+    online = Column(Boolean, default=False)
     manual = Column(Boolean, default=False)
     category_id = Column(Integer, ForeignKey('category.id'))
     author = Column(Unicode(255))

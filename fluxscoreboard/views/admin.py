@@ -400,8 +400,11 @@ class AdminView(object):
         A view to toggle the online/offline status of a challenge.
         Implemented with :meth:`_admin_toggle_status`.
         """
-        return self._admin_toggle_status('admin_challenges', Challenge,
-                                         "Challenge")
+        return self._admin_toggle_status(
+            'admin_challenges', Challenge, "Challenge",
+            status_variable_name='online',
+            status_messages={False: 'Challenge now offline',
+                             True: 'Challenge now online'})
 
     @view_config(route_name='admin_categories',
                  renderer='admin_categories.mako')

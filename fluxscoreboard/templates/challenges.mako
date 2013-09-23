@@ -34,8 +34,8 @@
                 % endif
             </td>
             <td>${solved_count}</td>
-            <td class="text-${'success' if challenge.published else 'danger'}">
-                ${'online' if challenge.published else 'offline'}
+            <td class="text-${'success' if challenge.online else 'danger'}">
+                ${'online' if challenge.online else 'offline'}
             </td>
         </tr>
     % endfor

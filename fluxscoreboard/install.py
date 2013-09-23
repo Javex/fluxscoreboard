@@ -80,7 +80,7 @@ def install_test_data(dbsession, settings):
                               text=random_str(50),
                               solution=random_str(10),
                               _points=random.randint(1, 1000),
-                              published=random.choice([True, True, False]),
+                              online=random.choice([True, True, False]),
                               manual=(True if random.randint(0, 100) < 90
                                       else False),
                               category=cat,
