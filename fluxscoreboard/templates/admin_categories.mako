@@ -29,7 +29,7 @@
     ${admin_funcs.display_pagination(page, 'admin_categories')}
 % else:
     <div class="text-center text-info lead">
-        <em>No cate yet!</em>
+        <em>No categories yet!</em>
     </div>
 % endif
 

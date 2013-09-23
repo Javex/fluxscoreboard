@@ -290,7 +290,8 @@ class UserView(BaseView):
                          )
                 return retparams
             ctf_start = settings.get().ctf_start_date
-            if ctf_start > now():
+            ctf_started = settings.get().ctf_started
+            if not ctf_started:
                 self.request.session.flash("Your login was successful, but "
                                            "the CTF has not started yet. "
                                            "Please come back at "
