@@ -459,8 +459,12 @@ class AdminView(object):
         (either redirect or, on error, show errors). Implemented with
         :meth:`_admin_edit`.
         """
-        return self._admin_edit('admin_teams', TeamForm, Team,
-                                "team")
+        retval = self._admin_edit('admin_teams', TeamForm, Team, "team")
+        if isinstance(retval, dict):
+            cleanup_form = TeamCleanupForm(csrf_context=self.request,
+                                           title="Clean Up Inactive Teams")
+            retval["cleanup_form"] = cleanup_form
+        return retval
 
     @view_config(route_name='admin_teams_delete', request_method='POST')
     def team_delete(self):
