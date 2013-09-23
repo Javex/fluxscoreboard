@@ -15,6 +15,10 @@ use = egg:fluxscoreboard
 # The domain on which the site runs
 domain = localhost
 
+# reCAPTCHA keys
+recaptcha.public_key =
+recaptcha.private_key =
+
 # The CSP header values to set (inactive in dev version)
 #csp_headers = default-src 'self';
 

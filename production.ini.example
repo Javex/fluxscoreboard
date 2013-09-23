@@ -15,8 +15,15 @@ use = egg:fluxscoreboard
 # The domain on which the site runs
 domain = localhost
 
+# reCAPTCHA keys
+recaptcha.public_key =
+recaptcha.private_key =
+
 # The CSP header values to set
 csp_headers = default-src 'self';
+
+# HSTS max-age setting
+#hsts.max-age = 31536000
 
 # Enter your database credentials here
 db.user = hacklu
