@@ -17,9 +17,9 @@ class News(Base):
     Attributes:
         ``id``: The primary key.
 
-        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. If setting
-        always only pass either a timezone-aware object or a naive UTC
-        datetime. Defaults to :meth:`datetime.datetime.utcnow`.
+        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. When
+        assigning a value always pass either a timezone-aware object or a
+        naive UTC datetime. Defaults to :meth:`datetime.datetime.utcnow`.
 
         ``message``: The text of the announcement.
 
@@ -58,9 +58,9 @@ class MassMail(Base):
     Attributes:
         ``id``: The primary key.
 
-        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. If
-        setting always only pass either a timezone-aware object or a naive UTC
-        datetime. Defaults to :meth:`datetime.datetime.utcnow`.
+        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. When
+        assigning a value always pass either a timezone-aware object or a
+        naive UTC datetime. Defaults to :meth:`datetime.datetime.utcnow`.
 
         ``subject``: The subject of the mail
 

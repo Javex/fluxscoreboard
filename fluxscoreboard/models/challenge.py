@@ -246,9 +246,9 @@ class Submission(Base):
 
         ``challenge_id``: Foreign primary key column of the challenge.
 
-        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. If
-        setting always only pass either a timezone-aware object or a naive UTC
-        datetime. Defaults to :meth:`datetime.datetime.utcnow`.
+        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. When
+        assigning a value always pass either a timezone-aware object or a
+        naive UTC datetime. Defaults to :meth:`datetime.datetime.utcnow`.
 
         ``bonus``: How many bonus points were awared.
 
