@@ -119,10 +119,13 @@ changes. Seems legit, right?
 .. note::
     For the rest of this section, the configuration used will be
     ``development.ini``. You can switch this out with whatever configuration
-    file name you provided (e.g. ``production.ini``).
+    file name you are using (e.g. ``production.ini``).
 
-After you have done this, let's get to work. The easiest and fastest way, is
-let Alembic try to detect your changes:
+After you have done this, let's get to work. The easiest and fastest way is
+to let Alembic try to detect your changes. This will work for most cases, but
+it will, for example, fail on renaming of columns or tables and instead detect
+a pair of add and delete. Anyway, this is how you let alembic create a basic
+file for your changes:
 
 .. code-block:: bash
 
@@ -130,8 +133,8 @@ let Alembic try to detect your changes:
 
 Alembic will generate a file in the ``alembic/versions`` directory and give you
 its name. Open it and check the ``upgrade`` and ``downgrade`` methods: All you
-need to do is make sure that these do what you need. Then you can testrun
-upgrade first:
+need to do is make sure that these do what you need. Afterwards, you should
+testrun your upgrade:
 
 .. code-block:: bash
 
@@ -139,13 +142,14 @@ upgrade first:
 
 This should be straightforward and you should now have an up to date database.
 Check that it works, i.e. run unit tests, do manual testing, etc. and then make
-sure downgrad works. For this, you need to find out the previous revision which
-is specified in the file you opened above as the variable ``down_revision``.
-Lets say it is ``123abc`` (if there's now previous revision, specify ``base``):
+sure downgrade works. For this, you need to find out the previous revision
+which is specified in the file you opened above as the variable
+``down_revision``. Lets say it is ``123abc`` (if there's no previous revision,
+specify ``base``):
 
 .. code-block:: bash
 
-    alembic -c development.ini downgrad 123abc
+    alembic -c development.ini downgrade 123abc
 
 .. note::
     You don't need to specify the full string, just specify as much as is
