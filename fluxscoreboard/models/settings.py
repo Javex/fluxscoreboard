@@ -59,4 +59,6 @@ class Settings(Base):
     @property
     def ctf_started(self):
         from fluxscoreboard.util import now
+        if self.ctf_start_date is None:
+            return False
         return now() >= self.ctf_start_date
