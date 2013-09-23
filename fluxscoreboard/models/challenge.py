@@ -32,7 +32,7 @@ def get_online_challenges():
     Return a query that gets only those challenges that are online.
     """
     return (DBSession().query(Challenge).
-            filter(Challenge.published == True))
+            filter(Challenge.online == True))
 
 
 def get_unsolved_challenges():
@@ -98,10 +98,10 @@ def check_submission(challenge, solution, team_id, settings):
     """
     dbsession = DBSession()
 
-    if settings["submission_disabled"]:
+    if settings.submission_disabled:
         return False, "Submission is currently disabled"
 
-    if not challenge.published:
+    if not challenge.online:
         return False, "Challenge is offline."
 
     if challenge.solution != solution:
@@ -163,23 +163,26 @@ class Challenge(Base):
 
         ``points``: How many points the challenge is worth.
 
-        ``published``: Whether the challenge is online.
+        ``online``: Whether the challenge is online.
 
         ``manual``: If the points for this challenge are awareded manually.
 
         ``category_id``: ID of the associated category.
 
         ``category``: Direct access to the :class:`Category`.
+
+        ``author``: A simple string that contains an author (or a list
+        thereof).
     """
-    # TODO: change ``published`` to ``online``.
     id = Column(Integer, primary_key=True)
     title = Column(Unicode(255))
     text = Column(UnicodeText)
     solution = Column(Unicode(255))
     _points = Column('points', Integer, default=0)
-    published = Column(Boolean, default=False)
+    online = Column(Boolean, default=False)
     manual = Column(Boolean, default=False)
     category_id = Column(Integer, ForeignKey('category.id'))
+    author = Column(Unicode(255))
 
     category = relationship("Category", backref="challenges", lazy="joined")
 
@@ -243,9 +246,9 @@ class Submission(Base):
 
         ``challenge_id``: Foreign primary key column of the challenge.
 
-        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. If
-        setting always only pass either a timezone-aware object or a naive UTC
-        datetime. Defaults to :meth:`datetime.datetime.utcnow`.
+        ``timestamp``: A UTC-aware :class:`datetime.datetime` object. When
+        assigning a value always pass either a timezone-aware object or a
+        naive UTC datetime. Defaults to :meth:`datetime.datetime.utcnow`.
 
         ``bonus``: How many bonus points were awared.
 

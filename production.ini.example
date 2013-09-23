@@ -12,9 +12,6 @@ use = egg:fluxscoreboard
 # Note: You might want to look at logging configuration as well.
 #
 
-# Whether submission of solutions should be disabled
-submission_disabled = False
-
 # The domain on which the site runs
 domain = localhost
 
@@ -99,6 +96,18 @@ pyramid.includes =
     pyramid_mailer
 
 
+[alembic]
+# path to migration scripts
+script_location = alembic
+
+# template used to generate migration files
+# file_template = %%(rev)s_%%(slug)s
+
+# set to 'true' to run the environment during
+# the 'revision' command, regardless of autogenerate
+# revision_environment = false
+
+
 [server:main]
 use = egg:gunicorn#main
 host = 127.0.0.1
@@ -117,7 +126,7 @@ access-logfile = log/gunicorn_access.log
 ###
 
 [loggers]
-keys = root, fluxscoreboard, sqlalchemy
+keys = root, fluxscoreboard, sqlalchemy, alembic
 
 [handlers]
 keys = console
@@ -141,6 +150,11 @@ qualname = sqlalchemy.engine
 # "level = INFO" logs SQL queries.
 # "level = DEBUG" logs SQL queries and results.
 # "level = WARN" logs neither.  (Recommended for production systems.)
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
 
 [handler_console]
 class = FileHandler

@@ -122,7 +122,7 @@ def get_team(request):
 
 def register_team(form, request):
     """
-    Create a new team from a form and send a confirmaion email.
+    Create a new team from a form and send a confirmation email.
 
     Args:
         ``form``: A filled out :class:`fluxscoreboard.forms.front.RegisterForm`.

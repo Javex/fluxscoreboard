@@ -53,3 +53,4 @@ from fluxscoreboard.models.challenge import Challenge, Submission, Category
 from fluxscoreboard.models.country import Country
 from fluxscoreboard.models.news import News, MassMail
 from fluxscoreboard.models.team import Team
+from fluxscoreboard.models.settings import Settings

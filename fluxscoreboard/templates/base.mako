@@ -1,4 +1,7 @@
-<% from pyramid.security import authenticated_userid, has_permission %>
+<%
+from pyramid.security import authenticated_userid, has_permission
+from fluxscoreboard.util import display_design
+%>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -11,7 +14,13 @@
             <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/admin.js')}"></script>
         % endif
         
-        <link href="${request.static_url('fluxscoreboard:static/css/bootstrap.min.css')}" rel="stylesheet" />
+        ## Here, we display different stylesheets based on routes to not give away the design before contest has started.
+        ## We also load this for the admin backend as we don't need a super-duper design there.
+        % if display_design(request):
+            <link href="${request.static_url('fluxscoreboard:static/css/hacklu-base.min.css')}" rel="stylesheet" />
+        % else:
+            <link href="${request.static_url('fluxscoreboard:static/css/bootstrap.min.css')}" rel="stylesheet" />
+        % endif
         <link href="${request.static_url('fluxscoreboard:static/css/hacklu.css')}" rel="stylesheet" />
         
         <title>Hack.lu 2013 CTF</title>
