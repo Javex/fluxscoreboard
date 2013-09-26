@@ -22,6 +22,7 @@ from fluxscoreboard.util import display_design
             <link href="${request.static_url('fluxscoreboard:static/css/bootstrap.min.css')}" rel="stylesheet" />
         % endif
         <link href="${request.static_url('fluxscoreboard:static/css/hacklu.css')}" rel="stylesheet" />
+        <link href="${request.static_url('fluxscoreboard:static/css/flags16.css')}" rel="stylesheet" />
         
         <title>Hack.lu 2013 CTF</title>
     </head>

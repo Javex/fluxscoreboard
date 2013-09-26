@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
-from fluxscoreboard.models import Base, DBSession
+from fluxscoreboard.models import Base, DBSession, dynamic_challenges
 from fluxscoreboard.models.types import TZDateTime
 from pyramid.security import authenticated_userid
 from pyramid.threadlocal import get_current_request
-from sqlalchemy.orm import relationship, backref, joinedload
+from sqlalchemy.orm import relationship, backref, joinedload, events
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.sql.expression import not_
 from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText
+from sqlalchemy import event
 
 
 bonus_map = {0: (3, 'first'),
@@ -173,6 +174,15 @@ class Challenge(Base):
 
         ``author``: A simple string that contains an author (or a list
         thereof).
+
+        ``dynamic``: Whether this challenge is dynamically handled. At the
+        default of ``False`` this is just a normal challenge, otherwise, the
+        attribute ``module`` must be set.
+
+        ``module``: If this challenge is dynamic, it must provide a valid
+        dotted python name for a module that provides the interface for
+        validation and display. The dotted python name given here will be
+        prefixed with ``fluxscoreboard.dynamic_challenges.``
     """
     id = Column(Integer, primary_key=True)
     title = Column(Unicode(255))
@@ -183,6 +193,8 @@ class Challenge(Base):
     manual = Column(Boolean, default=False)
     category_id = Column(Integer, ForeignKey('category.id'))
     author = Column(Unicode(255))
+    dynamic = Column(Boolean, default=False)
+    module_name = Column(Unicode(255))
 
     category = relationship("Category", backref="challenges", lazy="joined")
 
@@ -212,6 +224,23 @@ class Challenge(Base):
     @points.setter
     def points(self, points):
         self._points = points
+
+    @property
+    def module(self):
+        return dynamic_challenges.registry[self.module_name]
+
+
+@event.listens_for(Challenge, 'before_update')
+@event.listens_for(Challenge, 'before_insert')
+def assert_not_manual_and_dynamic(mapper, connection, target):
+    """
+    Makes sure a dynamic challenge is not at the same time manual via an
+    event. This should be catched beforehand and reported to the user, this
+    is only a safety net.
+    """
+    challenge = target
+    if challenge.manual and challenge.dynamic:
+        raise ValueError("Cannot have a manual dynamic challenge!")
 
 
 class Category(Base):

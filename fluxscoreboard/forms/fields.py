@@ -77,13 +77,16 @@ class IntegerOrEvaluatedField(IntegerField):
     """
     A field that is basically an integer but with the added exception that,
     if the challenge is manual, it will contain the value ``"evaulauted"``
-    which is also valid.
+    which is also valid. May also be empty.
     """
 
     def process_formdata(self, valuelist):
         [value] = valuelist
         if valuelist:
             if value == 'evaluated':
+                self.data = None
+                return True
+            elif not value:
                 self.data = None
                 return True
             else:

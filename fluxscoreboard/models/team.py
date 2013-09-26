@@ -8,7 +8,7 @@ from pyramid.security import unauthenticated_userid
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from pytz import utc, timezone, all_timezones
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import ForeignKey, Column
 from sqlalchemy.sql.expression import func
@@ -16,6 +16,8 @@ from sqlalchemy.types import Integer, Unicode, Boolean
 import binascii
 import logging
 import os
+import random
+import string
 
 
 log = logging.getLogger(__name__)
@@ -245,6 +247,21 @@ def check_password_reset_token(token):
     return team
 
 
+def get_team_by_ref(ref_id):
+    return (DBSession().query(Team).
+            # options(subqueryload(Team.flags)).
+            filter(Team.ref_token == ref_id).one())
+
+
+def ref_token():
+    """
+    Create a ``ref`` token (a random string of 15 letters or digits) for usage
+    with the ref feature.
+    """
+    keyspace = string.letters + string.digits
+    return "".join(random.choice(keyspace) for __ in xrange(15))
+
+
 class Team(Base):
     """
     A team represented in the database.
@@ -285,6 +302,8 @@ class Team(Base):
     local = Column(Boolean, default=False)
     token = Column(Unicode(64), nullable=False, unique=True)
     reset_token = Column(Unicode(64), unique=True)
+    ref_token = Column(Unicode(15), nullable=False, default=ref_token,
+                       unique=True)
     active = Column(Boolean, default=False)
     # TODO: Timezone as seperate type
     _timezone = Column('timezone', Unicode(30),

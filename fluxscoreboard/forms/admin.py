@@ -5,17 +5,25 @@ from fluxscoreboard.forms.fields import (IntegerOrEvaluatedField, ButtonWidget,
     team_size_field, TZDateTimeField)
 from fluxscoreboard.forms.validators import (email_length_validator,
     password_length_validator_conditional, password_required_if_new,
-    required_validator, name_length_validator, required_or_manual)
+    required_validator, name_length_validator, not_dynamic, only_if_dynamic,
+    required_except, required_or_not_allowed, dynamic_check_multiple_allowed)
+from fluxscoreboard.models import dynamic_challenges
 from fluxscoreboard.models.challenge import (get_all_challenges,
     get_all_categories)
 from fluxscoreboard.models.country import get_all_countries
 from fluxscoreboard.models.team import get_all_teams
 from wtforms import validators
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
-from wtforms.fields.core import BooleanField
+from wtforms.fields.core import BooleanField, SelectField
 from wtforms.fields.html5 import EmailField, IntegerField
 from wtforms.fields.simple import (TextAreaField, SubmitField, HiddenField,
     TextField, PasswordField)
+
+
+def get_dynamic_module_choices():
+    module_list = [(name, module.title())
+                   for name, module in dynamic_challenges.registry.items()]
+    return [('', '-- Not dynamic --')] + module_list
 
 
 class NewsForm(CSRFForm):
@@ -86,17 +94,16 @@ class ChallengeForm(CSRFForm):
                       )
 
     text = TextAreaField("Text",
-                         validators=[required_validator]
+                         validators=[required_except(["dynamic"])]
                          )
 
-    solution = TextField("Solution",
-                         validators=[required_validator]
-                         )
+    solution = TextField(
+        "Solution",
+        validators=[required_or_not_allowed(["manual", "dynamic"])])
 
-    # This is ignored if the challenge is manual!
-    points = IntegerOrEvaluatedField("Points",
-                          validators=[required_or_manual]
-                          )
+    points = IntegerOrEvaluatedField(
+        "Points",
+        validators=[required_or_not_allowed(["manual", "dynamic"])])
 
     author = TextField("Author(s)")
 
@@ -107,7 +114,25 @@ class ChallengeForm(CSRFForm):
 
     online = BooleanField("Online")
 
-    manual = BooleanField("Manual Challenge")
+    manual = BooleanField("Manual Challenge", validators=[not_dynamic])
+
+    dynamic = BooleanField(
+        "Dynamic Challenge",
+        description=("A dynamic challenge is a challenge that uses a custom "
+                     "Python module for validation, which, of course, has to "
+                     "be written separately. If you check this, you have to "
+                     "select the corresponding module for this challenge "
+                     "below. Also, you may NOT make it a manual challenge as "
+                     "well!"))
+
+    module_name = SelectField(
+        "Dynamic Module",
+        description=("Which module should be used for this dynamic challenge "
+                     "(only relevant if dynamic is checked above), see above "
+                     "for details."),
+        choices=get_dynamic_module_choices(),
+        validators=[only_if_dynamic, dynamic_check_multiple_allowed]
+    )
 
     id = HiddenField()
 

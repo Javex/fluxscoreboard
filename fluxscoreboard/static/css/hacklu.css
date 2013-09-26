@@ -57,3 +57,7 @@ img.avatar-large {
 .text-white {
 	color: white;
 }
+
+.flag-container {
+	margin-left: 10px;
+}

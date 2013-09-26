@@ -3,13 +3,15 @@ from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
     SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
     ResetPasswordForm)
-from fluxscoreboard.models import DBSession, settings
+from fluxscoreboard.models import DBSession, settings, dynamic_challenges
 from fluxscoreboard.models.challenge import (Challenge, Submission,
     check_submission)
+from fluxscoreboard.models.dynamic_challenges.flags import (TeamFlag,
+    get_location)
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
-    password_reminder, check_password_reset_token)
+    password_reminder, check_password_reset_token, get_team_by_ref)
 from fluxscoreboard.util import not_logged_in, random_token, now, tz_str
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
@@ -104,9 +106,10 @@ class SpecialView(BaseView):
 class FrontView(BaseView):
     """
     All views that are part of the actual page, i.e. the scoreboard and
-    anything surrounding it. All views in here **must** be protected by
+    anything surrounding it. Most views in here **must** be protected by
     :class:`logged_in_view` and not the usual
-    :class:`pyramid.view.view_config`.
+    :class:`pyramid.view.view_config`. Some exceptions may exist, such as the
+    :meth:`ref` view.
     """
 
     @logged_in_view(route_name='home')
@@ -187,12 +190,16 @@ class FrontView(BaseView):
         challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
         # Calculate sum of all bonus points, default to 0
         bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
+        points_col = challenge_sum + bonus_sum
+        for module in dynamic_challenges.registry.values():
+            points_col += module.points_query(dbsession)
         # Create a subquery for the sum of the above points. The filters
         # basically join the columns and the correlation is needed to reference
         # the **outer** Team query.
-        team_score_subquery = (dbsession.query(challenge_sum + bonus_sum).
+        team_score_subquery = (dbsession.query(points_col).
                                filter(Challenge.id == Submission.challenge_id).
                                filter(Team.id == Submission.team_id).
+                               filter(~Challenge.dynamic).
                                correlate(Team))
         score = team_score_subquery.as_scalar()
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
@@ -241,6 +248,28 @@ class FrontView(BaseView):
                     ),
             )
         return retparams
+
+    @view_config(route_name='ref', renderer="json")
+    def ref(self):
+        ref_id = self.request.matchdict["ref_id"]
+        team = get_team_by_ref(ref_id)
+        loc = get_location(self.request.client_addr)
+        ret = {'success': True}
+        if loc is None:
+            log.warn("No valid location returned for IP address '%s' for "
+                     "team '%s' with ref id '%s'"
+                     % (self.request.client_addr, team, ref_id))
+            ret["success"] = False
+            ret["msg"] = ("No location found. Try a different IP from that "
+                            "range.")
+            return ret
+        ret["location"] = loc
+        if loc not in [l.flag for l in team.flags]:
+            team.flags.append(TeamFlag(team=team, flag=loc))
+            ret["msg"] = "Location successfully registered."
+        else:
+            ret["msg"] = "Location already registered."
+        return ret
 
 
 class UserView(BaseView):

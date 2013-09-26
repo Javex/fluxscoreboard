@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.models import DBSession
+from fluxscoreboard.models import DBSession, dynamic_challenges
 from fluxscoreboard.models.team import (TEAM_MAIL_MAX_LENGTH, Team,
     TEAM_PASSWORD_MAX_LENGTH, TEAM_NAME_MAX_LENGTH)
 from pyramid.threadlocal import get_current_request
@@ -9,6 +9,7 @@ from wtforms import validators
 from wtforms.validators import ValidationError
 import logging
 import urllib2
+from fluxscoreboard.models.challenge import Challenge
 
 
 log = logging.getLogger(__name__)
@@ -129,16 +130,77 @@ def password_min_length_if_set_validator(form, field):
         return True
 
 
-def required_or_manual(form, field):
+def required_or_not_allowed(field_list, validator=required_validator):
     """
-    Enforces a "required" only if the "manual" field is not set.
+    Enforces that a field is required _only_ if none of the fields in
+    ``field_list`` are set. Pass in an alternative ``validator`` to allow for
+    passing of validaton control down to another validator.
     """
-    if not form.manual.data:
+    def _check(form, field):
+        for other_field_name in field_list:
+            other_field = getattr(form, other_field_name)
+            if other_field.data:
+                if field.data:
+                    raise ValueError("This field is not allowed if field '%s' "
+                                     "is selected" % other_field.label.text)
+                else:
+                    return True
+        return validator(form, field)
+    return _check
+
+
+def required_except(field_list):
+    """
+    Enforces a required constraint only if none of the fields in ``field_list``
+    are set. The fields in ``field_list`` must be strings with names from other
+    form fields.
+    """
+    def _check(form, field):
+        for other_field_name in field_list:
+            other_field = getattr(form, other_field_name)
+            if other_field.data:
+                return True
         return required_validator(form, field)
+    return _check
+
+
+def not_dynamic(form, field):
+    """
+    Checks that the "dynamic" checkbox is not checked.
+    """
+    if form.dynamic.data and field.data:
+        raise ValueError("Not possible for dynamic challenges.")
     else:
-        # TODO: Shouldn't this part raise a ValueError if field.data is not
-        # None?
-        return field.data is None
+        return True
+
+
+def only_if_dynamic(form, field):
+    """
+    Enforces that this field is only allowed if the challenge is dynamic (and
+    in that case it **must** be set).
+    """
+    if form.dynamic.data and not field.data:
+        raise ValueError("Invalid value for a dynamic challenge.")
+    elif not form.dynamic.data and field.data:
+        raise ValueError("Challenge is not dynamic. Invalid selection.")
+
+
+def dynamic_check_multiple_allowed(form, field):
+    """
+    Checks if multiple fields are allowed and if they are not and there already
+    is a challenge with this dynamic type, then fail.
+    """
+    if not form.dynamic.data or not field.data:
+        return True
+    module = dynamic_challenges.registry[field.data]
+    instance_exists = (DBSession().query(Challenge).
+                       filter(Challenge.module_name == field.data))
+    if form.id.data:
+        instance_exists = instance_exists.filter(Challenge.id != form.id.data)
+    if not module.allow_multiple and instance_exists.first():
+        raise ValueError("Multiple instances of this module are not allowed.")
+    else:
+        return True
 
 
 class AvatarDimensions(object):

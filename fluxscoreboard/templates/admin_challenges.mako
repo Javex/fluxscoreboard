@@ -14,6 +14,7 @@
                 <th>Author(s)</th>
                 <th>Manual</th>
                 <th>Online</th>
+                <th>Dynamic</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -30,7 +31,7 @@
                 % endif
                 </td>
                 <td><em>Hidden</em></td>
-                <td>${challenge.points}</td>
+                <td>${'dynamic' if challenge.dynamic else challenge.points}</td>
                 <td>
                 % if challenge.author:
                     ${challenge.author}
@@ -44,6 +45,9 @@
                 <td class="text-${'success' if challenge.online else 'danger'}">
                     ${'Yes' if challenge.online else 'No'}
                 </td>
+                <td class="text-${'success' if challenge.dynamic else 'danger'}">
+                    ${'Yes' if challenge.dynamic else 'No'}
+                </ts>
                 <td class="btn-group">
                     ${admin_funcs.display_action_list(page.page, request, challenge.id,
                                                       [('admin_challenges', "Edit"),

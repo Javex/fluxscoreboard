@@ -16,6 +16,7 @@ from fluxscoreboard.models import settings
         </h3>
     </div>
     <div class="col-12">
+    % if not challenge.dynamic:
         <div class="row">
             ${challenge.text}
         </div>
@@ -48,6 +49,9 @@ from fluxscoreboard.models import settings
             <p class="text-error text-center">Something is seriously wrong here! Contact FluxFingers hacklu@fluxfingers.net</p>
         % endif
         </div>
+    % else:
+        ${challenge.module.display(challenge, request) | n}
+    % endif
     </div>
     <div class="clearfix"></div>
 </div>
