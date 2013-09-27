@@ -55,7 +55,7 @@ def get_active_teams():
     return DBSession().query(Team).filter(Team.active == True)
 
 
-def get_team_solved_subquery(dbsession, team_id):
+def get_team_solved_subquery(team_id):
     """
     Get a query that searches for a submission from a team for a given
     challenge. The challenge is supposed to come from an outer query.
@@ -63,7 +63,7 @@ def get_team_solved_subquery(dbsession, team_id):
     Example usage:
         .. code-block:: python
 
-            team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+            team_solved_subquery = get_team_solved_subquery(team_id)
             challenge_query = (dbsession.query(Challenge,
                                                team_solved_subquery.exists()))
 
@@ -74,7 +74,7 @@ def get_team_solved_subquery(dbsession, team_id):
     # solved the corresponding challenge. The correlate statement is
     # a SQLAlchemy statement that tells it to use the **outer** challenge
     # column.
-    team_solved_subquery = (dbsession.query(Submission).
+    team_solved_subquery = (DBSession().query(Submission).
                             filter(Submission.team_id == team_id).
                             filter(Challenge.id ==
                                    Submission.challenge_id).

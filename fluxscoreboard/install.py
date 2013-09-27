@@ -126,8 +126,5 @@ def install_test_data(dbsession, settings):
 def uninstall(settings):
     """
     Remove those parts created by install
-
-    .. todo::
-        Implement
     """
-    raise NotImplementedError
+    Base.metadata.drop_all(bind=DBSession().connection())

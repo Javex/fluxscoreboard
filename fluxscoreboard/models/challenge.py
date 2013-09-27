@@ -3,13 +3,12 @@ from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
 from fluxscoreboard.models import Base, DBSession, dynamic_challenges
 from fluxscoreboard.models.types import TZDateTime
-from pyramid.security import authenticated_userid
-from pyramid.threadlocal import get_current_request
-from sqlalchemy.orm import relationship, backref, joinedload, events
+from sqlalchemy import event
+from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.sql.expression import not_
+from sqlalchemy.sql.functions import count
 from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText
-from sqlalchemy import event
 
 
 bonus_map = {0: (3, 'first'),
@@ -33,24 +32,21 @@ def get_online_challenges():
     Return a query that gets only those challenges that are online.
     """
     return (DBSession().query(Challenge).
-            filter(Challenge.online == True))
+            filter(Challenge.online))
 
 
-def get_unsolved_challenges():
+def get_unsolved_challenges(team_id):
     """
     Return a query that produces a list of all unsolved challenges for a given
     team.
     """
     from fluxscoreboard.models.team import get_team_solved_subquery
-    request = get_current_request()
-    team_id = authenticated_userid(request)
-    dbsession = DBSession()
-    team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+    team_solved_subquery = get_team_solved_subquery(team_id)
     online = get_online_challenges()
     return (online.filter(not_(team_solved_subquery.exists())))
 
 
-def get_solvable_challenges():
+def get_solvable_challenges(team_id):
     """
     Return a list of challenges that the current team can solve right now. It
     returns a list of challenges that are
@@ -59,8 +55,8 @@ def get_solvable_challenges():
     - unsolved by the current team
     - not manual (i.e. solvable by entering a solution)
     """
-    unsolved = get_unsolved_challenges()
-    return unsolved.filter(Challenge.manual == False)
+    unsolved = get_unsolved_challenges(team_id)
+    return unsolved.filter(~Challenge.manual)
 
 
 def get_submissions():
@@ -111,9 +107,12 @@ def check_submission(challenge, solution, team_id, settings):
     if challenge.manual:
         return False, "Credits for this challenge will be given manually."
 
-    submissions = (dbsession.query(Submission.team_id).
-                   filter(Submission.challenge_id == challenge.id).
-                   all())
+    if challenge.dynamic:
+        return False, "The challenge is dynamic, no submission possible."
+
+    query = (dbsession.query(Submission.team_id).
+             filter(Submission.challenge_id == challenge.id))
+    submissions = [id_ for id_, in query]
 
     if team_id in submissions:
         return False, "Already solved."
@@ -127,7 +126,7 @@ def check_submission(challenge, solution, team_id, settings):
 
     submission = Submission(bonus=bonus)
     submission.team_id = team_id
-    submission.challenge_id = challenge.id
+    submission.challenge = challenge
     dbsession.add(submission)
     return True, msg
 
@@ -306,6 +305,7 @@ class Submission(Base):
     def __init__(self, *args, **kwargs):
         if "timestamp" not in kwargs:
             self.timestamp = datetime.utcnow()
+        Base.__init__(self, *args, **kwargs)
 
     @property
     def points(self):

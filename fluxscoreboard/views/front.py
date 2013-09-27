@@ -131,7 +131,7 @@ class FrontView(BaseView):
         """
         dbsession = DBSession()
         team_id = authenticated_userid(self.request)
-        team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+        team_solved_subquery = get_team_solved_subquery(team_id)
         number_of_solved_subquery = get_number_solved_subquery()
         challenges = (dbsession.query(Challenge,
                                            team_solved_subquery.exists(),
@@ -152,7 +152,7 @@ class FrontView(BaseView):
         challenge_id = int(self.request.matchdict["id"])
         team_id = authenticated_userid(self.request)
         dbsession = DBSession()
-        team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+        team_solved_subquery = get_team_solved_subquery(team_id)
         challenge, is_solved = (dbsession.query(Challenge,
                                                 team_solved_subquery.exists()).
                                  filter(Challenge.id == challenge_id).

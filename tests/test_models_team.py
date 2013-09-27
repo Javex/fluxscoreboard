@@ -2,8 +2,9 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models.team import get_team, groupfinder, TEAM_GROUPS, \
     get_all_teams, Team, get_active_teams
-from fluxscoreboard.tests import logged_in, dbsession, pyramid_request, config, \
+from . import logged_in, pyramid_request, config, \
     auth_pol
+from .fixture import dbsession
 import pytest
 
 

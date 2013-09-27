@@ -17,18 +17,6 @@ log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def dbsession(request):
-    sess = DBSession()
-    return sess
-
-
-@pytest.fixture
-def settings():
-    from conftest import settings as s
-    return s
-
-
-@pytest.fixture
 def app(settings, request, dbsession):
     from conftest import testapp
     # install_test_data(dbsession)
@@ -37,13 +25,6 @@ def app(settings, request, dbsession):
         remove_test_data(dbsession)
     request.addfinalizer(_finish)"""
     return testapp
-
-
-@pytest.fixture
-def pyramid_request(config):
-    request = testing.DummyRequest(params=MultiDict())
-    request.client_addr = None
-    return request
 
 
 @pytest.fixture
