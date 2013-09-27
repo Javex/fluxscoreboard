@@ -18,6 +18,7 @@ import logging
 import os
 import random
 import string
+from sqlalchemy.ext.associationproxy import association_proxy
 
 
 log = logging.getLogger(__name__)
@@ -311,6 +312,9 @@ class Team(Base):
                        nullable=False)
     avatar_filename = Column(Unicode(68), unique=True)
     size = Column(Integer)
+
+    # TODO: Make it a set (and update TeamFlags docs)
+    flags = association_proxy("team_flags", "flag")
 
     country = relationship("Country", lazy='joined')
 

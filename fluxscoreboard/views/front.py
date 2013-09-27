@@ -249,28 +249,6 @@ class FrontView(BaseView):
             )
         return retparams
 
-    @view_config(route_name='ref', renderer="json")
-    def ref(self):
-        ref_id = self.request.matchdict["ref_id"]
-        team = get_team_by_ref(ref_id)
-        loc = get_location(self.request.client_addr)
-        ret = {'success': True}
-        if loc is None:
-            log.warn("No valid location returned for IP address '%s' for "
-                     "team '%s' with ref id '%s'"
-                     % (self.request.client_addr, team, ref_id))
-            ret["success"] = False
-            ret["msg"] = ("No location found. Try a different IP from that "
-                            "range.")
-            return ret
-        ret["location"] = loc
-        if loc not in [l.flag for l in team.flags]:
-            team.flags.append(TeamFlag(team=team, flag=loc))
-            ret["msg"] = "Location successfully registered."
-        else:
-            ret["msg"] = "Location already registered."
-        return ret
-
 
 class UserView(BaseView):
     """
