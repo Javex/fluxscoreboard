@@ -64,17 +64,18 @@ def display(challenge, request):
     return render('dynamic_flags.mako', params, request)
 
 
-def points_query(dbsession):
+def points_query():
     from fluxscoreboard.models.team import Team
-    subquery = (dbsession.query(func.count('*')).
-                filter(TeamFlag.team_id == Team.id).correlate(Team))
+    subquery = (DBSession().query(func.count('*')).
+                filter(TeamFlag.team_id == Team.id).
+                correlate(Team))
     return subquery.as_scalar()
 
 
 def get_location(ip):
     query = (DBSession().query(GeoIP.country_code).
-                filter(GeoIP.ip_range_start <= GeoIP.ip_int(ip)).
-                filter(GeoIP.ip_range_end >= GeoIP.ip_int(ip)))
+             filter(GeoIP.ip_range_start <= GeoIP.ip_int(ip)).
+             filter(GeoIP.ip_range_end >= GeoIP.ip_int(ip)))
     country_code, = query.first() or ("",)
     if country_code not in flag_list:
         log.info("Retrieved invalid country code '%s' for IP address %s. "

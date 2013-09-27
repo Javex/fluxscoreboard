@@ -192,7 +192,7 @@ class FrontView(BaseView):
         bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
         points_col = challenge_sum + bonus_sum
         for module in dynamic_challenges.registry.values():
-            points_col += module.points_query(dbsession)
+            points_col += module.points_query()
         # Create a subquery for the sum of the above points. The filters
         # basically join the columns and the correlation is needed to reference
         # the **outer** Team query.
