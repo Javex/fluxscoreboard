@@ -122,7 +122,7 @@ def get_team(request):
 
 def register_team(form, request):
     """
-    Create a new team from a form and send a confirmaion email.
+    Create a new team from a form and send a confirmation email.
 
     Args:
         ``form``: A filled out :class:`fluxscoreboard.forms.front.RegisterForm`.
@@ -137,6 +137,7 @@ def register_team(form, request):
                 password=form.password.data,
                 country=form.country.data,
                 timezone=form.timezone.data,
+                size=form.size.data,
                 )
     dbsession = DBSession()
     dbsession.add(team)
@@ -290,6 +291,7 @@ class Team(Base):
                        default=lambda: unicode(utc.zone),
                        nullable=False)
     avatar_filename = Column(Unicode(68), unique=True)
+    size = Column(Integer)
 
     country = relationship("Country", lazy='joined')
 

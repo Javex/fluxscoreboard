@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import AvatarField
-from fluxscoreboard.forms.validators import name_length_validator, \
-    email_length_validator, password_min_length_validator, \
-    password_max_length_validator, required_validator, email_equal_validator, \
-    email_unique_validator, password_equal_validator, \
-    password_required_and_valid_if_pw_change, password_min_length_if_set_validator, \
-    password_max_length_if_set_validator, avatar_dimensions_validator, \
-    avatar_size_validator
+from fluxscoreboard.forms.fields import AvatarField, team_size_field
+from fluxscoreboard.forms.validators import (name_length_validator,
+    email_length_validator, password_min_length_validator,
+    password_max_length_validator, required_validator, email_equal_validator,
+    email_unique_validator, password_equal_validator,
+    password_required_and_valid_if_pw_change,
+    password_min_length_if_set_validator,
+    password_max_length_if_set_validator, avatar_dimensions_validator,
+    avatar_size_validator)
 from fluxscoreboard.models.challenge import get_solvable_challenges
 from fluxscoreboard.models.country import get_all_countries
 from pytz import common_timezones, utc
@@ -105,7 +106,11 @@ class RegisterForm(CSRFForm):
                                     [(tz, tz) for tz in common_timezones]),
                            )
 
+    size = team_size_field()
+
     submit = SubmitField("Register")
+
+
 
 
 class LoginForm(CSRFForm):
@@ -216,6 +221,8 @@ class ProfileForm(CSRFForm):
                            choices=[(tz, tz) for tz in common_timezones],
                            default=((utc.zone, utc.zone)),
                            )
+
+    size = team_size_field()
 
     submit = SubmitField("Save")
 

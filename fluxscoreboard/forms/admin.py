@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import IntegerOrEvaluatedField, ButtonWidget
-from fluxscoreboard.forms.validators import email_length_validator, \
-    password_length_validator_conditional, password_required_if_new, \
-    required_validator, name_length_validator, required_or_manual
-from fluxscoreboard.models.challenge import get_all_challenges, \
-    get_all_categories
+from fluxscoreboard.forms.fields import (IntegerOrEvaluatedField, ButtonWidget,
+    team_size_field, TZDateTimeField)
+from fluxscoreboard.forms.validators import (email_length_validator,
+    password_length_validator_conditional, password_required_if_new,
+    required_validator, name_length_validator, required_or_manual)
+from fluxscoreboard.models.challenge import (get_all_challenges,
+    get_all_categories)
 from fluxscoreboard.models.country import get_all_countries
 from fluxscoreboard.models.team import get_all_teams
 from wtforms import validators
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.fields.core import BooleanField
 from wtforms.fields.html5 import EmailField, IntegerField
-from wtforms.fields.simple import TextAreaField, SubmitField, HiddenField, \
-    TextField, PasswordField
+from wtforms.fields.simple import (TextAreaField, SubmitField, HiddenField,
+    TextField, PasswordField)
 
 
 class NewsForm(CSRFForm):
@@ -68,7 +69,7 @@ class ChallengeForm(CSRFForm):
         the challenge is not manual, otherwise not allowed to be anything other
         than 0 or empty.
 
-        ``published``: If the challenge is online.
+        ``online``: If the challenge is online.
 
         ``manual``: If the points for this challenge are given manually.
 
@@ -97,12 +98,14 @@ class ChallengeForm(CSRFForm):
                           validators=[required_or_manual]
                           )
 
+    author = TextField("Author(s)")
+
     category = QuerySelectField("Category",
                                 query_factory=get_all_categories,
                                 allow_blank=True,
                                 blank_text='-- No category --')
 
-    published = BooleanField("Published")
+    online = BooleanField("Online")
 
     manual = BooleanField("Manual Challenge")
 
@@ -180,6 +183,8 @@ class TeamForm(CSRFForm):
                                    email_length_validator,
                                    ]
                        )
+
+    size = team_size_field()
 
     country = QuerySelectField("Country/State",
                                query_factory=get_all_countries
@@ -278,7 +283,7 @@ class ButtonForm(CSRFForm):
 
 class SubmissionButtonForm(CSRFForm):
     """
-    Special variante of :class:`ButtonForm` that is tailored for the composite
+    Special variant of :class:`ButtonForm` that is tailored for the composite
     primary key table ``submission``. Instead of having one ``id`` field it has
     one field ``challenge_id`` identifying the challenge and a field
     ``team_id`` identifiying the team.
@@ -291,3 +296,29 @@ class SubmissionButtonForm(CSRFForm):
                  csrf_context=None, title=None, **kwargs):
         CSRFForm.__init__(self, formdata, obj, prefix, csrf_context, **kwargs)
         self.button.label.text = title
+
+
+class TeamCleanupForm(CSRFForm):
+    team_cleanup = SubmitField(widget=ButtonWidget())
+
+    def __init__(self, formdata=None, obj=None, prefix='', csrf_context=None,
+                 title=None, **kwargs):
+        CSRFForm.__init__(self, formdata, obj, prefix, csrf_context, **kwargs)
+        self.team_cleanup.label.text = title
+
+
+class SettingsForm(CSRFForm):
+    submission_disabled = BooleanField(
+        "Submission disabled",
+        description=("When submission is disabled, no more teams can submit "
+                     "solutions to challenges until this is re-enabled. "
+                     "Beyond that, the page stays alive.")
+    )
+
+    ctf_start_date = TZDateTimeField(
+        "CTF Start Date",
+        description=("When the CTF should start, in format "
+                     "'%Y-%m-%d %H:%M:%S' and UTC timezone.")
+    )
+
+    submit = SubmitField("Send")

@@ -1,14 +1,64 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
+from datetime import datetime
+from fluxscoreboard.models import settings
 from functools import wraps
 from pyramid.events import NewResponse, subscriber
 from pyramid.httpexceptions import HTTPFound
 from pyramid.security import authenticated_userid
+from pytz import utc
 import bcrypt
 import binascii
 import os
 import random
 import string
+
+
+def display_design(request):
+    """
+    A function that returns ``True`` or ``False`` depending on whether the
+    actual design should be displayed (``True``) or just a default one
+    (``False``).
+
+    This is used to not disclose the real design until the CTF has started.
+    The following logic is implemented:
+
+    - The admin backend has the default design (i.e. ``False``).
+    - If the CTF has started, the real design is loaded for the frontpage
+      (i.e. ``True``).
+    - If no route is matched or a public route is matched, the default design
+      is loaded (``False``).
+    - Otherwise the real design is loaded (``True``).
+
+    The conditions are processed in order, i.e. the first match is returned.
+    """
+    # If the admin backend is loaded, display the default design.
+    if request.path.startswith('/admin'):
+        return False
+
+    # If the CTF has started, display the real design.
+    if settings.get().ctf_started:
+        return True
+
+    # If no route was matched, it's 404 and that is public, too.
+    if not request.matched_route:
+        return False
+
+    # If the view is something that is public and we did not launch yet
+    # we display the default one. This is a list of routes that is public.
+    if request.matched_route.name in ['login', 'register',
+                                      'reset-password-start', 'reset-password',
+                                      'confirm']:
+        return False
+    else:
+        return True
+
+
+def now():
+    """
+    Return the current timestamp localized to UTC.
+    """
+    return utc.localize(datetime.utcnow())
 
 
 def encrypt_pw(pw, salt=None):
@@ -148,3 +198,17 @@ def add_header_x_xss_protection(event):
     """Add the ``X-XSS-Protection: 0`` header."""
     if "X-XSS-Protection" not in event.response.headers:
         event.response.headers[b"X-XSS-Protection"] = b"0"
+
+
+@subscriber(NewResponse)
+def add_header_hsts(event):
+    """
+    Add the ``Strict-Transport-Security`` header. Its ``max-age`` setting is
+    controlled by the configuration file setting ``hsts.max-age`` which
+    defaults to one year (``31536000``)
+    """
+    settings = event.request.registry.settings
+    max_age = settings.get('max-age', b"31536000")
+    if "Strict-Transport-Security" not in event.response.headers:
+        header_value = b"max-age=%s" % max_age
+        event.response.headers[b"Strict-Transport-Security"] = header_value

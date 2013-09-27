@@ -50,6 +50,19 @@
             </div>
         </div>
         <div class="form-group">
+            ${form.size.label(class_="col-4 control-label")}
+            <div class="col-8">
+                ${form.size(class_="form-control", placeholder=form.size.label.text)}
+                <span class="help-block">
+                    For statistical purposes we would like to know how many you are. 
+                    There is no limitation on the number of people each team may bring, we just like to know the sizes of teams.
+                </span>
+                % for msg in form.errors.get("size", []):
+                    <div class="alert alert-danger">${msg}</div>
+                % endfor
+            </div>
+        </div>
+        <div class="form-group">
             ${form.country.label(class_="col-4 control-label")}
             <div class="col-8">
                 ${form.country(class_="form-control")}
@@ -63,6 +76,15 @@
             <div class="col-8">
                 ${form.timezone(class_="form-control")}
                 % for msg in form.errors.get("timezone", []):
+                    <div class="alert alert-danger">${msg}</div>
+                % endfor
+            </div>
+        </div>
+        <div class="form-group">
+            ${form.captcha.label(class_="col-4 control-label")}
+            <div class="col-8">
+                ${form.captcha(class_="form-control")}
+                % for msg in form.errors.get("captcha", []):
                     <div class="alert alert-danger">${msg}</div>
                 % endfor
             </div>

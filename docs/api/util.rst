@@ -6,6 +6,10 @@ Utility Functions
 
 .. automodule:: fluxscoreboard.util
 
+.. autofunction:: display_design
+
+.. autofunction:: now
+
 .. autofunction:: encrypt_pw
 
 .. autofunction:: bcrypt_split

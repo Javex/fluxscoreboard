@@ -1,5 +1,8 @@
 <%inherit file="base.mako"/>
-% if not request.registry.settings["submission_disabled"] and list(form.challenge):
+<%
+from fluxscoreboard.models import settings
+%>
+% if not settings.get().submission_disabled and list(form.challenge):
 <form class="form-horizontal" method="POST" action="${request.route_url('submit')}">
     <legend>Enter solution for challenge</legend>
     <div class="form-group">
@@ -28,7 +31,7 @@
         </div>
     </div>
 </form>
-% elif request.registry.settings["submission_disabled"]:
+% elif settings.get().submission_disabled:
     <div class="alert alert-info">Sorry, but submission of solutions is currently disabled.</div>
 % elif not list(form.challenge):
     <div class="alert alert-info">Right now, there are no challenges to submit solutions for.</div>

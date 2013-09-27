@@ -2,6 +2,11 @@
 <%namespace name="admin_funcs" file="_admin_functions.mako"/>
 <h1>Teams</h1>
 
+<form method="POST" action="${request.route_url('admin_teams_cleanup')}">
+    ${cleanup_form.team_cleanup(class_="btn btn-danger pull-right")}
+    ${cleanup_form.csrf_token}
+</form>
+
 % if items:
     <table class="table">
         <thead>
@@ -12,6 +17,7 @@
                 <th>Country</th>
                 <th>Local</th>
                 <th>Active</th>
+                <th>Size</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -27,6 +33,13 @@
                 </td>
                 <td class="text-${'success' if team.active else 'danger'}">
                     ${'Yes' if team.active else 'No'}
+                </td>
+                <td>
+                    % if team.size:
+                        ${team.size}
+                    % else:
+                        <em>None</em>
+                    % endif
                 </td>
                 <td class="btn-group">
                         ${admin_funcs.display_action_list(page.page, request, team.id,

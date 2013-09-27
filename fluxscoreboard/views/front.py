@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
-from fluxscoreboard.forms.front import LoginForm, RegisterForm, ProfileForm, \
-    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm, \
-    ResetPasswordForm
-from fluxscoreboard.models import DBSession
-from fluxscoreboard.models.challenge import Challenge, Submission, \
-    check_submission
+from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
+    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
+    ResetPasswordForm)
+from fluxscoreboard.models import DBSession, settings
+from fluxscoreboard.models.challenge import (Challenge, Submission,
+    check_submission)
 from fluxscoreboard.models.news import News
-from fluxscoreboard.models.team import Team, login, get_team_solved_subquery, \
-    get_number_solved_subquery, get_team, register_team, confirm_registration, \
-    password_reminder, check_password_reset_token
-from fluxscoreboard.util import not_logged_in, random_token
+from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
+    get_number_solved_subquery, get_team, register_team, confirm_registration,
+    password_reminder, check_password_reset_token)
+from fluxscoreboard.util import not_logged_in, random_token, now, tz_str
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.security import remember, authenticated_userid, forget
-from pyramid.view import view_config, forbidden_view_config, \
-    notfound_view_config
+from pyramid.view import (view_config, forbidden_view_config,
+    notfound_view_config)
+from pytz import utc
 from sqlalchemy.orm import subqueryload
 from sqlalchemy.sql.expression import func, desc
 import functools
@@ -164,7 +165,7 @@ class FrontView(BaseView):
             is_solved, msg = check_submission(challenge,
                                            form.solution.data,
                                            team_id,
-                                           self.request.registry.settings,
+                                           settings.get(),
                                            )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
@@ -229,7 +230,7 @@ class FrontView(BaseView):
             is_solved, msg = check_submission(form.challenge.data,
                                               form.solution.data,
                                               team_id,
-                                              self.request.registry.settings,
+                                              settings.get(),
                                               )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
@@ -288,6 +289,17 @@ class UserView(BaseView):
                           }
                          )
                 return retparams
+            ctf_start = settings.get().ctf_start_date
+            ctf_started = settings.get().ctf_started
+            if not ctf_started:
+                self.request.session.flash("Your login was successful, but "
+                                           "the CTF has not started yet. "
+                                           "Please come back at "
+                                           "%s (%s), i.e. %s UTC."
+                                           % (tz_str(ctf_start, team.timezone),
+                                              team.timezone,
+                                              tz_str(ctf_start, utc)))
+                return HTTPFound(location=self.request.route_url('login'))
             # Start a new session due to new permissions
             self.request.session.invalidate()
             headers = remember(self.request, team.id)
@@ -302,7 +314,9 @@ class UserView(BaseView):
         """
         Display and handle registration of new teams.
         """
-        form = RegisterForm(self.request.POST, csrf_context=self.request)
+        ip = self.request.client_addr
+        form = RegisterForm(self.request.POST, csrf_context=self.request,
+                            captcha={'ip_address': ip})
         if self.request.method == 'POST':
             if not form.validate():
                 return {'form': form}
@@ -346,7 +360,11 @@ class UserView(BaseView):
         retparams = {'form': form,
                      'team': self.team,
                      }
+        redirect = HTTPFound(location=self.request.route_url('profile'))
         if self.request.method == 'POST':
+            if form.cancel.data:
+                self.request.session.flash("Edit aborted")
+                return redirect
             if not form.validate():
                 return retparams
             if form.avatar.data is not None and form.avatar.data != '':
@@ -358,7 +376,7 @@ class UserView(BaseView):
                 form.avatar.image.save(fpath)
             form.populate_obj(self.team)
             self.request.session.flash('Your profile has been updated')
-            return HTTPFound(location=self.request.route_url('profile'))
+            return redirect
         return retparams
 
     @view_config(route_name='reset-password-start',
