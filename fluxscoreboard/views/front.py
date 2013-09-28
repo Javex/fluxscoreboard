@@ -3,11 +3,9 @@ from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
     SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
     ResetPasswordForm)
-from fluxscoreboard.models import DBSession, settings, dynamic_challenges
+from fluxscoreboard.models import DBSession, settings
 from fluxscoreboard.models.challenge import (Challenge, Submission,
     check_submission)
-from fluxscoreboard.models.dynamic_challenges.flags import (TeamFlag,
-    get_location)
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
@@ -185,6 +183,7 @@ class FrontView(BaseView):
         complex part of the query is the query that calculates the sum of
         points right in the SQL.
         """
+        from ..models import dynamic_challenges
         dbsession = DBSession()
         # Calculate sum of all points, defalt to 0
         challenge_sum = func.coalesce(func.sum(Challenge._points), 0)

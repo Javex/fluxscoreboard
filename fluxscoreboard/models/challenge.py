@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
-from fluxscoreboard.models import Base, DBSession, dynamic_challenges
+from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.types import TZDateTime
 from sqlalchemy import event
 from sqlalchemy.orm import relationship, backref, joinedload
@@ -226,6 +226,7 @@ class Challenge(Base):
 
     @property
     def module(self):
+        from . import dynamic_challenges
         return dynamic_challenges.registry[self.module_name]
 
 

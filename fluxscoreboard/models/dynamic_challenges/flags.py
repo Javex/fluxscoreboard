@@ -6,6 +6,7 @@ from fluxscoreboard.models.team import get_team_by_ref
 from fluxscoreboard.views.front import BaseView
 from pyramid.renderers import render
 from pyramid.view import view_config
+from requests.exceptions import RequestException
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.schema import ForeignKey, Column
@@ -164,14 +165,15 @@ def title():
 
 def install(connection):
     geoip_fname = 'GeoIPCountryWhois.csv'
+    geoip_file = os.path.join(ROOT_DIR, 'data', geoip_fname)
     try:
         r = requests.get(db_url)
-    except Exception as e:
+    except RequestException as e:
         # TODO: catch requests exception
         log.error("Could not download current database because requests "
                   "threw an exception. This only means that the database will "
                   "not be up to date but we will use the old cached version. "
-                  "Requests reported the following: '%s'" % (e.msg))
+                  "Requests reported the following: '%s'" % e)
     else:
         # TOD: Move new geoip file over to update it.
         tmpdir = mkdtemp()
@@ -181,9 +183,8 @@ def install(connection):
         zip_ = zipfile.ZipFile(zipname)
         zip_.extractall(tmpdir)
         extracted_csv = os.path.join(tmpdir, geoip_fname)
-        raise NotImplementedError("How to move a file?")
+        shutil.move(extracted_csv, geoip_file)
         shutil.rmtree(tmpdir)
-    geoip_file = os.path.join(ROOT_DIR, 'data', geoip_fname)
     data = []
     available_country_codes = set()
     with open(geoip_file) as f:
@@ -193,15 +194,31 @@ def install(connection):
             ip_int_end = int(row[3])
             country_code = unicode(row[4].lower())
             if country_code not in flag_list:
-                raise ValueError("The country code '%s' is not in the list of "
-                                 "flags. It has the following data attached: "
-                                 "'%s'" % row)
+                if country_code in flag_exceptions:
+                    # Don't import it
+                    continue
+                else:
+                    raise ValueError("The country code '%s' is not in the "
+                                     "list of flags. It has the following "
+                                     "data attached: '%s'"
+                                     % (country_code, row))
             available_country_codes.add(country_code)
             item = {'ip_range_start': ip_int_start,
                     'ip_range_end': ip_int_end,
                     'country_code': country_code}
             data.append(item)
-    connection.execute(GeoIP.__table__.insert().values(data))
+    log.info("Adding %d rows to database" % len(data))
+    dialect = connection.dialect.name
+    if dialect == "sqlite":
+        chunk_size = 300
+    elif dialect == "mysql":
+        chunk_size = 10000
+    else:
+        chunk_size = len(data)
+
+    while data:
+        connection.execute(GeoIP.__table__.insert().values(data[:chunk_size]))
+        data = data[chunk_size:]
     unreachable_countries = set(flag_list) - available_country_codes
     if unreachable_countries:
         log.warning("There are a number of countries that will not be "
@@ -211,7 +228,7 @@ def install(connection):
                     % list(unreachable_countries))
 
 
-flag_list = ['ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'an', 'ao', 'aq',
+flag_list = ['ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'ao', 'aq',
              'ar', 'as', 'at', 'au', 'aw', 'az', 'ba', 'bb', 'bd', 'be',
              'bf', 'bg', 'bh', 'bi', 'bj', 'bm', 'bn', 'bo', 'br', 'bs',
              'bt', 'bw', 'by', 'bz', 'ca', 'cg', 'cf', 'cd', 'ch', 'ci',
@@ -234,3 +251,11 @@ flag_list = ['ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'an', 'ao', 'aq',
              'to', 'tr', 'tt', 'tv', 'tw', 'tz', 'ua', 'ug', 'us', 'uy',
              'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn', 'vu', 'ws', 'ye',
              'za', 'zm', 'zw']
+
+
+# These are flags that exist in the original database but we do not recognize
+# them
+flag_exceptions = set(['eu', 'a2', 'yt', 'ap', 'tk', 'wf', 'cw', 'ss', 'a1',
+                       'sh', 'cx', 'mf', 'gs', 'gf', 'cc', 'bl', 'nf', 'um',
+                       'sj', 'bq', 'sx', 'mp', 'io', 'tf', 'ax', 'fk', 'pn',
+                       'nu', 'pm'])

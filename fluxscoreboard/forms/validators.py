@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.models import DBSession, dynamic_challenges
+from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.team import (TEAM_MAIL_MAX_LENGTH, Team,
     TEAM_PASSWORD_MAX_LENGTH, TEAM_NAME_MAX_LENGTH)
 from pyramid.threadlocal import get_current_request
@@ -192,6 +192,7 @@ def dynamic_check_multiple_allowed(form, field):
     """
     if not form.dynamic.data or not field.data:
         return True
+    from ..models import dynamic_challenges
     module = dynamic_challenges.registry[field.data]
     instance_exists = (DBSession().query(Challenge).
                        filter(Challenge.module_name == field.data))

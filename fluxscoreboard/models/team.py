@@ -8,12 +8,11 @@ from pyramid.security import unauthenticated_userid
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from pytz import utc, timezone, all_timezones
-from sqlalchemy.orm import relationship, subqueryload
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import ForeignKey, Column
 from sqlalchemy.sql.expression import func
 from sqlalchemy.types import Integer, Unicode, Boolean
-import binascii
 import logging
 import os
 import random

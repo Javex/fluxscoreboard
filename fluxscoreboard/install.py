@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import (DBSession, Base, Challenge, News, Submission,
-    Team, Country, MassMail, Category)
+    Team, Country, MassMail, Category, dynamic_challenges)
 from fluxscoreboard.models.settings import Settings
 from fluxscoreboard.util import random_str
 import json
@@ -37,6 +37,8 @@ def install(settings, test_data=False):
                 install_test_data(dbsession, settings)
         if not dbsession.query(Settings).all():
             dbsession.add(Settings())
+        for dyn_mod in dynamic_challenges.registry.values():
+            dyn_mod.install(dbsession.connection())
     except:
         transaction.abort()
         raise
