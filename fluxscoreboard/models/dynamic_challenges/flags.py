@@ -7,11 +7,10 @@ from fluxscoreboard.views.front import BaseView
 from pyramid.renderers import render
 from pyramid.view import view_config
 from requests.exceptions import RequestException
-from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.schema import ForeignKey, Column
 from sqlalchemy.sql.expression import func
-from sqlalchemy.types import Integer, Unicode
+from sqlalchemy.types import Integer, Unicode, BigInteger
 from tempfile import mkdtemp
 import csv
 import logging
@@ -89,9 +88,9 @@ class GeoIP(Base):
     are natively anyway (4 blocks of 8 bit) and are stored this way for easier
     comparison.
     """
-    ip_range_start = Column(INTEGER(unsigned=True), primary_key=True,
+    ip_range_start = Column(BigInteger, primary_key=True,
                             autoincrement=False)
-    ip_range_end = Column(INTEGER(unsigned=True), nullable=False, unique=True)
+    ip_range_end = Column(BigInteger, nullable=False, unique=True)
     country_code = Column(Unicode(2), nullable=False)
 
     @staticmethod
@@ -163,28 +162,27 @@ def title():
     return "Geolocation Flags (%s)" % __name__
 
 
-def install(connection):
+def install(connection, with_update=True):
     geoip_fname = 'GeoIPCountryWhois.csv'
     geoip_file = os.path.join(ROOT_DIR, 'data', geoip_fname)
-    try:
-        r = requests.get(db_url)
-    except RequestException as e:
-        # TODO: catch requests exception
-        log.error("Could not download current database because requests "
-                  "threw an exception. This only means that the database will "
-                  "not be up to date but we will use the old cached version. "
-                  "Requests reported the following: '%s'" % e)
-    else:
-        # TOD: Move new geoip file over to update it.
-        tmpdir = mkdtemp()
-        zipname = os.path.join(tmpdir, os.path.basename(db_url))
-        with open(zipname, "w") as f:
-            f.write(r.content)
-        zip_ = zipfile.ZipFile(zipname)
-        zip_.extractall(tmpdir)
-        extracted_csv = os.path.join(tmpdir, geoip_fname)
-        shutil.move(extracted_csv, geoip_file)
-        shutil.rmtree(tmpdir)
+    if with_update:
+        try:
+            r = requests.get(db_url)
+        except RequestException as e:
+            log.error("Could not download current database because requests "
+                      "threw an exception. This only means that the database will "
+                      "not be up to date but we will use the old cached version. "
+                      "Requests reported the following: '%s'" % e)
+        else:
+            tmpdir = mkdtemp()
+            zipname = os.path.join(tmpdir, os.path.basename(db_url))
+            with open(zipname, "w") as f:
+                f.write(r.content)
+            zip_ = zipfile.ZipFile(zipname)
+            zip_.extractall(tmpdir)
+            extracted_csv = os.path.join(tmpdir, geoip_fname)
+            shutil.move(extracted_csv, geoip_file)
+            shutil.rmtree(tmpdir)
     data = []
     available_country_codes = set()
     with open(geoip_file) as f:

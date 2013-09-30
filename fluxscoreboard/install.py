@@ -27,14 +27,9 @@ def install(settings, test_data=False):
     transaction.begin()
     try:
         Base.metadata.create_all(bind=dbsession.connection())
-        if not dbsession.query(Country).all():
-            with open("states.json") as f:
-                country_names = [item["name"] for item in json.load(f)]
-            for name in country_names:
-                assert isinstance(name, unicode)
-            dbsession.add_all([Country(name=name) for name in country_names])
-            if test_data:
-                install_test_data(dbsession, settings)
+        create_country_list(dbsession)
+        if test_data:
+            install_test_data(dbsession, settings)
         if not dbsession.query(Settings).all():
             dbsession.add(Settings())
         for dyn_mod in dynamic_challenges.registry.values():
@@ -125,8 +120,18 @@ def install_test_data(dbsession, settings):
     dbsession.add_all(mails)
 
 
+def create_country_list(dbsession):
+    if not dbsession.query(Country).all():
+        with open("states.json") as f:
+            country_names = [item["name"] for item in json.load(f)]
+        for name in country_names:
+            assert isinstance(name, unicode)
+        dbsession.add_all([Country(name=name) for name in country_names])
+
+
 def uninstall(settings):
     """
     Remove those parts created by install
     """
     Base.metadata.drop_all(bind=DBSession().connection())
+    transaction.commit()

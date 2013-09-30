@@ -1,4 +1,7 @@
+# encoding: utf-8
+from __future__ import unicode_literals, print_function, absolute_import
 from . import flags
+from .flags import GeoIP, TeamFlag
 
 
 __doc__ = """

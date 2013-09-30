@@ -1,26 +1,25 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
-from fluxscoreboard.models import DBSession
+from fluxscoreboard.install import create_country_list
+from fluxscoreboard.models import DBSession, Base
+from fluxscoreboard.models.country import Country
 from pyramid import testing
 from webob.multidict import MultiDict
 import logging
 import pytest
+import transaction
 
 
 log = logging.getLogger(__name__)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def dbsession(request):
     sess = DBSession()
-    log.info("Creating savepoint for session %r" % dbsession)
-    # savepoint = transaction.savepoint()
-    sp = sess.begin_nested()
+    t = transaction.begin()
 
     def _rollback():
-        log.info("Rolling back session %r" % dbsession)
-        # savepoint.rollback()
-        sp.rollback()
+        t.abort()
     request.addfinalizer(_rollback)
     return sess
 
@@ -41,3 +40,16 @@ def pyramid_request(settings, request):
 def settings():
     from conftest import settings as s
     return s
+
+
+@pytest.fixture(scope="function")
+def countries(request):
+    log.debug("Creating country list...")
+    create_country_list(DBSession())
+    log.debug("Country list created...")
+
+    def _remove():
+        log.debug("Removing country list...")
+        DBSession().query(Country).delete()
+        log.debug("Country list remove...")
+    request.addfinalizer(_remove)
