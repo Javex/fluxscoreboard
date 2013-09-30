@@ -27,13 +27,13 @@ def install(settings, test_data=False):
     transaction.begin()
     try:
         Base.metadata.create_all(bind=dbsession.connection())
-        create_country_list(dbsession)
+        # create_country_list(dbsession)
         if test_data:
             install_test_data(dbsession, settings)
         if not dbsession.query(Settings).all():
             dbsession.add(Settings())
-        for dyn_mod in dynamic_challenges.registry.values():
-            dyn_mod.install(dbsession.connection())
+        # for dyn_mod in dynamic_challenges.registry.values():
+        #    dyn_mod.install(dbsession.connection())
     except:
         transaction.abort()
         raise

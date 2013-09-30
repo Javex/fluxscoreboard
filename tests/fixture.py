@@ -14,17 +14,6 @@ log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def dbsession(request):
-    sess = DBSession()
-    t = transaction.begin()
-
-    def _rollback():
-        t.abort()
-    request.addfinalizer(_rollback)
-    return sess
-
-
-@pytest.fixture
 def pyramid_request(settings, request):
     r = testing.DummyRequest(params=MultiDict())
     r.client_addr = None
@@ -40,16 +29,3 @@ def pyramid_request(settings, request):
 def settings():
     from conftest import settings as s
     return s
-
-
-@pytest.fixture(scope="function")
-def countries(request):
-    log.debug("Creating country list...")
-    create_country_list(DBSession())
-    log.debug("Country list created...")
-
-    def _remove():
-        log.debug("Removing country list...")
-        DBSession().query(Country).delete()
-        log.debug("Country list remove...")
-    request.addfinalizer(_remove)

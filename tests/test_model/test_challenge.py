@@ -1,15 +1,16 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
 from . import all_challenges, challenge, make_team
-from ..fixture import dbsession, pyramid_request, settings
+from ..fixture import pyramid_request, settings
 from fluxscoreboard.models.challenge import (get_all_challenges,
     get_online_challenges, Submission, Challenge, get_unsolved_challenges,
     get_solvable_challenges, get_submissions, Category, get_all_categories,
-    check_submission)
+    check_submission, manual_challenge_points)
 from fluxscoreboard.models.settings import Settings
 from fluxscoreboard.models.team import Team
 from sqlalchemy.orm.exc import DetachedInstanceError
 import pytest
+from fluxscoreboard.models import dynamic_challenges
 
 
 def test_get_all_challenges(all_challenges, dbsession):
@@ -138,3 +139,25 @@ def test_check_submission_already_solved(make_team, dbsession):
     result, msg = check_submission(c, "Test", t.id, Settings())
     assert result is False
     assert msg == "Already solved."
+
+
+def test_Challenge_points():
+    c = Challenge(points=123)
+    assert c.points == 123
+    c.points = 321
+    assert c.points == 321
+
+
+def test_Challenge_points_manual():
+    c = Challenge(manual=True)
+    c.points = 123
+    assert c.points is manual_challenge_points
+    c.points = 321
+    assert c.points is manual_challenge_points
+
+
+def test_Challenge_module():
+    c = Challenge()
+    assert c.module is None
+    c.module_name = "flags"
+    assert c.module is dynamic_challenges.flags

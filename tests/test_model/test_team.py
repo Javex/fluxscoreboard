@@ -1,7 +1,6 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
 from . import make_team
-from ..fixture import dbsession
 from fluxscoreboard.models.challenge import Submission, Challenge
 from fluxscoreboard.models.team import get_team_solved_subquery
 

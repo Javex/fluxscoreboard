@@ -48,10 +48,10 @@ def logged_in(dbsession, team, request, pyramid_request):
     dbsession.flush()
     _registerAuthenticationPolicy(pyramid_request.registry, team.id)
 
-    def remove():
+    def _remove():
         dbsession.delete(team)
         dbsession.flush()
-    request.addfinalizer(remove)
+    request.addfinalizer(_remove)
 
 
 def remove_test_data(dbsession):

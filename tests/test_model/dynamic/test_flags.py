@@ -1,16 +1,16 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
 from .. import make_team
-from ...fixture import dbsession
 from fluxscoreboard.models import DBSession
-from fluxscoreboard.models.dynamic_challenges.flags import flag_list, TeamFlag, \
-    points_query, title, get_location, install, GeoIP
+from fluxscoreboard.models.dynamic_challenges.flags import (flag_list, TeamFlag,
+    points_query, title, get_location, install, GeoIP)
 from fluxscoreboard.models.team import Team
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.sql.expression import alias, label
 from webhelpers.constants import country_codes
 import logging
 import pytest
+import transaction
 
 
 log = logging.getLogger(__name__)
@@ -41,6 +41,17 @@ def location(dbsession, request):
     raise NotImplementedError"""
 
 
+@pytest.fixture(scope="session")
+def geoip_db(request):
+    sess = DBSession()
+    with sess.bind.begin() as conn:
+        install(conn, False)
+
+    def _remove():
+        sess.query(GeoIP).delete()
+    request.addfinalizer(_remove)
+
+
 def test_points_query(dbsession, make_team, make_teamflag):
     t = make_team()
     dbsession.add(t)
@@ -62,7 +73,6 @@ def test_points_query_multiple_flags(dbsession, make_team, make_teamflag):
 
 
 def test_points_query_multiple_teams(dbsession, make_team, make_teamflag):
-    log.debug("Starting...")
     t1 = make_team()
     t2 = make_team()
     dbsession.add_all([t1, t2])
@@ -73,13 +83,13 @@ def test_points_query_multiple_teams(dbsession, make_team, make_teamflag):
     assert query.count() == 2
     assert query[0][0] == 10
     assert query[1][0] == 7
-    log.debug("Finishing...")
 
 
 def test_title():
     assert "Geolocation Flags" in title()
 
 
+@pytest.mark.usefixtures("geoip_db")
 def test_available_country_codes(dbsession):
     q = dbsession.query(GeoIP.country_code.distinct())
     assert q.count() == 222
@@ -87,6 +97,7 @@ def test_available_country_codes(dbsession):
     assert all_codes == set(flag_list)
 
 
+@pytest.mark.usefixtures("geoip_db")
 def test_get_location(dbsession):
     assert get_location("1.0.32.0") == "cn"
     assert get_location("62.122.232.0") == "pl"

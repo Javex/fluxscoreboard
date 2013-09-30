@@ -227,7 +227,7 @@ class Challenge(Base):
     @property
     def module(self):
         from . import dynamic_challenges
-        return dynamic_challenges.registry[self.module_name]
+        return dynamic_challenges.registry.get(self.module_name, None)
 
 
 @event.listens_for(Challenge, 'before_update')
