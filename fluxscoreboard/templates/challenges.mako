@@ -30,7 +30,7 @@
                 % if challenge.points is manual_challenge_points:
                     <em>${challenge.points}</em>
                 % else:
-                    ${challenge.points}
+                    ${challenge.points or '-'}
                 % endif
             </td>
             <td>${solved_count}</td>

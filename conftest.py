@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard import main
 from fluxscoreboard.models import DBSession
-from paste.deploy.loadwsgi import appconfig
+from paste.deploy.loadwsgi import appconfig  # @UnresolvedImport
 from pyramid.paster import setup_logging
 from webtest.app import TestApp
 import os
@@ -27,5 +27,5 @@ def pytest_sessionfinish():
     from pytest import config  # @UnresolvedImport
 
     if not hasattr(config, 'slaveinput'):
-        from fluxscoreboard.tests import remove_test_data
-        remove_test_data(DBSession())
+        from fluxscoreboard import install
+        install.uninstall(settings)

@@ -13,9 +13,11 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import ForeignKey, Column
 from sqlalchemy.sql.expression import func
 from sqlalchemy.types import Integer, Unicode, Boolean
-import binascii
 import logging
 import os
+import random
+import string
+from sqlalchemy.ext.associationproxy import association_proxy
 
 
 log = logging.getLogger(__name__)
@@ -53,7 +55,7 @@ def get_active_teams():
     return DBSession().query(Team).filter(Team.active == True)
 
 
-def get_team_solved_subquery(dbsession, team_id):
+def get_team_solved_subquery(team_id):
     """
     Get a query that searches for a submission from a team for a given
     challenge. The challenge is supposed to come from an outer query.
@@ -61,7 +63,7 @@ def get_team_solved_subquery(dbsession, team_id):
     Example usage:
         .. code-block:: python
 
-            team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+            team_solved_subquery = get_team_solved_subquery(team_id)
             challenge_query = (dbsession.query(Challenge,
                                                team_solved_subquery.exists()))
 
@@ -72,7 +74,7 @@ def get_team_solved_subquery(dbsession, team_id):
     # solved the corresponding challenge. The correlate statement is
     # a SQLAlchemy statement that tells it to use the **outer** challenge
     # column.
-    team_solved_subquery = (dbsession.query(Submission).
+    team_solved_subquery = (DBSession().query(Submission).
                             filter(Submission.team_id == team_id).
                             filter(Challenge.id ==
                                    Submission.challenge_id).
@@ -245,6 +247,21 @@ def check_password_reset_token(token):
     return team
 
 
+def get_team_by_ref(ref_id):
+    return (DBSession().query(Team).
+            # options(subqueryload(Team.flags)).
+            filter(Team.ref_token == ref_id).one())
+
+
+def ref_token():
+    """
+    Create a ``ref`` token (a random string of 15 letters or digits) for usage
+    with the ref feature.
+    """
+    keyspace = string.letters + string.digits
+    return "".join(random.choice(keyspace) for __ in xrange(15))
+
+
 class Team(Base):
     """
     A team represented in the database.
@@ -285,6 +302,8 @@ class Team(Base):
     local = Column(Boolean, default=False)
     token = Column(Unicode(64), nullable=False, unique=True)
     reset_token = Column(Unicode(64), unique=True)
+    ref_token = Column(Unicode(15), nullable=False, default=ref_token,
+                       unique=True)
     active = Column(Boolean, default=False)
     # TODO: Timezone as seperate type
     _timezone = Column('timezone', Unicode(30),
@@ -292,6 +311,9 @@ class Team(Base):
                        nullable=False)
     avatar_filename = Column(Unicode(68), unique=True)
     size = Column(Integer)
+
+    # TODO: Make it a set (and update TeamFlags docs)
+    flags = association_proxy("team_flags", "flag")
 
     country = relationship("Country", lazy='joined')
 

@@ -34,6 +34,7 @@ requires = [
     'pytest',  # Testing
     'webtest',  # Testing
     'PIL',  # Avatars
+    'requests',  # Download data (GeoIP)
     ]
 
 setup(name='fluxscoreboard',

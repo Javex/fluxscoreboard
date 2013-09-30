@@ -9,7 +9,7 @@ from fluxscoreboard.models.challenge import (Challenge, Submission,
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
-    password_reminder, check_password_reset_token)
+    password_reminder, check_password_reset_token, get_team_by_ref)
 from fluxscoreboard.util import not_logged_in, random_token, now, tz_str
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
@@ -104,9 +104,10 @@ class SpecialView(BaseView):
 class FrontView(BaseView):
     """
     All views that are part of the actual page, i.e. the scoreboard and
-    anything surrounding it. All views in here **must** be protected by
+    anything surrounding it. Most views in here **must** be protected by
     :class:`logged_in_view` and not the usual
-    :class:`pyramid.view.view_config`.
+    :class:`pyramid.view.view_config`. Some exceptions may exist, such as the
+    :meth:`ref` view.
     """
 
     @logged_in_view(route_name='home')
@@ -128,7 +129,7 @@ class FrontView(BaseView):
         """
         dbsession = DBSession()
         team_id = authenticated_userid(self.request)
-        team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+        team_solved_subquery = get_team_solved_subquery(team_id)
         number_of_solved_subquery = get_number_solved_subquery()
         challenges = (dbsession.query(Challenge,
                                            team_solved_subquery.exists(),
@@ -149,7 +150,7 @@ class FrontView(BaseView):
         challenge_id = int(self.request.matchdict["id"])
         team_id = authenticated_userid(self.request)
         dbsession = DBSession()
-        team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+        team_solved_subquery = get_team_solved_subquery(team_id)
         challenge, is_solved = (dbsession.query(Challenge,
                                                 team_solved_subquery.exists()).
                                  filter(Challenge.id == challenge_id).
@@ -182,17 +183,22 @@ class FrontView(BaseView):
         complex part of the query is the query that calculates the sum of
         points right in the SQL.
         """
+        from ..models import dynamic_challenges
         dbsession = DBSession()
         # Calculate sum of all points, defalt to 0
         challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
         # Calculate sum of all bonus points, default to 0
         bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
+        points_col = challenge_sum + bonus_sum
+        for module in dynamic_challenges.registry.values():
+            points_col += module.points_query()
         # Create a subquery for the sum of the above points. The filters
         # basically join the columns and the correlation is needed to reference
         # the **outer** Team query.
-        team_score_subquery = (dbsession.query(challenge_sum + bonus_sum).
+        team_score_subquery = (dbsession.query(points_col).
                                filter(Challenge.id == Submission.challenge_id).
                                filter(Team.id == Submission.team_id).
+                               filter(~Challenge.dynamic).
                                correlate(Team))
         score = team_score_subquery.as_scalar()
         # Finally build the complete query. The as_scalar tells SQLAlchemy to

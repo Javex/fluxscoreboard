@@ -22,6 +22,9 @@ ${render_announcements(announcements)}
         </h4>
     <p>${news.message}</p>
     </div>
+% else:
+    <p>No announcements have been published yet!</p>
 % endfor
+
 </div>
 </%def>
