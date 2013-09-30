@@ -99,7 +99,10 @@ class GeoIP(Base):
         Turn an IP integer (such as those stored in the database) into a string
         for easier human-readable representation.
         """
-        return socket.inet_ntoa(hex(int_ip)[2:].zfill(8).decode("hex"))
+        hex_ = hex(int_ip)[2:]
+        if hex_.endswith("L"):
+            hex_ = hex_[:-1]
+        return socket.inet_ntoa(hex_.zfill(8).decode("hex"))
 
     @staticmethod
     def ip_int(str_ip):

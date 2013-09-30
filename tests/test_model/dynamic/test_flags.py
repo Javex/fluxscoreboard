@@ -25,23 +25,20 @@ def make_teamflag():
     return _make
 
 
-def _get_ip_location_pair():
-    raise NotImplementedError
-
-
-@pytest.fixture
-def location():
-    raise NotImplementedError
-
-
-"""@pytest.fixture(scope="module")
-def geoip_db(request):
-    sess = DBSession()
-    install(sess.connection(), with_update=False)
-
-    def _empty_db():
-        sess.query(GeoIP).delete()
-    request.addfinalizer(_empty_db)"""
+@pytest.fixture(params=flag_list)
+def location(dbsession, request):
+    ccode = request.param
+    start, end = (dbsession.query(GeoIP.ip_range_start, GeoIP.ip_range_start).
+                  filter(GeoIP.country_code == ccode)[0])
+    return ccode, [start, (start + end) / 2, end]
+    """country_code = label('code', GeoIP.country_code.distinct())
+    country = alias(dbsession.query(country_code).subquery(), 'country')
+    ip_subq = (dbsession.query(GeoIP.ip_range_start).
+               filter(country.c.code == GeoIP.country_code).
+               limit(1).
+               as_scalar())
+    q = dbsession.query(country.c.code, ip_subq)
+    raise NotImplementedError"""
 
 
 def test_points_query(dbsession, make_team, make_teamflag):
@@ -83,15 +80,25 @@ def test_title():
     assert "Geolocation Flags" in title()
 
 
-# @pytest.mark.usefixtures("geoip_db")
+def test_available_country_codes(dbsession):
+    q = dbsession.query(GeoIP.country_code.distinct())
+    assert q.count() == 222
+    all_codes = set(item for item, in q)
+    assert all_codes == set(flag_list)
+
+
 def test_get_location(dbsession):
-    country_code = label('code', GeoIP.country_code.distinct())
-    country = alias(dbsession.query(country_code).subquery(), 'country')
-    ip_subq = (dbsession.query(GeoIP.ip_range_start).
-               filter(country.c.code == GeoIP.country_code).
-               as_scalar())
-    q = dbsession.query(country.c.code, ip_subq)
-    print(q, len(q.all()))
-    raise NotImplementedError
-    ip, loc_short = location
-    assert get_location(ip) == loc_short
+    assert get_location("1.0.32.0") == "cn"
+    assert get_location("62.122.232.0") == "pl"
+
+
+def test_ip_int():
+    assert GeoIP.ip_int('127.0.0.1') == 2130706433
+    assert GeoIP.ip_int("255.255.255.255") == 4294967295
+    assert GeoIP.ip_int("0.0.0.0") == 0
+
+
+def test_ip_str():
+    assert GeoIP.ip_str(2130706433L) == '127.0.0.1'
+    assert GeoIP.ip_str(0xFFFFFFFF) == "255.255.255.255"
+    assert GeoIP.ip_str(0) == "0.0.0.0"
