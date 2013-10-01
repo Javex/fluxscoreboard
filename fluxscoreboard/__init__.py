@@ -11,9 +11,12 @@ from pyramid.config import Configurator
 from pyramid.settings import asbool
 from pyramid_beaker import session_factory_from_settings
 from sqlalchemy import engine_from_config
+import warnings
 
 
 __version__ = '0.2.4'
+# ALWAYS make an exception for a warning (from sqlalchemy)
+warnings.filterwarnings("error", category=Warning, module=r'.*sqlalchemy.*')
 
 
 def main(global_config, **settings):
@@ -45,11 +48,14 @@ def main(global_config, **settings):
 
     # Routes & Views
     config.add_static_view('static', 'static', cache_max_age=3600)
-    for name, path in routes.routes:
-        config.add_route(name, path)
-
+    init_routes(config)
     config.scan()
     return config.make_wsgi_app()
+
+
+def init_routes(config):
+    for name, path in routes.routes:
+        config.add_route(name, path)
 
 
 def fix_setting_types(settings):

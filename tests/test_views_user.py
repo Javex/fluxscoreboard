@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
+from .test_models_team import team
 from fluxscoreboard.forms.front import LoginForm
-from fluxscoreboard.tests import app, settings, dbsession, pyramid_request, \
-    config
-from fluxscoreboard.tests.test_models_team import team
 from fluxscoreboard.views.front import UserView
+from tests import skip
 import pytest
 import transaction
 
@@ -15,25 +14,27 @@ def user_view(pyramid_request):
     return view
 
 
-"""def test_login_empty(team, user_view):
+@skip
+def test_login_empty(team, user_view):
     print(user_view.request.POST)
     res = user_view.login()
     assert "form" in res
     form = res["form"]
     assert isinstance(form, LoginForm)
     assert form.email.data is None
-    assert form.password.data is None"""
+    assert form.password.data is None
 
 
-@pytest.mark.integration
-def test_login(team, app, dbsession):
+# #@pytest.mark.integration
+@skip
+def test_login(team, testapp, dbsession):
     login_data = {'email': team.email, 'password': team._real_password}
     dbsession.add(team)
     transaction.commit()
-    resp = app.get('/login')
+    resp = testapp.get('/login')
     assert resp.status_int == 200
 
-    resp = app.post('/login', login_data)
+    resp = testapp.post('/login', login_data)
     assert resp.status_int == 302
 
     resp = resp.follow()
@@ -44,15 +45,16 @@ def test_login(team, app, dbsession):
     transaction.commit()
 
 
-@pytest.mark.integration
-def test_login_failed_password(team, app, dbsession):
+# @pytest.mark.integration
+@skip
+def test_login_failed_password(team, testapp, dbsession):
     login_data = {'email': team.email, 'password': team._real_password + '0'}
     dbsession.add(team)
     transaction.commit()
-    resp = app.get('/login')
+    resp = testapp.get('/login')
     assert resp.status_int == 200
 
-    resp = app.post('/login', login_data)
+    resp = testapp.post('/login', login_data)
     assert resp.status_int == 200
     assert "Login failed." in resp.body
 
@@ -60,16 +62,17 @@ def test_login_failed_password(team, app, dbsession):
     transaction.commit()
 
 
-@pytest.mark.integration
-def test_login_failed_inactive(team, app, dbsession):
+# @pytest.mark.integration
+@skip
+def test_login_failed_inactive(team, testapp, dbsession):
     login_data = {'email': team.email, 'password': team._real_password}
     team.active = False
     dbsession.add(team)
     transaction.commit()
-    resp = app.get('/login')
+    resp = testapp.get('/login')
     assert resp.status_int == 200
 
-    resp = app.post('/login', login_data)
+    resp = testapp.post('/login', login_data)
     assert resp.status_int == 200
     assert "Login failed." in resp.body
 
@@ -77,25 +80,27 @@ def test_login_failed_inactive(team, app, dbsession):
     transaction.commit()
 
 
-@pytest.mark.integration
-def test_login_failed_invalid_team(team, app, dbsession):
+# @pytest.mark.integration
+@skip
+def test_login_failed_invalid_team(team, testapp, dbsession):
     login_data = {'email': team.email, 'password': team._real_password}
-    resp = app.get('/login')
+    resp = testapp.get('/login')
     assert resp.status_int == 200
 
-    resp = app.post('/login', login_data)
+    resp = testapp.post('/login', login_data)
     assert resp.status_int == 200
     assert "Login failed." in resp.body
 
 
-@pytest.mark.integration
-def test_login_not_logged_in(team, app, dbsession):
+# @pytest.mark.integration
+@skip
+def test_login_not_logged_in(team, testapp, dbsession):
     login_data = {'email': team.email, 'password': team._real_password}
     dbsession.add(team)
     transaction.commit()
-    resp = app.post('/login', login_data)
+    resp = testapp.post('/login', login_data)
 
-    resp = app.get('/login')
+    resp = testapp.get('/login')
     assert resp.status_int == 302
     resp = resp.follow()
     assert resp.status_int == 302
@@ -107,9 +112,10 @@ def test_login_not_logged_in(team, app, dbsession):
     transaction.commit()
 
 
-@pytest.mark.integration
-def test_register(app, dbsession):
-    resp = app.get('/register')
+# @pytest.mark.integration
+@skip
+def test_register(testapp, dbsession):
+    resp = testapp.get('/register')
     assert resp.status_int == 200
     form = resp.form
     form['name'] = 'team1'

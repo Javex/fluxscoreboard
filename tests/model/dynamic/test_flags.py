@@ -1,6 +1,5 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
-from .. import make_team
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.dynamic_challenges.flags import (flag_list, TeamFlag,
     points_query, title, get_location, install, GeoIP)

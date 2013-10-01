@@ -184,15 +184,15 @@ class Challenge(Base):
         prefixed with ``fluxscoreboard.dynamic_challenges.``
     """
     id = Column(Integer, primary_key=True)
-    title = Column(Unicode(255))
+    title = Column(Unicode(255), nullable=False)
     text = Column(UnicodeText)
     solution = Column(Unicode(255))
     _points = Column('points', Integer, default=0)
-    online = Column(Boolean, default=False)
-    manual = Column(Boolean, default=False)
+    online = Column(Boolean, default=False, nullable=False)
+    manual = Column(Boolean, default=False, nullable=False)
     category_id = Column(Integer, ForeignKey('category.id'))
     author = Column(Unicode(255))
-    dynamic = Column(Boolean, default=False)
+    dynamic = Column(Boolean, default=False, nullable=False)
     module_name = Column(Unicode(255))
 
     category = relationship("Category", backref="challenges", lazy="joined")
@@ -207,6 +207,28 @@ class Challenge(Base):
 
     def __unicode__(self):
         return self.title
+
+    def __repr__(self):
+        if self.manual:
+            annotation = "manual"
+        elif self.dynamic:
+            annotation = "dynamic"
+        else:
+            annotation = "normal"
+        additional_info = []
+        if self.category:
+            additional_info.append("category=%s" % self.category)
+        if self.author:
+            additional_info.append("author(s)=%s" % self.author)
+        if self.module_name:
+            additional_info.append("module=%s" % self.module_name)
+        if additional_info:
+            additional_info = ", " + ", ".join(additional_info)
+        else:
+            additional_info = ""
+        r = ("<Challenge (%s) title=%s, online=%s%s>"
+             % (annotation, self.title, self.online, additional_info))
+        return r.encode("utf-8")
 
     @property
     def points(self):
@@ -255,13 +277,18 @@ class Category(Base):
         ``challenges``: List of challenges in that category.
     """
     id = Column(Integer, primary_key=True)
-    name = Column(Unicode(255))
+    name = Column(Unicode(255), nullable=False)
 
     def __str__(self):
         return unicode(self).encode("utf-8")
 
     def __unicode__(self):
         return self.name
+
+    def __repr__(self):
+        r = ("<Category id=%s, name=%s, challenges=%d>"
+             % (self.id, self.name, len(self.challenges)))
+        return r.encode("utf-8")
 
 
 class Submission(Base):
@@ -289,9 +316,9 @@ class Submission(Base):
     challenge_id = Column(Integer, ForeignKey('challenge.id'),
                           primary_key=True)
     timestamp = Column(TZDateTime,
-                        nullable=False,
-                        default=datetime.utcnow
-                        )
+                       nullable=False,
+                       default=datetime.utcnow
+                       )
     bonus = Column(Integer, default=0, nullable=False)
 
     team = relationship("Team",
@@ -307,6 +334,11 @@ class Submission(Base):
         if "timestamp" not in kwargs:
             self.timestamp = datetime.utcnow()
         Base.__init__(self, *args, **kwargs)
+
+    def __repr__(self):
+        r = ("<Submission challenge=%s, team=%s, bonus=%d, timestamp=%s>"
+             % (self.challenge, self.team, self.bonus, self.timestamp))
+        return r.encode("utf-8")
 
     @property
     def points(self):

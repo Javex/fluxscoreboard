@@ -14,27 +14,7 @@ from pyramid.tests.test_security import _registerAuthenticationPolicy
 
 
 log = logging.getLogger(__name__)
-
-
-@pytest.fixture
-def app(settings, request, dbsession):
-    from conftest import testapp
-    # install_test_data(dbsession)
-
-    """def _finish():
-        remove_test_data(dbsession)
-    request.addfinalizer(_finish)"""
-    return testapp
-
-
-@pytest.fixture
-def config(request):
-    config = testing.setUp()
-
-    def tear_down():
-        testing.tearDown()
-    request.addfinalizer(tear_down)
-    return config
+skip = pytest.mark.skipif("True")
 
 
 @pytest.fixture
@@ -42,7 +22,7 @@ def auth_pol(pyramid_request):
     _registerAuthenticationPolicy(pyramid_request.registry, '12345')
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def logged_in(dbsession, team, request, pyramid_request):
     dbsession.add(team)
     dbsession.flush()

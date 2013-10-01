@@ -126,7 +126,9 @@ def create_country_list(dbsession):
             country_names = [item["name"] for item in json.load(f)]
         for name in country_names:
             assert isinstance(name, unicode)
-        dbsession.add_all([Country(name=name) for name in country_names])
+        countries = [Country(name=name) for name in country_names]
+        dbsession.add_all(countries)
+        return countries
 
 
 def uninstall(settings):

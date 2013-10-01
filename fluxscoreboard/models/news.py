@@ -46,9 +46,15 @@ class News(Base):
                              lazy='joined')
 
     def __init__(self, *args, **kwargs):
-        if "timestamp" not in kwargs:
-            self.timestamp = datetime.utcnow()
+        kwargs.setdefault("timestamp", datetime.utcnow())
         Base.__init__(self, *args, **kwargs)
+
+    def __repr__(self):
+        r = ("<News id=%s, from=%s, message=%s, challenge=%s>"
+             % (self.id, self.timestamp,
+                self.message[:20] if self.message else None,
+                repr(self.challenge)))
+        return r.encode("utf-8")
 
 
 class MassMail(Base):

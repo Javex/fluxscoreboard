@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.models.team import get_team, groupfinder, TEAM_GROUPS, \
-    get_all_teams, Team, get_active_teams
-from . import logged_in, pyramid_request, config, \
-    auth_pol
-from .fixture import dbsession
+from . import logged_in, auth_pol
+from fluxscoreboard.models.team import (get_team, groupfinder, TEAM_GROUPS,
+    get_all_teams, Team, get_active_teams)
+from tests import skip
 import pytest
 
 
@@ -76,26 +75,31 @@ def active_teams(dbsession, request, team, local_team):
     return teams
 
 
+@skip
 def test_get_team(logged_in, pyramid_request, team):
     t = get_team(pyramid_request)
     assert t is team
     assert pyramid_request.team is t
 
 
+@skip
 def test_get_team_none(auth_pol, pyramid_request):
     t = get_team(pyramid_request)
     assert t is None
     assert pyramid_request.team is None
 
 
+@skip
 def test_groupfinder(logged_in, pyramid_request):
     assert groupfinder(None, pyramid_request) == TEAM_GROUPS
 
 
+@skip
 def test_groupfinder_none(pyramid_request, auth_pol):
     assert groupfinder(None, pyramid_request) is None
 
 
+@skip
 def test_get_all_teams(dbsession, all_teams):
     teams = list(get_all_teams())
     print(teams)
@@ -104,6 +108,7 @@ def test_get_all_teams(dbsession, all_teams):
         assert team in all_teams
 
 
+@skip
 def test_get_active_teams(dbsession, active_teams):
     teams = list(get_active_teams())
     assert len(teams) == len(active_teams)
@@ -111,6 +116,6 @@ def test_get_active_teams(dbsession, active_teams):
         assert team in active_teams
 
 
-@pytest.mark.skip
+@skip
 def get_team_solved_subquery(dbsession, team_id):
     assert 0

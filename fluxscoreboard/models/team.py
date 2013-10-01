@@ -235,6 +235,7 @@ def password_reminder(email, request):
                       html=html,
                       )
     mailer.send(message)
+    return team
 
 
 def check_password_reset_token(token):
@@ -281,7 +282,11 @@ class Team(Base):
 
         ``local``: Whether the team is local at the conference.
 
-        ``token``: Token for verification.
+        ``token``: Token for E-Mail verification.
+
+        ``reset_token``: When requesting a new password, this token is used.
+
+        ``ref_token``: When using the ``ref`` feature, this token is used.
 
         ``active``: Whether the team's mail address has been verified and the
         team can actively log in.
@@ -289,6 +294,18 @@ class Team(Base):
         ``timezone``: A timezone, specified as a string, like
         ``"Europe/Berlin"`` or something that, when coerced to unicode, turns
         out as a string like this. Must be valid timezone.
+
+        ``acatar_filename``: The filename under which the avatar is stored
+        in the ``static/images/avatars`` directory.
+
+        ``size``: The size of the team.
+
+        ``flags``: A list of countries from which the team already visited.
+        See :mod:`fluxscoreboard.models.dynamic_challenges.flags` for more
+        information on this feature.
+
+        .. todo::
+            Update this once ``flags`` is a ``set``.
 
         ``country``: Direct access to the teams
         :class:`fluxscoreboard.models.country.Country` attribute.
@@ -318,9 +335,14 @@ class Team(Base):
     country = relationship("Country", lazy='joined')
 
     def __init__(self, *args, **kwargs):
-        if "token" not in kwargs:
-            self.token = random_token()
+        kwargs.setdefault("token", random_token())
         Base.__init__(self, *args, **kwargs)
+
+    def __str__(self):
+        return unicode(self).encode("utf-8")
+
+    def __unicode__(self):
+        return self.name
 
     def __repr__(self):
         return (('<Team name=%s, email=%s, local=%s, active=%s>'
@@ -349,16 +371,13 @@ class Team(Base):
 
     @property
     def timezone(self):
-        return timezone(self._timezone)
+        if self._timezone is None:
+            return None
+        else:
+            return timezone(self._timezone)
 
     @timezone.setter
     def timezone(self, tz):
         timezone = unicode(tz)
         assert timezone in all_timezones
         self._timezone = timezone
-
-    def __str__(self):
-        return unicode(self).encode("utf-8")
-
-    def __unicode__(self):
-        return self.name
