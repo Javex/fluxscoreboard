@@ -19,6 +19,7 @@ import requests
 import shutil
 import socket
 import zipfile
+from sqlalchemy.orm.mapper import validates
 
 
 log = logging.getLogger(__name__)
@@ -51,8 +52,8 @@ class FlagView(BaseView):
                             "range.")
             return ret
         ret["location"] = loc
-        if loc not in [l.flag for l in team.flags]:
-            team.flags.append(TeamFlag(team=team, flag=loc))
+        if loc not in team.flags:
+            team.flags.append(loc)
             ret["msg"] = "Location successfully registered."
         else:
             ret["msg"] = "Location already registered."
@@ -75,11 +76,15 @@ class TeamFlag(Base):
         accordingly.
     """
     __tablename__ = 'team_flag'
-    team_id = Column(Integer, ForeignKey('team.id'))
+    team_id = Column(Integer, ForeignKey('team.id'), nullable=False)
     flag = Column(Unicode(2), primary_key=True)
     team = relationship("Team",
                         backref=backref("team_flags",
                                         cascade="all, delete-orphan"))
+
+    def __init__(self, flag, **kwargs):
+        kwargs["flag"] = flag
+        Base.__init__(self, **kwargs)
 
 
 class GeoIP(Base):
@@ -90,7 +95,7 @@ class GeoIP(Base):
     """
     ip_range_start = Column(BigInteger, primary_key=True,
                             autoincrement=False)
-    ip_range_end = Column(BigInteger, nullable=False, unique=True)
+    ip_range_end = Column(BigInteger, nullable=False, unique=True, index=True)
     country_code = Column(Unicode(2), nullable=False)
 
     @staticmethod
@@ -110,6 +115,12 @@ class GeoIP(Base):
         Turn a human-readable string IP addressinto an integer IP address.
         """
         return int(socket.inet_aton(str_ip).encode("hex"), 16)
+
+    @validates('ip_range_start', 'ip_range_end')
+    def check_ip_range(self, key, ip):
+        assert ip <= 0xFFFFFFFF
+        assert ip >= 0
+        return ip
 
 
 def display(challenge, request):

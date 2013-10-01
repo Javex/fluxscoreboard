@@ -1,30 +1,18 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
 from fluxscoreboard.models import DBSession
-from fluxscoreboard.models.dynamic_challenges.flags import (flag_list, TeamFlag,
-    points_query, title, get_location, install, GeoIP)
+from fluxscoreboard.models.dynamic_challenges.flags import (flag_list,
+    points_query, title, get_location, install, GeoIP, FlagView)
 from fluxscoreboard.models.team import Team
-from sqlalchemy.orm.util import aliased
-from sqlalchemy.sql.expression import alias, label
-from webhelpers.constants import country_codes
+from sqlalchemy.exc import OperationalError, IntegrityError
 import logging
 import pytest
-import transaction
 
 
 log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def make_teamflag():
-    avail_flags = list(flag_list)
-
-    def _make(team):
-        return TeamFlag(team=team, flag=avail_flags.pop())
-    return _make
-
-
-@pytest.fixture(params=flag_list)
 def location(dbsession, request):
     ccode = request.param
     start, end = (dbsession.query(GeoIP.ip_range_start, GeoIP.ip_range_start).
@@ -49,6 +37,87 @@ def geoip_db(request):
     def _remove():
         sess.query(GeoIP).delete()
     request.addfinalizer(_remove)
+
+
+@pytest.fixture
+def flag_view(pyramid_request):
+    return FlagView(pyramid_request)
+
+
+@pytest.fixture
+def make_geoip():
+    avail_flags = list(flag_list)
+    count = [0]
+
+    def _make(**kwargs):
+        if "country_code" not in kwargs:
+            kwargs["country_code"] = avail_flags.pop()
+        kwargs.setdefault("ip_range_start", 0)
+        kwargs.setdefault("ip_range_end", 0xFFFFFF)
+        count[0] += 1
+        return GeoIP(**kwargs)
+    return _make
+
+
+class TestFlagView(object):
+
+    def test_ref(self, dbsession, flag_view, make_team, geoip_db):
+        t = make_team()
+        dbsession.add(t)
+        dbsession.flush()
+        flag_view.request.client_addr = "1.0.32.0"
+        flag_view.request.matchdict["ref_id"] = t.ref_token
+        ret = flag_view.ref()
+        assert ret["success"]
+        assert ret["msg"] == "Location successfully registered."
+        assert ret["location"] == "cn"
+
+        ret = flag_view.ref()
+        print(ret)
+        assert ret["success"]
+        assert ret["msg"] == "Location already registered."
+        assert ret["location"] == "cn"
+
+    def test_ref_no_loc(self, dbsession, flag_view, make_team):
+        t = make_team()
+        dbsession.add(t)
+        dbsession.flush()
+        flag_view.request.client_addr = "127.0.0.1"
+        flag_view.request.matchdict["ref_id"] = t.ref_token
+        ret = flag_view.ref()
+        assert not ret["success"]
+        assert ret["msg"] == ("No location found. Try a different IP from "
+                              "that range.")
+        assert "location" not in ret
+
+
+class TestTeamFlag(object):
+
+    def test_team(self, make_team, make_teamflag):
+        t = make_team()
+        flag = make_teamflag()
+        t.team_flags.append(flag)
+        assert flag.team == t
+
+    def test_init(self, make_teamflag):
+        f = make_teamflag()
+        assert f.flag == "zw"
+        assert f.team is None
+        assert f.team_id is None
+
+    def test_nullables(self, make_teamflag, dbsession, make_team):
+        f = make_teamflag()
+        trans = dbsession.begin_nested()
+        dbsession.add(f)
+        with pytest.raises(OperationalError):
+            dbsession.flush()
+        trans.rollback()
+
+        f = make_teamflag(team=make_team())
+        trans = dbsession.begin_nested()
+        dbsession.add(f)
+        dbsession.flush()
+        trans.rollback()
 
 
 def test_points_query(dbsession, make_team, make_teamflag):
@@ -102,13 +171,46 @@ def test_get_location(dbsession):
     assert get_location("62.122.232.0") == "pl"
 
 
-def test_ip_int():
-    assert GeoIP.ip_int('127.0.0.1') == 2130706433
-    assert GeoIP.ip_int("255.255.255.255") == 4294967295
-    assert GeoIP.ip_int("0.0.0.0") == 0
+class TestGeoIP(object):
 
+    def test_nullables(self, dbsession, make_geoip):
+        null_ip = GeoIP.ip_int('127.0.0.1')
+        g = make_geoip(ip_range_start=null_ip,
+                       ip_range_end=null_ip)
+        trans = dbsession.begin_nested()
+        dbsession.add(g)
+        dbsession.flush()
+        trans.rollback()
 
-def test_ip_str():
-    assert GeoIP.ip_str(2130706433L) == '127.0.0.1'
-    assert GeoIP.ip_str(0xFFFFFFFF) == "255.255.255.255"
-    assert GeoIP.ip_str(0) == "0.0.0.0"
+        for param in ["ip_range_start", "ip_range_end"]:
+            g = make_geoip()
+            with pytest.raises(AssertionError):
+                setattr(g, param, None)
+
+        g = make_geoip()
+        g.country_code = None
+        dbsession.flush()
+        t = dbsession.begin_nested()
+        dbsession.add(g)
+        with pytest.raises(OperationalError):
+            dbsession.flush()
+        t.rollback()
+
+    def test_ip_int(self):
+        assert GeoIP.ip_int('127.0.0.1') == 2130706433
+        assert GeoIP.ip_int("255.255.255.255") == 4294967295
+        assert GeoIP.ip_int("0.0.0.0") == 0
+
+    def test_ip_str(self):
+        assert GeoIP.ip_str(2130706433L) == '127.0.0.1'
+        assert GeoIP.ip_str(0xFFFFFFFF) == "255.255.255.255"
+        assert GeoIP.ip_str(0) == "0.0.0.0"
+
+    def test_check_ip_range(self, make_geoip):
+        g = make_geoip()
+        assert g.check_ip_range(None, 0xFFFFFFFF) == 0xFFFFFFFF
+        assert g.check_ip_range(None, 0) == 0
+        assert g.check_ip_range(None, 10) == 10
+        for val in [-10, -1, 0xFFFFFFFF + 1]:
+            with pytest.raises(AssertionError):
+                g.check_ip_range(None, val)

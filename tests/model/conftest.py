@@ -1,7 +1,8 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
+from fluxscoreboard.models import Challenge, MassMail, Team, dynamic_challenges
+from fluxscoreboard.models.dynamic_challenges.flags import TeamFlag
 import pytest
-from fluxscoreboard.models import Challenge, MassMail, Team
 
 
 @pytest.fixture
@@ -55,4 +56,15 @@ def make_massmail():
         kwargs.setdefault("from_", "from%d@example.com" % count[0])
         count[0] += 1
         return MassMail(**kwargs)
+    return _make
+
+
+@pytest.fixture
+def make_teamflag():
+    avail_flags = list(dynamic_challenges.flags.flag_list)
+
+    def _make(team=None, **kw):
+        if "flag" not in kw:
+            kw["flag"] = avail_flags.pop()
+        return TeamFlag(team=team, **kw)
     return _make

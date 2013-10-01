@@ -173,11 +173,11 @@ class TestChallenge(object):
             dbsession.flush()
         t.rollback()
 
-        c = make_challenge()
-        dbsession.add(c)
-        dbsession.flush()
         for param in ['online', 'manual', 'dynamic']:
             t = dbsession.begin_nested()
+            c = make_challenge()
+            dbsession.add(c)
+            dbsession.flush()
             setattr(c, param, None)
             with pytest.raises(Warning):
                 dbsession.flush()
@@ -250,9 +250,11 @@ class TestChallenge(object):
         with pytest.raises(ValueError):
             dbsession.flush()
 
-    @pytest.mark.xfail
-    def test_submissions(self):
-        raise NotImplementedError
+    def test_submissions(self, make_team, make_challenge, dbsession):
+        c = make_challenge()
+        s = Submission(team=make_team(), challenge=c)
+        dbsession.add(s)
+        assert c.submissions == [s]
 
 
 class TestCategory(object):
@@ -284,9 +286,11 @@ class TestCategory(object):
         assert isinstance(repr(cat), str)
         assert repr(cat) == b"<Category id=None, name=Täst, challenges=0>"
 
-    @pytest.mark.xfail
-    def test_challenge(self):
-        raise NotImplementedError
+    def test_challenge(self, make_challenge, dbsession):
+        cat = Category(name="Test")
+        chal = make_challenge(category=cat)
+        dbsession.add(chal)
+        assert cat.challenges == [chal]
 
 
 class TestSubmission(object):
@@ -309,12 +313,11 @@ class TestSubmission(object):
                 dbsession.flush()
             trans.rollback()
 
-        s = Submission(team=make_team(), challenge=make_challenge())
-        dbsession.add(s)
-        dbsession.flush()
-
         for param in ['bonus', 'timestamp']:
             trans = dbsession.begin_nested()
+            s = Submission(team=make_team(), challenge=make_challenge())
+            dbsession.add(s)
+            dbsession.flush()
             setattr(s, param, None)
             with pytest.raises(Warning):
                 dbsession.flush()

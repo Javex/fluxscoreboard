@@ -70,7 +70,6 @@ def test_get_number_solved_subquery(make_team, dbsession, make_challenge):
     assert count == 1
 
 
-@pytest.mark.xfail
 def test_get_team(login_team, dbsession, make_team, pyramid_request):
     t = make_team(active=True)
     dbsession.add(t)
@@ -78,7 +77,7 @@ def test_get_team(login_team, dbsession, make_team, pyramid_request):
     login_team(t.id)
     team = get_team(pyramid_request)
     assert team is t
-    assert pyramid_request is t
+    assert pyramid_request.team is t
 
 
 def test_get_team_hasattr(make_team):
@@ -270,7 +269,8 @@ class TestTeam(object):
         assert isinstance(str(t), str)
         repr_ = repr(t)
         assert isinstance(repr_, str)
-        assert repr_ == b"<Team name=Täst, email=None, local=None, active=None>"
+        assert repr_ == (b"<Team name=Täst, email=None, local=None, "
+                         b"active=None>")
 
     def test_validate_password(self):
         t = Team(password="Test123")
@@ -294,6 +294,20 @@ class TestTeam(object):
         with pytest.raises(AssertionError):
             t.timezone = "Invalid/Timezone"
 
-    @pytest.mark.xfail
-    def test_submissions(self):
-        raise NotImplementedError
+    def test_submissions(self, make_team, make_challenge, dbsession):
+        t = make_team()
+        s = Submission(team=t, challenge=make_challenge())
+        dbsession.add(s)
+        assert t.submissions == [s]
+
+    def test_flags(self, make_team, make_teamflag, dbsession):
+        t = make_team()
+        f = make_teamflag(team=t)
+        dbsession.add(f)
+        assert t.flags == ["zw"]
+
+    def test_team_flags(self, make_team, make_teamflag, dbsession):
+        t = make_team()
+        f = make_teamflag(team=t)
+        dbsession.add(f)
+        assert t.team_flags == [f]
