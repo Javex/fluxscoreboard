@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import
+from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
     SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
     ResetPasswordForm)
@@ -263,6 +263,7 @@ class UserView(BaseView):
         A simple view that logs out the user and redirects to the login page.
         """
         headers = forget(self.request)
+        print(headers)
         self.request.session.invalidate()
         self.request.session.flash("You have been logged out.")
         return HTTPFound(location=self.request.route_url('login'),

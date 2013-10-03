@@ -2,13 +2,20 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard import init_routes, main
 from fluxscoreboard.install import create_country_list
-from fluxscoreboard.models import DBSession, Base
+from fluxscoreboard.models import DBSession, Base, dynamic_challenges
+from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.country import Country
+from fluxscoreboard.models.dynamic_challenges.flags import TeamFlag
+from fluxscoreboard.models.news import MassMail
 from fluxscoreboard.models.settings import Settings
+from fluxscoreboard.models.team import Team
 from paste.deploy.loadwsgi import appconfig  # @UnresolvedImport
 from pyramid import testing
+from pyramid.authentication import SessionAuthenticationPolicy
+from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.paster import setup_logging
-from pyramid.tests.test_security import _registerAuthenticationPolicy
+from pyramid.security import remember
+from pyramid_beaker import BeakerSessionFactoryConfig
 from pyramid_mailer import get_mailer
 from webob.multidict import MultiDict
 from webtest.app import TestApp
@@ -16,6 +23,7 @@ import logging
 import os
 import pytest
 import transaction
+from pyramid.tests.test_security import DummyAuthenticationPolicy
 ROOT_PATH = os.path.dirname(__file__)
 CONF = os.path.join(ROOT_PATH, 'pytest.ini')
 setup_logging(CONF + '#loggers')
@@ -83,16 +91,26 @@ def config(settings, pyramid_request, request):
     return cfg
 
 
+@pytest.fixture(scope="session")
+def session_factory():
+    return BeakerSessionFactoryConfig()
+
+
 @pytest.fixture
-def pyramid_request():
+def pyramid_request(session_factory):
     r = testing.DummyRequest(params=MultiDict())
     r.client_addr = None
+    r.session = session_factory(r)
     return r
 
 
 @pytest.fixture(scope="session")
 def settings():
-    return appconfig('config:' + CONF)
+    cfg = appconfig('config:' + CONF)
+    cache_dir = os.path.join(os.path.dirname(__file__), 'tests', 'template',
+                             'cache')
+    cfg["mako.module_directory"] = os.path.abspath(cache_dir)
+    return cfg
 
 
 @pytest.fixture
@@ -105,5 +123,81 @@ def mailer(pyramid_request, config):
 def login_team(pyramid_request):
 
     def _login(team_id):
-        _registerAuthenticationPolicy(pyramid_request.registry, team_id)
+        _registerAuthenticationPolicy(pyramid_request.registry)
+        remember(pyramid_request, team_id)
     return _login
+
+
+@pytest.fixture
+def dummy_login(pyramid_request):
+
+    def _login(val):
+        _registerAuthenticationPolicy(pyramid_request.registry)
+        remember(pyramid_request, val)
+    return _login
+
+
+@pytest.fixture
+def make_team():
+    count = [0]
+
+    def _make(**kwargs):
+        kwargs.setdefault("name", "Team%d" % count[0])
+        kwargs.setdefault("password", "Password%d" % count[0])
+        kwargs.setdefault("email", "team%d@example.com" % count[0])
+        kwargs.setdefault("country_id", 1)
+        t = Team(**kwargs)
+        t._real_password = "Password%d" % count[0]
+        count[0] += 1
+        return t
+    return _make
+
+
+@pytest.fixture
+def make_challenge():
+    count = [0]
+
+    def _make(**kwargs):
+        kwargs.setdefault("title", "Challenge%d" % count[0])
+        count[0] += 1
+        return Challenge(**kwargs)
+    return _make
+
+
+@pytest.fixture
+def make_massmail():
+    count = [0]
+
+    def _make(**kwargs):
+        kwargs.setdefault("subject", "Test%d" % count[0])
+        kwargs.setdefault("message", "TestMsg%d" % count[0])
+        kwargs.setdefault("recipients", ["test%d@example.com" % count[0]])
+        kwargs.setdefault("from_", "from%d@example.com" % count[0])
+        count[0] += 1
+        return MassMail(**kwargs)
+    return _make
+
+
+@pytest.fixture
+def make_teamflag():
+    avail_flags = list(dynamic_challenges.flags.flag_list)
+
+    def _make(team=None, **kw):
+        if "flag" not in kw:
+            kw["flag"] = avail_flags.pop()
+        return TeamFlag(team=team, **kw)
+    return _make
+
+
+def _registerAuthenticationPolicy(reg):
+    policy = SessionAuthenticationPolicy()
+    reg.registerUtility(policy, IAuthenticationPolicy)
+    assert reg.queryUtility(IAuthenticationPolicy)
+    return policy
+
+
+def _registerDummyAuthenticationPolicy(reg):
+    policy = DummyAuthenticationPolicy()
+    reg.registerUtility(policy, IAuthenticationPolicy)
+    assert reg.queryUtility(IAuthenticationPolicy)
+    return policy
