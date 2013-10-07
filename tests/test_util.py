@@ -25,19 +25,14 @@ def header(request):
     return request.param
 
 
-@pytest.mark.usefixtures("database")
-class TestDisplayDesign():
+@pytest.mark.usefixtures("database", "matched_route")
+class TestDisplayDesign(object):
 
     @pytest.fixture(autouse=True)
     def _prepare(self, pyramid_request):
         self.request = pyramid_request
         self.request.path = "/start"
         self.settings = settings.get()
-
-        class A(object):
-            pass
-        self.request.matched_route = A()
-        self.request.matched_route.name = "something"
         self.settings.ctf_start_date = utc.localize(datetime.utcnow() +
                                                     timedelta(1))
 

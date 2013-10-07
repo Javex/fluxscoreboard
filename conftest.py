@@ -43,7 +43,11 @@ def database(request, testapp):
         dbsession.add(Settings())
 
     def _drop():
-        Base.metadata.drop_all(bind=dbsession.connection())
+        conn = dbsession.connection()
+        Base.metadata.drop_all(bind=conn)
+        # TODO: Why do we have to use this literally?
+        # If fixed test agains MySQL *and* Postgres!
+        conn.execute("COMMIT")
     request.addfinalizer(_drop)
 
 
@@ -82,6 +86,8 @@ def countries(_countries, dbsession):
 @pytest.fixture
 def config(settings, pyramid_request, request):
     cfg = testing.setUp(request=pyramid_request, settings=settings)
+    cfg.add_static_view('static', 'fluxscoreboard:static',
+                           cache_max_age=3600)
     init_routes(cfg)
     cfg.scan('fluxscoreboard.views')
 
@@ -102,6 +108,15 @@ def pyramid_request(session_factory):
     r.client_addr = None
     r.session = session_factory(r)
     return r
+
+
+@pytest.fixture
+def matched_route(pyramid_request):
+    class A(object):
+            pass
+    pyramid_request.matched_route = A()
+    pyramid_request.matched_route.name = "something"
+
 
 
 @pytest.fixture(scope="session")
@@ -189,6 +204,11 @@ def make_teamflag():
     return _make
 
 
+@pytest.fixture
+def view():
+    return DummyView()
+
+
 def _registerAuthenticationPolicy(reg):
     policy = SessionAuthenticationPolicy()
     reg.registerUtility(policy, IAuthenticationPolicy)
@@ -201,3 +221,7 @@ def _registerDummyAuthenticationPolicy(reg):
     reg.registerUtility(policy, IAuthenticationPolicy)
     assert reg.queryUtility(IAuthenticationPolicy)
     return policy
+
+
+class DummyView(object):
+    menu = []

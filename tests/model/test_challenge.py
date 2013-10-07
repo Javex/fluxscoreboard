@@ -8,7 +8,7 @@ from fluxscoreboard.models.challenge import (get_all_challenges,
     check_submission, manual_challenge_points, Challenge)
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.settings import Settings
-from sqlalchemy.exc import OperationalError, IntegrityError
+from sqlalchemy.exc import OperationalError, IntegrityError, DatabaseError
 import pytest
 
 
@@ -165,12 +165,16 @@ class TestChallenge(object):
         assert c.manual is False
         assert c.dynamic is False
 
-    def test_nullables(self, dbsession, make_challenge):
+    def test_nullables(self, dbsession, make_challenge, nullable_exc):
         c = Challenge()
         t = dbsession.begin_nested()
         dbsession.add(c)
-        with pytest.raises(OperationalError):
-            dbsession.flush()
+        try:
+            with pytest.raises(DatabaseError):
+                dbsession.flush()
+        except Exception as e:
+            print(e, type(e), "hi")
+            raise
         t.rollback()
 
         for param in ['online', 'manual', 'dynamic']:
@@ -179,7 +183,7 @@ class TestChallenge(object):
             dbsession.add(c)
             dbsession.flush()
             setattr(c, param, None)
-            with pytest.raises(Warning):
+            with pytest.raises(nullable_exc):
                 dbsession.flush()
             t.rollback()
 
@@ -266,11 +270,11 @@ class TestCategory(object):
         dbsession.flush()
         assert cat.id
 
-    def test_nullables(self, dbsession):
+    def test_nullables(self, dbsession, nullable_exc):
         cat = Category()
         t = dbsession.begin_nested()
         dbsession.add(cat)
-        with pytest.raises(OperationalError):
+        with pytest.raises(nullable_exc):
             dbsession.flush()
         t.rollback()
         cat = Category(name="Test")
@@ -302,7 +306,8 @@ class TestSubmission(object):
         dbsession.flush()
         assert s.bonus == 0
 
-    def test_nullables(self, dbsession, make_team, make_challenge):
+    def test_nullables(self, dbsession, make_team, make_challenge,
+                       nullable_exc):
         fails = [Submission(),
                  Submission(team=make_team()),
                  Submission(challenge=make_challenge())]
@@ -319,7 +324,7 @@ class TestSubmission(object):
             dbsession.add(s)
             dbsession.flush()
             setattr(s, param, None)
-            with pytest.raises(Warning):
+            with pytest.raises(nullable_exc):
                 dbsession.flush()
             trans.rollback()
 
