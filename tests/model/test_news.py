@@ -70,7 +70,7 @@ class TestMassMail(object):
         assert m.timestamp > now_before
         assert m.timestamp < now_after
 
-    def test_nullables(self, dbsession, make_massmail):
+    def test_nullables(self, dbsession, make_massmail, nullable_exc):
         mails = []
         for param in ["subject", "message", "recipients", "from_"]:
             mail = make_massmail()
@@ -78,7 +78,7 @@ class TestMassMail(object):
             mails.append(mail)
         for mail in mails:
             trans = dbsession.begin_nested()
-            with pytest.raises(OperationalError):
+            with pytest.raises(nullable_exc):
                 dbsession.add(mail)
                 dbsession.flush()
             trans.rollback()

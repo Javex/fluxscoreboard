@@ -62,9 +62,7 @@ def test_get_number_solved_subquery(make_team, dbsession, make_challenge):
     t = make_team()
     s = Submission(challenge=c, team=t)
     dbsession.add(s)
-    q = (dbsession.query(Challenge, get_number_solved_subquery()).
-         outerjoin(Submission).
-         group_by(Submission.challenge_id))
+    q = (dbsession.query(Challenge, get_number_solved_subquery()))
     chall, count = q.first()
     assert c is chall
     assert count == 1
@@ -239,7 +237,7 @@ class TestTeam(object):
         assert t._timezone == "UTC"
         assert t.timezone is utc
 
-    def test_nullables(self, make_team, dbsession):
+    def test_nullables(self, make_team, dbsession, nullable_exc):
         teams = []
         for param in  ["name", "_password", "email", "country_id"]:
             team = make_team()
@@ -247,7 +245,7 @@ class TestTeam(object):
             teams.append(team)
         for team in teams:
             trans = dbsession.begin_nested()
-            with pytest.raises(OperationalError):
+            with pytest.raises(nullable_exc):
                 dbsession.add(team)
                 dbsession.flush()
             trans.rollback()

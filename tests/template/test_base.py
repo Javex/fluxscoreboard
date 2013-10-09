@@ -2,9 +2,60 @@
 from __future__ import unicode_literals, print_function, absolute_import
 import pytest
 import re
+from mako.template import Template
 
 
-class TestBase(object):
+@pytest.mark.usefixtures("matched_route", "config")
+class TestBaseBody(object):
+    name = "base.mako"
+
+    @pytest.fixture(autouse=True)
+    def _prepare(self, pyramid_request, view, template_lookup):
+        self.tmpl = Template('<%inherit file="base.mako" />',
+                             lookup=template_lookup)
+        self.request = pyramid_request
+        self.view = view
+
+    def render(self, *args, **kwargs):
+        return self.tmpl.render_unicode(*args, request=self.request,
+                                        view=self.view, **kwargs).strip()
+
+    def test_body(self):
+        data = self.render()
+        assert "admin.js" not in data
+        assert "bootstrap.min.css" not in data
+        assert "hacklu-base.min.css" in data
+        assert "Frontpage" not in data
+        assert "navbar-admin" not in data
+
+    def test_body_admin(self):
+        self.request.path = "/admin/asd"
+        data = self.render()
+        assert "admin.js" in data
+        assert "bootstrap.min.css" in data
+        assert "hacklu-base.min.css" not in data
+        assert "navbar-admin" in data
+        assert "Frontpage" in data
+
+    def test_body_menu(self):
+        self.request.path_url = self.request.route_url('home')
+        self.view.menu.append(('home', "Home"))
+        data = self.render()
+        assert "active" in data
+        assert "Home" in data
+        assert self.request.path_url in data
+
+    def test_body_flash_queues(self):
+        for queue, css_type in [('', 'info'), ('error', 'danger'),
+                                ('success', 'success'), ('warning', '')]:
+            self.request.session.flash(css_type.upper(), queue)
+            data = self.render()
+            assert css_type.upper() in data
+            assert 'class="alert %s"' % ('alert-%s' % css_type if css_type
+                                         else '') in data
+
+
+class TestRenderFlash(object):
 
     _alert_info = re.compile(r'class=".*alert-info.*"')
     _alert_css_test = re.compile(r'class=".*alert-css-test.*"')
@@ -17,7 +68,7 @@ class TestBase(object):
         self.request = pyramid_request
 
     def get_def(self, name):
-        original = self.tmpl.get_def("render_flash")
+        original = self.tmpl.get_def(name)
 
         def _render(*args, **kwargs):
             return original.render_unicode(*args, request=self.request,

@@ -92,16 +92,17 @@ def get_number_solved_subquery():
 
             number_of_solved_subquery = get_number_solved_subquery()
             challenge_query = (dbsession.query(Challenge,
-                                               number_of_solved_subquery).
-                               outerjoin(Submission).
-                               group_by(Submission.challenge_id))
+                                               number_of_solved_subquery)
 
     Here we query for a list of all challenges and additionally fetch the
-    number of times it has been solved. This subquery alone is not worth
-    much, it needs to be used together with other statements as shown in the
-    example.
+    number of times it has been solved. This subquery will use the outer
+    challenge to correlate on, so make sure to provide one or this query
+    makes no sense.
     """
-    return func.count(Submission.team_id)
+    return (DBSession().query(func.count('*')).
+            filter(Challenge.id == Submission.challenge_id).
+            correlate(Challenge).
+            as_scalar())
 
 
 def get_team(request):

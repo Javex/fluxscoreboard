@@ -105,11 +105,11 @@ class TestTeamFlag(object):
         assert f.team is None
         assert f.team_id is None
 
-    def test_nullables(self, make_teamflag, dbsession, make_team):
+    def test_nullables(self, make_teamflag, dbsession, make_team, nullable_exc):
         f = make_teamflag()
         trans = dbsession.begin_nested()
         dbsession.add(f)
-        with pytest.raises(OperationalError):
+        with pytest.raises(nullable_exc):
             dbsession.flush()
         trans.rollback()
 
@@ -173,7 +173,7 @@ def test_get_location(dbsession):
 
 class TestGeoIP(object):
 
-    def test_nullables(self, dbsession, make_geoip):
+    def test_nullables(self, dbsession, make_geoip, nullable_exc):
         null_ip = GeoIP.ip_int('127.0.0.1')
         g = make_geoip(ip_range_start=null_ip,
                        ip_range_end=null_ip)
@@ -192,7 +192,7 @@ class TestGeoIP(object):
         dbsession.flush()
         t = dbsession.begin_nested()
         dbsession.add(g)
-        with pytest.raises(OperationalError):
+        with pytest.raises(nullable_exc):
             dbsession.flush()
         t.rollback()
 
