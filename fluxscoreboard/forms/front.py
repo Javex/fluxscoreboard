@@ -122,8 +122,6 @@ class RegisterForm(CSRFForm):
     submit = SubmitField("Register")
 
 
-
-
 class LoginForm(CSRFForm):
     """
     Login form for teams that are activated.

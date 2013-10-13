@@ -1,24 +1,16 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
-import pytest
 import re
 from mako.template import Template
+from tests.template import TemplateTestBase
 
 
-@pytest.mark.usefixtures("matched_route", "config")
-class TestBaseBody(object):
+class TestBaseBody(TemplateTestBase):
     name = "base.mako"
 
-    @pytest.fixture(autouse=True)
-    def _prepare(self, pyramid_request, view, template_lookup):
+    def load_template(self):
         self.tmpl = Template('<%inherit file="base.mako" />',
-                             lookup=template_lookup)
-        self.request = pyramid_request
-        self.view = view
-
-    def render(self, *args, **kwargs):
-        return self.tmpl.render_unicode(*args, request=self.request,
-                                        view=self.view, **kwargs).strip()
+                             lookup=self.template_lookup)
 
     def test_body(self):
         data = self.render()
@@ -55,25 +47,11 @@ class TestBaseBody(object):
                                          else '') in data
 
 
-class TestRenderFlash(object):
+class TestRenderFlash(TemplateTestBase):
 
     _alert_info = re.compile(r'class=".*alert-info.*"')
     _alert_css_test = re.compile(r'class=".*alert-css-test.*"')
     name = "base.mako"
-
-    @pytest.fixture(autouse=True)
-    def _prepare(self, get_template, pyramid_request):
-        self.get = get_template
-        self.tmpl = self.get(self.name)
-        self.request = pyramid_request
-
-    def get_def(self, name):
-        original = self.tmpl.get_def(name)
-
-        def _render(*args, **kwargs):
-            return original.render_unicode(*args, request=self.request,
-                                           **kwargs).strip()
-        return _render
 
     def test_render_flash_empty(self):
         def_ = self.get_def("render_flash")

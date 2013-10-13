@@ -105,7 +105,7 @@ def session_factory():
 @pytest.fixture
 def pyramid_request(session_factory):
     r = testing.DummyRequest(params=MultiDict())
-    r.client_addr = None
+    r.client_addr = "127.0.0.1"
     r.session = session_factory(r)
     return r
 
@@ -116,7 +116,6 @@ def matched_route(pyramid_request):
             pass
     pyramid_request.matched_route = A()
     pyramid_request.matched_route.name = "something"
-
 
 
 @pytest.fixture(scope="session")
