@@ -17,11 +17,17 @@ the WSGI protocol.
 Quickstart
 ----------
 
-This gives an installation example. Adjust the paths to your liking.
+This gives an installation example. Adjust the paths to your liking. Also pay
+attention to the username and group for the web server, it depends on the
+server you are using and the distribution, it may for example be "www-data" or
+"http" or "www". You should also use `virtualenv`_ instead of your global
+python installation to run the scoreboard under.
+
+.. _virtualenv: https://pypi.python.org/pypi/virtualenv
 
 .. code-block:: bash
 
-    mkdir /var/www/hacklu
+    mkdir -p /var/www/hacklu
     cd /var/www/hacklu
     chown http:http .
     virtualenv .
@@ -179,3 +185,8 @@ and no restarting.
     Pyramids documentation on `supervisord`_.
 
 .. _supervisord: http://docs.pylonsproject.org/projects/pyramid_cookbook/en/latest/deployment/nginx.html#step-4-managing-your-paster-processes-with-supervisord-optional
+
+.. warning::
+    Once the site is running the very first thing you should do is head over
+    to the ``/admin/settings`` page and set a CTF start date. Without this, a
+    login will throw an exception.

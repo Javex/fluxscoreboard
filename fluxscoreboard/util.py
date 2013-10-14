@@ -141,13 +141,14 @@ def tz_str(timestamp, timezone):
 class not_logged_in(object):
     """
     Decorator for a view that should only be visible to users that are not
-    logged in. They will be redirected to the frontpage.
+    logged in. They will be redirected to the frontpage and a message will be
+    shown, that can be specified, but also has a sensible default.
 
     Usage:
         .. code-block:: python
 
             @view_config(...)
-            @not_logged_in
+            @not_logged_in()
             def some_view(request):
                 pass
     """
