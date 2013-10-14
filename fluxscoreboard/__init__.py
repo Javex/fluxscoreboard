@@ -34,7 +34,8 @@ def main(global_config, **settings):
     pub_key = settings["recaptcha.public_key"]
     priv_key = settings["recaptcha.private_key"]
     RegisterForm.captcha = RecaptchaField(public_key=pub_key,
-                                          private_key=priv_key)
+                                          private_key=priv_key,
+                                          secure=True)
 
     config = Configurator(settings=settings,
                           session_factory=session_factory,
