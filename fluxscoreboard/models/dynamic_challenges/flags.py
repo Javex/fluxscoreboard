@@ -41,7 +41,8 @@ class FlagView(BaseView):
         """
         ref_id = self.request.matchdict["ref_id"]
         team = get_team_by_ref(ref_id)
-        loc = get_location(self.request.client_addr)
+        # loc = get_location(self.request.client_addr)
+        loc = get_location("80.142.33.44")
         ret = {'success': True}
         if loc is None:
             log.warn("No valid location returned for IP address '%s' for "
@@ -132,7 +133,7 @@ def display(challenge, request):
     flags = []
     team = get_team(request)
     solved_flags = 0
-    team_flags = set(f.flag for f in team.flags)
+    team_flags = set(team.flags)
     for row in xrange(15):
         flag_row = []
         for col in xrange(15):

@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
-from fluxscoreboard.models.challenge import Submission, Challenge
+from fluxscoreboard.models.challenge import Submission, Challenge, Category
 from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token
 from pyramid.renderers import render
 from pyramid.security import unauthenticated_userid
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from pytz import utc, timezone, all_timezones
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func
+from sqlalchemy.sql.expression import func, desc
 from sqlalchemy.types import Integer, Unicode, Boolean
 import logging
 import os
 import random
 import string
-from sqlalchemy.ext.associationproxy import association_proxy
+from pyramid.decorator import reify
 
 
 log = logging.getLogger(__name__)
@@ -53,6 +54,12 @@ def get_active_teams():
     Get a query that returns a list of all active teams.
     """
     return DBSession().query(Team).filter(Team.active == True)
+
+
+def get_leading_team():
+    actives = get_active_teams()
+    score = desc(get_score_subquery())
+    return actives.order_by(score)[0]
 
 
 def get_team_solved_subquery(team_id):
@@ -103,6 +110,27 @@ def get_number_solved_subquery():
             filter(Challenge.id == Submission.challenge_id).
             correlate(Challenge).
             as_scalar())
+
+
+def get_score_subquery():
+    from ..models import dynamic_challenges
+    dbsession = DBSession()
+    # Calculate sum of all points, defalt to 0
+    challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
+    # Calculate sum of all bonus points, default to 0
+    bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
+    points_col = challenge_sum + bonus_sum
+    for module in dynamic_challenges.registry.values():
+        points_col += module.points_query()
+    # Create a subquery for the sum of the above points. The filters
+    # basically join the columns and the correlation is needed to reference
+    # the **outer** Team query.
+    team_score_subquery = (dbsession.query(points_col).
+                           filter(Challenge.id == Submission.challenge_id).
+                           filter(Team.id == Submission.team_id).
+                           filter(~Challenge.dynamic).
+                           correlate(Team))
+    return team_score_subquery.as_scalar()
 
 
 def get_team(request):
@@ -382,3 +410,45 @@ class Team(Base):
         timezone = unicode(tz)
         assert timezone in all_timezones
         self._timezone = timezone
+
+    def get_category_solved(self, category):
+        cat_solved, total = self.stats.get(category, (0, 0))
+        if total == 0:
+            return 0
+        else:
+            return float(cat_solved) / total
+
+    def get_overall_stats(self):
+        done, total = self.stats["_overall"]
+        return float(done) / total
+
+    @reify
+    def stats(self):
+        _stats = {}
+        team_stats = dict(DBSession().query(Category.name, func.count('*')).
+                          select_from(Submission).join(Challenge).
+                          outerjoin(Challenge.category).
+                          filter(Submission.team_id == self.id).
+                          group_by(Category.name))
+        totals = dict(DBSession().query(Category.name, func.count('*')).
+                      select_from(Challenge).outerjoin(Challenge.category).
+                      group_by(Category.name))
+        for name, total in totals.items():
+            _stats[name] = (team_stats.get(name, 0), total)
+        overall_stats = [0, 0]
+        for team_stat, total in _stats.values():
+            overall_stats[0] += team_stat
+            overall_stats[1] += total
+        _stats["_overall"] = tuple(overall_stats)
+        return _stats
+
+    @property
+    def rank(self):
+        # TODO: Make more efficient
+        score = get_score_subquery()
+        teams = (DBSession().query(Team).order_by(desc(score)))
+        for rank, team in enumerate(teams, 1):
+            if team.id == self.id:
+                return rank
+        else:
+            raise ValueError("Team not found!")

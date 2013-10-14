@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
+from datetime import datetime
 from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
     SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
     ResetPasswordForm)
 from fluxscoreboard.models import DBSession, settings
 from fluxscoreboard.models.challenge import (Challenge, Submission,
     check_submission)
-from fluxscoreboard.models.news import News
+from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
-    password_reminder, check_password_reset_token, get_team_by_ref)
-from fluxscoreboard.util import not_logged_in, random_token, now, tz_str
+    password_reminder, check_password_reset_token, get_score_subquery,
+    get_leading_team)
+from fluxscoreboard.util import not_logged_in, random_token, tz_str, now, \
+    display_design
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.security import remember, authenticated_userid, forget
@@ -18,7 +21,7 @@ from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
 from pytz import utc
 from sqlalchemy.orm import subqueryload
-from sqlalchemy.sql.expression import func, desc
+from sqlalchemy.sql.expression import desc
 import functools
 import logging
 
@@ -45,7 +48,7 @@ class BaseView(object):
     logged in.
     """
 
-    _logged_in_menu = [('news', "Announcements"),
+    _logged_in_menu = [  # ('news', "Announcements"),
                       ('scoreboard', "Scoreboard"),
                       ('challenges', "Challenges"),
                       ('submit', "Submit"),
@@ -72,10 +75,43 @@ class BaseView(object):
         """
         Get the current menu items as a list of tuples ``(view_name, title)``.
         """
+        max_len = max([len(self._logged_in_menu), len(self._logged_out_menu)])
         if authenticated_userid(self.request):
-            return self._logged_in_menu
+            menu = list(self._logged_in_menu)
         else:
-            return self._logged_out_menu
+            menu = list(self._logged_out_menu)
+        if display_design(self.request):
+            while len(menu) < max_len:
+                menu.append((None, None))
+        return menu
+
+    @reify
+    def title(self):
+        """
+        From the menu get a title for the page.
+        """
+        for name, title in self.menu:
+            if self.request.path_url.startswith(self.request.route_url(name)):
+                return title
+        else:
+            return ""
+
+    @reify
+    def team_count(self):
+        return DBSession().query(Team).filter(Team.active).count()
+
+    @reify
+    def leading_team(self):
+        return get_leading_team()
+
+    @reify
+    def announcements(self):
+        return get_published_news()
+
+    @reify
+    def seconds_until_end(self):
+        end = datetime(2013, 10, 24, 18, tzinfo=utc)
+        return (end - now()).seconds
 
 
 class SpecialView(BaseView):
@@ -183,24 +219,8 @@ class FrontView(BaseView):
         complex part of the query is the query that calculates the sum of
         points right in the SQL.
         """
-        from ..models import dynamic_challenges
         dbsession = DBSession()
-        # Calculate sum of all points, defalt to 0
-        challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
-        # Calculate sum of all bonus points, default to 0
-        bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
-        points_col = challenge_sum + bonus_sum
-        for module in dynamic_challenges.registry.values():
-            points_col += module.points_query()
-        # Create a subquery for the sum of the above points. The filters
-        # basically join the columns and the correlation is needed to reference
-        # the **outer** Team query.
-        team_score_subquery = (dbsession.query(points_col).
-                               filter(Challenge.id == Submission.challenge_id).
-                               filter(Team.id == Submission.team_id).
-                               filter(~Challenge.dynamic).
-                               correlate(Team))
-        score = team_score_subquery.as_scalar()
+        score = get_score_subquery()
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
         teams = (dbsession.query(Team, score).
@@ -213,10 +233,7 @@ class FrontView(BaseView):
         Just a list of all announcements that are currently published, ordered
         by publication date, the most recent first.
         """
-        announcements = (DBSession().query(News).
-                         filter(News.published == True).
-                         order_by(desc(News.timestamp)))
-        return {'announcements': announcements}
+        return {'announcements': self.announcements}
 
     @logged_in_view(route_name='submit', renderer='submit.mako')
     def submit_solution(self):

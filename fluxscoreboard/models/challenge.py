@@ -56,7 +56,7 @@ def get_solvable_challenges(team_id):
     - not manual (i.e. solvable by entering a solution)
     """
     unsolved = get_unsolved_challenges(team_id)
-    return unsolved.filter(~Challenge.manual)
+    return unsolved.filter(~Challenge.manual).filter(~Challenge.dynamic)
 
 
 def get_submissions():

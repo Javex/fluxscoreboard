@@ -1,5 +1,5 @@
 .flag{display:inline-block;height:16px;width:16px;vertical-align:text-top;line-height:16px;background:url(../images/flags16.png) no-repeat;}
-.inactive{background-image:url(../images/flags16-greyscale.png)}
+.flag.inactive{background-image:url(../images/flags16-greyscale.png)}
 ._African_Union(OAS){background-position:0 -16px;}
 ._Arab_League{background-position:0 -32px;}
 ._ASEAN{background-position:0 -48px;}

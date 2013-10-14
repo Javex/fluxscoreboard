@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
-from fluxscoreboard.models import Base
+from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.types import TZDateTime, JSONList
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.schema import Column, ForeignKey
+from sqlalchemy.sql.expression import desc
 from sqlalchemy.types import Integer, UnicodeText, Boolean
-import json
+
+
+def get_published_news():
+    announcements = (DBSession().query(News).
+                     filter(News.published == True).
+                     order_by(desc(News.timestamp)))
+    return announcements
 
 
 class News(Base):
