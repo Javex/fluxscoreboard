@@ -13,7 +13,7 @@ from pyramid_beaker import session_factory_from_settings
 from sqlalchemy import engine_from_config
 
 
-__version__ = '0.2.4'
+__version__ = '0.2.5'
 
 
 def main(global_config, **settings):
@@ -34,7 +34,8 @@ def main(global_config, **settings):
     pub_key = settings["recaptcha.public_key"]
     priv_key = settings["recaptcha.private_key"]
     RegisterForm.captcha = RecaptchaField(public_key=pub_key,
-                                          private_key=priv_key)
+                                          private_key=priv_key,
+                                          secure=True)
 
     config = Configurator(settings=settings,
                           session_factory=session_factory,
