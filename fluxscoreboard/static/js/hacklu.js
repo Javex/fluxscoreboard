@@ -10,6 +10,11 @@ var HackLu = {
 
 	init: function() {
 		HackLu.startTimer();
+		HackLu.bindEvents();
+	},
+	
+	bindEvents: function() {
+		$("div#content>h2").click(HackLu.slideMenu);
 	},
 	
 	startTimer: function() {
@@ -23,5 +28,9 @@ var HackLu = {
 		        clearInterval(interval);
 		    }
 		}, 1000);
+	},
+	
+	slideMenu: function() {
+		$("div#head-wrap").slideToggle();
 	},
 };

@@ -35,64 +35,66 @@ import pytz
             <h1>hack.lu CTF v.2013</h1>
         </div>
         </header>
-        <div id="stats">
-            <div id="stats-wrapper">
-                ${orb("Web")}
-                ${orb("Binary")}
-                <div id="stats-middle">
-                    <div id="lgraph">
-                        another stat<br>
-                        <img src="${request.static_url('fluxscoreboard:static/images/lgraph_0.png')}">
+        <div id="head-wrap">
+            <div id="stats">
+                <div id="stats-wrapper">
+                    ${orb("Web")}
+                    ${orb("Binary")}
+                    <div id="stats-middle">
+                        <div id="lgraph">
+                            another stat<br>
+                            <img src="${request.static_url('fluxscoreboard:static/images/lgraph_0.png')}">
+                        </div>
+                        <div id="timer">
+                            <div>seconds until end</div>
+                            <span id="timer-seconds">${view.seconds_until_end}</span>
+                        </div>
+                        <div id="rgraph">
+                            overall completion<br>
+                            <img src="${request.static_url('fluxscoreboard:static/images/rgraph_%s.png' % (int(round(view.team.get_overall_stats(), 1) * 100) if view.team else 0))}">
+                        </div>
                     </div>
-                    <div id="timer">
-                        <div>seconds until end</div>
-                        <span id="timer-seconds">${view.seconds_until_end}</span>
-                    </div>
-                    <div id="rgraph">
-                        overall completion<br>
-                        <img src="${request.static_url('fluxscoreboard:static/images/rgraph_%s.png' % (int(round(view.team.get_overall_stats(), 1) * 100) if view.team else 0))}">
-                    </div>
+                    ${orb("Crypto")}
+                    ${orb("Misc")}
                 </div>
-                ${orb("Crypto")}
-                ${orb("Misc")}
             </div>
-        </div>
-        <div id="middle">
-            <div id="middle-wrapper">
-                <div id="bar">
-                    rank
-                    <div class="bar-val">${view.team.rank if view.team else '-'}</div>
-                    <hr>
-                    players
-                    <div class="bar-val">${view.team.size if view.team and view.team.size else '-'}</div>
-                    <hr>
-                    teams
-                    <div class="bar-val">${view.team_count}</div>
-                </div>
-                <nav>
-                    <ul class="menu">
-                    % for name, title in view.menu:
-                        % if name and title:
-                            <li class="${name} ${'active' if request.path_url.startswith(request.route_url(name)) else ''}">
-                                <a href="${request.route_url(name)}">${title}</a>
-                            </li>
-                        % else:
-                            <li class="inactive"><a href="#">&nbsp;</a></li>
-                        % endif
-                    % endfor
-                    </ul>
-                    <div id="teamname">${view.leading_team.name}</div>
-                </nav>
-                <img src="${request.static_url('fluxscoreboard:static/images/middle.png')}" id="orb">
-                <div id="announcements">
-                    <h3>announcements</h3>
-                    <div id="announce-items">
-                    % for news in view.announcements:
-                        <p>
-                            <span>[${tz_str(news.timestamp, view.team.timezone if view.team else pytz.utc)}]</span>
-                            ${news.message}
-                        </p>
-                    % endfor
+            <div id="middle">
+                <div id="middle-wrapper">
+                    <div id="bar">
+                        rank
+                        <div class="bar-val">${view.team.rank if view.team else '-'}</div>
+                        <hr>
+                        players
+                        <div class="bar-val">${view.team.size if view.team and view.team.size else '-'}</div>
+                        <hr>
+                        teams
+                        <div class="bar-val">${view.team_count}</div>
+                    </div>
+                    <nav>
+                        <ul class="menu">
+                        % for name, title in view.menu:
+                            % if name and title:
+                                <li class="${name} ${'active' if request.path_url.startswith(request.route_url(name)) else ''}">
+                                    <a href="${request.route_url(name)}">${title}</a>
+                                </li>
+                            % else:
+                                <li class="inactive"><a href="#">&nbsp;</a></li>
+                            % endif
+                        % endfor
+                        </ul>
+                        <div id="teamname">${view.team.name if view.team else 'ASDASDASD'}</div>
+                    </nav>
+                    <img src="${request.static_url('fluxscoreboard:static/images/middle.png')}" id="orb">
+                    <div id="announcements">
+                        <h3>announcements</h3>
+                        <div id="announce-items">
+                        % for news in view.announcements:
+                            <p>
+                                <span>[${tz_str(news.timestamp, view.team.timezone if view.team else pytz.utc)}]</span>
+                                ${news.message}
+                            </p>
+                        % endfor
+                        </div>
                     </div>
                 </div>
             </div>
