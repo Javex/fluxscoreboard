@@ -11,7 +11,7 @@
   src:local('Iceland'), local('Iceland-Regular'), url(../font/iceland.woff) format('woff');
 }
 
-#content * {
+#content-wrapper * {
 	-moz-box-sizing: border-box;
 }
 
@@ -34,7 +34,7 @@ header {
     background:url(../images/top_bg.png);
     border-bottom:1px solid #001414;
 }
-h1 {
+header h1 {
     font-family:Rationale;
     color:#00b0fb;
     text-shadow:0 0 5px #062b84;
@@ -53,6 +53,12 @@ hr {
 
 form legend {
 	font-size: 1.5em;
+}
+
+.alert {
+  border: 1px solid;
+  padding: 5px 10px;
+  border-radius: 5px;
 }
 
 #top {
