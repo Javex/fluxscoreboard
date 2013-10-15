@@ -420,7 +420,10 @@ class Team(Base):
 
     def get_overall_stats(self):
         done, total = self.stats["_overall"]
-        return float(done) / total
+        if total == 0:
+            return 0
+        else:
+            return float(done) / total
 
     @reify
     def stats(self):

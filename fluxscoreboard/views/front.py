@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
-from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
-    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
-    ResetPasswordForm)
+from fluxscoreboard.forms.front import LoginForm, RegisterForm, ProfileForm, \
+    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm, \
+    ResetPasswordForm
 from fluxscoreboard.models import DBSession, settings
-from fluxscoreboard.models.challenge import (Challenge, Submission,
-    check_submission)
+from fluxscoreboard.models.challenge import Challenge, Submission, \
+    check_submission, Category
 from fluxscoreboard.models.news import get_published_news
-from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
-    get_number_solved_subquery, get_team, register_team, confirm_registration,
-    password_reminder, check_password_reset_token, get_score_subquery,
-    get_leading_team)
+from fluxscoreboard.models.team import Team, login, get_team_solved_subquery, \
+    get_number_solved_subquery, get_team, register_team, confirm_registration, \
+    password_reminder, check_password_reset_token, get_score_subquery, \
+    get_leading_team
 from fluxscoreboard.util import not_logged_in, random_token, tz_str, now, \
     display_design
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.security import remember, authenticated_userid, forget
-from pyramid.view import (view_config, forbidden_view_config,
-    notfound_view_config)
+from pyramid.view import view_config, forbidden_view_config, \
+    notfound_view_config
 from pytz import utc
 from sqlalchemy.orm import subqueryload
 from sqlalchemy.sql.expression import desc
@@ -171,7 +171,7 @@ class FrontView(BaseView):
                                            team_solved_subquery.exists(),
                                            number_of_solved_subquery).
                            outerjoin(Submission).
-                           group_by(Submission.challenge_id))
+                           group_by(Challenge.id))
         return {'challenges': challenges}
 
     @logged_in_view(route_name='challenge', renderer='challenge.mako')

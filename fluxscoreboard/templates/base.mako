@@ -82,7 +82,7 @@ import pytz
                             % endif
                         % endfor
                         </ul>
-                        <div id="teamname">${view.team.name if view.team else 'ASDASDASD'}</div>
+                        <div id="teamname">${view.team.name if view.team else '-'}</div>
                     </nav>
                     <img src="${request.static_url('fluxscoreboard:static/images/middle.png')}" id="orb">
                     <div id="announcements">

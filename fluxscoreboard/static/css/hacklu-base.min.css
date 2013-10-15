@@ -61,6 +61,18 @@ form legend {
   border-radius: 5px;
 }
 
+.panel {
+  border-bottom: 1px dashed;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+}
+
+.panel:last-child {
+  border: 0 none;
+  margin: 0;
+  padding: 0;
+}
+
 #top {
     width:600px;
     height:24px;
@@ -346,8 +358,8 @@ input[type=text]:focus, textarea:focus {
 }
 input[type=submit] {
     padding:5px;
-    color:#001c3b;
-    background:#03bcfd;
+    /*color:#001c3b;
+    background:#03bcfd;*/
     border:0;
 }
 
@@ -388,6 +400,13 @@ input[type=submit] {
 	color: #FF4545;
 }
 
+.text-success {
+    color: #00FF6C;
+}
+
+.text-warning {
+  color: #FF7F3F;
+}
 
 .form-horizontal .control-label,
 .form-horizontal .radio,
@@ -591,6 +610,17 @@ label {
   outline: 0;
   -webkit-box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
           box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+}
+
+
+.btn-default {
+    color: #FFFFFF;
+    background-color: #002441;
+}
+
+.btn-primary {
+    color: #000;
+    background-color: #000;
 }
 
 
