@@ -51,10 +51,21 @@ class AdminView(object):
         Return a :class:`webhelpers.paginate.Page` instance for an ``items``
         iterable.
         """
+        if "items_per_page" not in self.request.session:
+            self.request.session.flash(
+                "Hint: You can change the number of items that are displayed "
+                "per page by passing a GET parameter: ?items=20. This will "
+                "then be remembered for your session. Pass in ?items=5 to "
+                "hide this notice but keep the default of 5 items per page.")
+        # TODO: Make the choice a bit nicer.
+        items_per_page = self.request.GET.get('items', None)
+        if items_per_page:
+            self.request.session["items_per_page"] = int(items_per_page)
+        items_per_page = self.request.session.get("items_per_page", 5)
         current_page = self.request.GET.get('page', 1)
         page_url = PageURL_WebOb(self.request)
         page = Page(items, page=current_page, url=page_url,
-                    items_per_page=5, item_count=items.count())
+                    items_per_page=items_per_page, item_count=items.count())
         return page
 
     def redirect(self, route_name, current_page=None):
@@ -639,10 +650,11 @@ class AdminView(object):
             settings = self.request.registry.settings
             form.from_.data = settings["mail.default_sender"]
         mail_query = dbsession.query(MassMail)
-        current_page = self.request.GET.get('page', 1)
+        page = self.page(mail_query)
+        """current_page = self.request.GET.get('page', 1)
         page_url = PageURL_WebOb(self.request)
         page = Page(mail_query, page=current_page, url=page_url,
-                    items_per_page=5, item_count=mail_query.count())
+                    items_per_page=5, item_count=mail_query.count())"""
         retparams = {'form': form,
                      'items': page.items,
                      'page': page}
