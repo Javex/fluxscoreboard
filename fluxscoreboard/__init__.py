@@ -13,7 +13,7 @@ from pyramid_beaker import session_factory_from_settings
 from sqlalchemy import engine_from_config
 
 
-__version__ = '0.2.8'
+__version__ = '0.2.9'
 
 
 def main(global_config, **settings):
