@@ -19,6 +19,8 @@
                 if isinstance(field, type_):
                     field_kwargs["placeholder"] = field.label.text
                     break
+            if field.name == "solution":
+                field_kwargs["autocomplete"] = "off"
             %>
             ${field(class_="form-control" if not isinstance(field, FileField) else "", **field_kwargs)}
             % if field.description:
@@ -36,10 +38,10 @@
         % if getattr(form, 'id', None) is not None:
             ${form.id()}
         % endif
+        ${form.submit(class_="btn btn-primary")}
         % if display_cancel and hasattr(form, 'cancel'):
             ${form.cancel(class_="btn btn-default")}
         % endif
-        ${form.submit(class_="btn btn-primary")}
     </div>
 </form>
 </%def>

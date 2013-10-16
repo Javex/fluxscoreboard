@@ -121,6 +121,9 @@ import pytz
             % if request.path.startswith('/admin'):
             <ul class="nav navbar-nav pull-right">
                 <li>
+                    <a href="${request.route_url('test_login')}">[Test-Login]</a>
+                </li>
+                <li>
                     <a href="${request.route_url('news')}">Frontpage</a>
                 </li>
             </ul>

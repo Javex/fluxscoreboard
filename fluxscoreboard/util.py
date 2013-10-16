@@ -24,6 +24,7 @@ def display_design(request):
     The following logic is implemented:
 
     - The admin backend has the default design (i.e. ``False``).
+    - If it is a test-login from the backend, show the design.
     - If the CTF has started, the real design is loaded for the frontpage
       (i.e. ``True``).
     - If no route is matched or a public route is matched, the default design
@@ -35,6 +36,10 @@ def display_design(request):
     # If the admin backend is loaded, display the default design.
     if request.path.startswith('/admin'):
         return False
+
+    # If the login is a test-login, then show the design anyway
+    if request.session.get("test-login", False):
+        return True
 
     # If the CTF has started, display the real design.
     if settings.get().ctf_started:
