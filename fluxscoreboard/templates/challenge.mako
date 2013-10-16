@@ -17,7 +17,7 @@ from fluxscoreboard.models import settings
     </div>
     <div class="col-12">
         <div class="row">
-            ${challenge.text}
+            ${challenge.text | n}
         </div>
         <div class="row">&nbsp;</div>
         <div class="row">

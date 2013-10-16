@@ -46,6 +46,20 @@ def email_unique_validator(form, field):
         return True
 
 
+def name_unique_validator(form, field):
+    """
+    A validator to make sure the entered team name is unique and does not exist
+    yet.
+    """
+    name = field.data
+    dbsession = DBSession()
+    name_exists = dbsession.query(Team).filter(Team.name == name).all()
+    if len(name_exists) > 0:
+        raise ValueError("This name is already registered.")
+    else:
+        return True
+
+
 password_equal_validator = validators.EqualTo("password_repeat",
                                               "Passwords do not match.")
 password_min_length_validator = validators.Length(
@@ -63,6 +77,13 @@ name_length_validator = validators.Length(min=5, max=TEAM_NAME_MAX_LENGTH,
 required_validator = validators.Required(
     "This field is mandatory, please enter a valid value."
     )
+
+
+def greater_zero_if_set(form, field):
+    if field.data is not None and field.data <= 0:
+        raise ValidationError("If you enter a size it must be at least 1")
+    else:
+        return True
 
 
 def password_length_validator_conditional(form, field):

@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
-from fluxscoreboard.forms.admin import (NewsForm, ChallengeForm, TeamForm,
-    SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm,
-    TeamCleanupForm, SettingsForm)
+from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, TeamForm, \
+    SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm, \
+    TeamCleanupForm, SettingsForm
 from fluxscoreboard.models import DBSession
-from fluxscoreboard.models.challenge import (Challenge, Submission,
-    get_submissions, Category)
+from fluxscoreboard.models.challenge import Challenge, Submission, \
+    get_submissions, Category
 from fluxscoreboard.models.news import News, MassMail
-from fluxscoreboard.models.team import Team, get_active_teams
 from fluxscoreboard.models.settings import get as get_settings
+from fluxscoreboard.models.team import Team, get_active_teams
 from pyramid.httpexceptions import HTTPFound
+from pyramid.security import remember
 from pyramid.view import view_config
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
@@ -50,10 +51,21 @@ class AdminView(object):
         Return a :class:`webhelpers.paginate.Page` instance for an ``items``
         iterable.
         """
+        if "items_per_page" not in self.request.session:
+            self.request.session.flash(
+                "Hint: You can change the number of items that are displayed "
+                "per page by passing a GET parameter: ?items=20. This will "
+                "then be remembered for your session. Pass in ?items=5 to "
+                "hide this notice but keep the default of 5 items per page.")
+        # TODO: Make the choice a bit nicer.
+        items_per_page = self.request.GET.get('items', None)
+        if items_per_page:
+            self.request.session["items_per_page"] = int(items_per_page)
+        items_per_page = self.request.session.get("items_per_page", 5)
         current_page = self.request.GET.get('page', 1)
         page_url = PageURL_WebOb(self.request)
         page = Page(items, page=current_page, url=page_url,
-                    items_per_page=5, item_count=items.count())
+                    items_per_page=items_per_page, item_count=items.count())
         return page
 
     def redirect(self, route_name, current_page=None):
@@ -638,10 +650,11 @@ class AdminView(object):
             settings = self.request.registry.settings
             form.from_.data = settings["mail.default_sender"]
         mail_query = dbsession.query(MassMail)
-        current_page = self.request.GET.get('page', 1)
+        page = self.page(mail_query)
+        """current_page = self.request.GET.get('page', 1)
         page_url = PageURL_WebOb(self.request)
         page = Page(mail_query, page=current_page, url=page_url,
-                    items_per_page=5, item_count=mail_query.count())
+                    items_per_page=5, item_count=mail_query.count())"""
         retparams = {'form': form,
                      'items': page.items,
                      'page': page}
@@ -693,3 +706,22 @@ class AdminView(object):
             self.request.session.flash("Settings updated!")
             return self.redirect('admin_settings')
         return retparams
+
+    @view_config(route_name='test_login')
+    def test_login(self):
+        """
+        If there is at least one team, log in as it to see the page.
+        """
+        team = DBSession().query(Team).first()
+        if not team:
+            self.request.session.flash("No team available, add one!")
+            return HTTPFound(location=self.request.route_url('admin_teams'))
+        # Start a new session due to new permissions
+        self.request.session.invalidate()
+        headers = remember(self.request, team.id)
+        self.request.session["test-login"] = True
+        self.request.session.flash("You were logged in as team %s. Please be "
+                                   "aware that this is only a test login, so "
+                                   "don't break anything." % team.name)
+        return HTTPFound(location=self.request.route_url('home'),
+                             headers=headers)

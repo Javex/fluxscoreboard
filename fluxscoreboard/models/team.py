@@ -277,7 +277,7 @@ class Team(Base):
         :class:`fluxscoreboard.models.country.Country` attribute.
     """
     id = Column(Integer, primary_key=True)
-    name = Column(Unicode(TEAM_NAME_MAX_LENGTH), nullable=False)
+    name = Column(Unicode(TEAM_NAME_MAX_LENGTH), nullable=False, unique=True)
     _password = Column('password', Unicode(TEAM_PASSWORD_MAX_LENGTH),
                        nullable=False)
     email = Column(Unicode(TEAM_MAIL_MAX_LENGTH), nullable=False, unique=True)

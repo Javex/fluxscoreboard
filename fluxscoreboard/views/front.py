@@ -134,7 +134,7 @@ class FrontView(BaseView):
                                            team_solved_subquery.exists(),
                                            number_of_solved_subquery).
                            outerjoin(Submission).
-                           group_by(Submission.challenge_id))
+                           group_by(Challenge.id))
         return {'challenges': challenges}
 
     @logged_in_view(route_name='challenge', renderer='challenge.mako')

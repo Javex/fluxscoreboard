@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from PIL import Image
-from fluxscoreboard.forms.validators import RecaptchaValidator
+from fluxscoreboard.forms.validators import (RecaptchaValidator,
+    greater_zero_if_set)
 from pyramid.threadlocal import get_current_request
 from pytz import utc
 from wtforms.fields.core import _unset_value, Field
@@ -94,6 +95,17 @@ class IntegerOrEvaluatedField(IntegerField):
                     raise ValueError(self.gettext('Not a valid integer value'))
 
 
+class IntegerOrNoneField(IntegerField):
+
+    def process_formdata(self, valuelist):
+        [value] = valuelist
+        if value:
+            return IntegerField.process_formdata(self, valuelist)
+        else:
+            self.data = None
+            return True
+
+
 class BootstrapWidget(Input):
 
     def __init__(self, input_type=None, group_before=None, group_after=None,
@@ -125,7 +137,7 @@ class BootstrapWidget(Input):
 
 
 def team_size_field():
-    return IntegerField("Team Size",
+    return IntegerOrNoneField("Team Size",
                         description=("For statistical purposes we would "
                                      "like to know how many you are. "
                                      "There is no limitation on the number "
@@ -135,7 +147,8 @@ def team_size_field():
                         widget=BootstrapWidget(
                             'number',
                             group_after=['Members'],
-                            default_classes=['text-right'])
+                            default_classes=['text-right']),
+                        validators=[greater_zero_if_set],
                         )
 
 
