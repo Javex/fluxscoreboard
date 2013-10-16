@@ -52,11 +52,16 @@ class AdminView(object):
         iterable.
         """
         if "items_per_page" not in self.request.session:
-            self.request.session.flash(
+            message = (
                 "Hint: You can change the number of items that are displayed "
                 "per page by passing a GET parameter: ?items=20. This will "
                 "then be remembered for your session. Pass in ?items=5 to "
                 "hide this notice but keep the default of 5 items per page.")
+            for msg in self.request.session.peek_flash():
+                if msg == message:
+                    break
+            else:
+                self.request.session.flash(message)
         # TODO: Make the choice a bit nicer.
         items_per_page = self.request.GET.get('items', None)
         if items_per_page:

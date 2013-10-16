@@ -94,7 +94,7 @@ def encrypt_pw(pw, salt=None):
     assert isinstance(pw, unicode)
     if salt is None:
         salt = bcrypt.gensalt()
-    return unicode(bcrypt.hashpw(pw, salt))
+    return unicode(bcrypt.hashpw(pw.encode("utf-8"), salt))
 
 
 def bcrypt_split(value):
