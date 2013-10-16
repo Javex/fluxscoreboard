@@ -1,9 +1,9 @@
 <%inherit file="base.mako"/>
-<table class="table sortable">
+<table id="scoreboard" class="table sortable">
     <thead>
         <tr>
             <th>#</th>
-            <th>Avatar</th>
+            <th class="avatar">Avatar</th>
             <th>Team</th>
             <th>Location</th>
             <th>Local</th>

@@ -48,6 +48,9 @@ class Settings(Base):
         the CTF should start. Before that, the application will behave
         differently, e.g. may not allow login.
 
+        ``ctf_end_date``: When the CTF will end. Same type as
+        ``ctf_start_date``.
+
         ``ctf_started``: This is a property that can only be read and just
         compares ``ctf_start_date`` with the current time to find out whether
         the CTF has already started or not.
@@ -55,6 +58,7 @@ class Settings(Base):
     id = Column(Integer, primary_key=True)
     submission_disabled = Column(Boolean, default=False)
     ctf_start_date = Column(TZDateTime)
+    ctf_end_date = Column(TZDateTime)
 
     @property
     def ctf_started(self):

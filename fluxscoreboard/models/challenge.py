@@ -3,6 +3,7 @@ from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.types import TZDateTime
+from fluxscoreboard.util import now
 from sqlalchemy import event
 from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey
@@ -97,6 +98,9 @@ def check_submission(challenge, solution, team_id, settings):
 
     if settings.submission_disabled:
         return False, "Submission is currently disabled"
+
+    if now() > settings.ctf_end_date:
+        return False, "The CTF is over, no more solutions can be submitted."
 
     if not challenge.online:
         return False, "Challenge is offline."

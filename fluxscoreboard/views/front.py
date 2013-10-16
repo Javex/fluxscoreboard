@@ -1,29 +1,30 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
-from fluxscoreboard.forms.front import LoginForm, RegisterForm, ProfileForm, \
-    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm, \
-    ResetPasswordForm
+from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
+    SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
+    ResetPasswordForm)
 from fluxscoreboard.models import DBSession, settings
-from fluxscoreboard.models.challenge import Challenge, Submission, \
-    check_submission, Category
+from fluxscoreboard.models.challenge import (Challenge, Submission,
+    check_submission, Category)
 from fluxscoreboard.models.news import get_published_news
-from fluxscoreboard.models.team import Team, login, get_team_solved_subquery, \
-    get_number_solved_subquery, get_team, register_team, confirm_registration, \
-    password_reminder, check_password_reset_token, get_score_subquery, \
-    get_leading_team
-from fluxscoreboard.util import not_logged_in, random_token, tz_str, now, \
-    display_design
+from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
+    get_number_solved_subquery, get_team, register_team, confirm_registration,
+    password_reminder, check_password_reset_token, get_score_subquery,
+    get_leading_team)
+from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
+    display_design)
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.security import remember, authenticated_userid, forget
-from pyramid.view import view_config, forbidden_view_config, \
-    notfound_view_config
+from pyramid.view import (view_config, forbidden_view_config,
+    notfound_view_config)
 from pytz import utc
 from sqlalchemy.orm import subqueryload
 from sqlalchemy.sql.expression import desc
 import functools
 import logging
+import math
 
 # TODO: Reduce requests per second on CSS and JS
 
@@ -61,6 +62,7 @@ class BaseView(object):
 
     def __init__(self, request):
         self.request = request
+        self.orb_count = None
 
     @reify
     def team(self):
@@ -91,6 +93,8 @@ class BaseView(object):
         From the menu get a title for the page.
         """
         for name, title in self.menu:
+            if not name:
+                continue
             if self.request.path_url.startswith(self.request.route_url(name)):
                 return title
         else:
@@ -110,8 +114,8 @@ class BaseView(object):
 
     @reify
     def seconds_until_end(self):
-        end = datetime(2013, 10, 24, 18, tzinfo=utc)
-        return (end - now()).seconds
+        end = settings.get().ctf_end_date
+        return int((end - now()).total_seconds())
 
 
 class SpecialView(BaseView):
@@ -149,9 +153,10 @@ class FrontView(BaseView):
     @logged_in_view(route_name='home')
     def home(self):
         """
-        A view for the page root which just redirects to the ``news`` view.
+        A view for the page root which just redirects to the ``scoreboard``
+        view.
         """
-        return HTTPFound(location=self.request.route_url('news'))
+        return HTTPFound(location=self.request.route_url('scoreboard'))
 
     @logged_in_view(route_name='challenges', renderer='challenges.mako')
     def challenges(self):
@@ -233,6 +238,7 @@ class FrontView(BaseView):
         Just a list of all announcements that are currently published, ordered
         by publication date, the most recent first.
         """
+        return HTTPFound(location=self.request.route_url('scoreboard'))
         return {'announcements': self.announcements}
 
     @logged_in_view(route_name='submit', renderer='submit.mako')
@@ -280,11 +286,17 @@ class UserView(BaseView):
         A simple view that logs out the user and redirects to the login page.
         """
         headers = forget(self.request)
-        print(headers)
+        is_test_login = self.request.session.get("test-login", False)
         self.request.session.invalidate()
-        self.request.session.flash("You have been logged out.")
-        return HTTPFound(location=self.request.route_url('login'),
-                         headers=headers)
+        if is_test_login:
+            self.request.session.flash("Welcome back, you are no longer "
+                                       "logged in.")
+            return HTTPFound(location=self.request.route_url('admin_teams'),
+                             headers=headers)
+        else:
+            self.request.session.flash("You have been logged out.")
+            return HTTPFound(location=self.request.route_url('login'),
+                             headers=headers)
 
     @view_config(route_name='login', renderer='login.mako')
     @not_logged_in("Doh! You are already logged in.")
@@ -303,7 +315,7 @@ class UserView(BaseView):
             login_success, msg, team = login(form.email.data,
                                              form.password.data)
             if not login_success:
-                self.request.session.flash("Login failed.")
+                self.request.session.flash("Login failed.", 'error')
                 log.warn("Failed login attempt for team '%(team_email)s' "
                          "with IP Address '%(ip_address)s' and reason "
                          "'%(message)s'" %
@@ -327,8 +339,8 @@ class UserView(BaseView):
             # Start a new session due to new permissions
             self.request.session.invalidate()
             headers = remember(self.request, team.id)
-            self.request.session.flash("You have been logged in.")
-            return HTTPFound(location=self.request.route_url('news'),
+            self.request.session.flash("You have been logged in.", 'success')
+            return HTTPFound(location=self.request.route_url('home'),
                                  headers=headers)
         return retparams
 

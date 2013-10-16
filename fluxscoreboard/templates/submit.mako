@@ -1,8 +1,9 @@
 <%inherit file="base.mako"/>
 <%
 from fluxscoreboard.models import settings
+from fluxscoreboard.util import now
 %>
-% if not settings.get().submission_disabled and list(form.challenge):
+% if not settings.get().submission_disabled and list(form.challenge) and not now() > settings.get().ctf_end_date:
 <form class="form-horizontal" method="POST" action="${request.route_url('submit')}">
     <legend>Enter solution for challenge</legend>
     <div class="form-group">
@@ -31,6 +32,8 @@ from fluxscoreboard.models import settings
         </div>
     </div>
 </form>
+% elif now() > settings.get().ctf_end_date:
+    <div class="alert alert-danger">The CTF is over. You cannot submit any more solutions.</div>
 % elif settings.get().submission_disabled:
     <div class="alert alert-info">Sorry, but submission of solutions is currently disabled.</div>
 % elif not list(form.challenge):

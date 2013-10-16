@@ -46,7 +46,8 @@
                                                         [('admin_teams', "Edit"),
                                                          ('admin_teams_delete', "Delete"), 
                                                          ('admin_teams_activate', ("Deactivate" if team.active else "Activate") + " Team"),
-                                                         ('admin_teams_toggle_local', "Make Team " + ("Remote" if team.local else "Local"))])}
+                                                         ('admin_teams_toggle_local', "Make Team " + ("Remote" if team.local else "Local")),
+                                                         ('test_login', "Test Login")])}
                 </td>
             </tr>
     % endfor

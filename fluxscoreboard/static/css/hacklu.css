@@ -45,12 +45,22 @@ table.sortable th:hover{
     text-decoration: none;
 }
 
+th.avatar {
+	width: 90px;
+}
+
+#scoreboard tbody tr {
+	height: 40px;
+}
+
 img.avatar {
     width: 90px;
+    vertical-align: middle;
 }
 
 img.avatar-large {
     width: 200px;
+    display:block;
 }
 
 

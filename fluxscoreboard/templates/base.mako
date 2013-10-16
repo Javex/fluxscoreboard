@@ -9,11 +9,11 @@ import pytz
     <head>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/jquery.min.js')}"></script>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/bootstrap.min.js')}"></script>
-        <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/hacklu.js')}"></script>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/sorttable.js')}"></script>
-        <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/timer.js')}"></script>
         % if request.path.startswith('/admin'):
             <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/admin.js')}"></script>
+        % else:
+            <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/hacklu.js')}"></script>
         % endif
         
         ## Here, we display different stylesheets based on routes to not give away the design before contest has started.
@@ -124,7 +124,7 @@ import pytz
                     <a href="${request.route_url('test_login')}">[Test-Login]</a>
                 </li>
                 <li>
-                    <a href="${request.route_url('news')}">Frontpage</a>
+                    <a href="${request.route_url('home')}">Frontpage</a>
                 </li>
             </ul>
             % endif

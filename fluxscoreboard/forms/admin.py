@@ -109,8 +109,8 @@ class ChallengeForm(CSRFForm):
 
     category = QuerySelectField("Category",
                                 query_factory=get_all_categories,
-                                allow_blank=True,
-                                blank_text='-- No category --')
+                                allow_blank=False,
+                                blank_text='-- Choose a category --')
 
     online = BooleanField("Online")
 
@@ -343,6 +343,12 @@ class SettingsForm(CSRFForm):
     ctf_start_date = TZDateTimeField(
         "CTF Start Date",
         description=("When the CTF should start, in format "
+                     "'%Y-%m-%d %H:%M:%S' and UTC timezone.")
+    )
+
+    ctf_end_date = TZDateTimeField(
+        "CTF End Date",
+        description=("When the CTF should end, in format "
                      "'%Y-%m-%d %H:%M:%S' and UTC timezone.")
     )
 

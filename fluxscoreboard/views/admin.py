@@ -615,7 +615,7 @@ class AdminView(object):
         return redirect
 
     @view_config(route_name='admin_submissions_delete', request_method='POST')
-    def sbumissions_delete(self):
+    def submissions_delete(self):
         """Delete a submission."""
         # Prepare parameters
         delete_form = SubmissionButtonForm(self.request.POST,
@@ -717,16 +717,23 @@ class AdminView(object):
         """
         If there is at least one team, log in as it to see the page.
         """
-        team = DBSession().query(Team).first()
+        form = ButtonForm(self.request.POST, csrf_context=self.request)
+        team_query = DBSession().query(Team)
+        if form.id.data:
+            team_query = team_query.filter(Team.id == form.id.data)
+        team = team_query.first()
         if not team:
             self.request.session.flash("No team available, add one!")
             return HTTPFound(location=self.request.route_url('admin_teams'))
-        # Start a new session due to new permissions
+        return self._test_login(team)
+
+    def _test_login(self, team):  # Start a new session due to new permissions
         self.request.session.invalidate()
         headers = remember(self.request, team.id)
         self.request.session["test-login"] = True
         self.request.session.flash("You were logged in as team %s. Please be "
                                    "aware that this is only a test login, so "
-                                   "don't break anything." % team.name)
+                                   "don't break anything." % team.name,
+                                   'warning')
         return HTTPFound(location=self.request.route_url('home'),
-                             headers=headers)
+                         headers=headers)
