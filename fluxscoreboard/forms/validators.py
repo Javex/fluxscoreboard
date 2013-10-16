@@ -262,7 +262,7 @@ class RecaptchaValidator(object):
             data = response.read().splitlines()
             response.close()
         except Exception, e:
-            logging.error(str(e))
+            log.error(str(e))
             raise ValidationError(self.errors['recaptcha-not-reachable'])
 
         return data
@@ -285,5 +285,6 @@ class RecaptchaValidator(object):
                 raise ValidationError(field.gettext(self.errors[data[1]]))
             else:
                 # Log error message in case it wasn't triggered by user
-                logging.error(self.errors.get(data[1], data[1]))
+                log.error(self.errors.get(data[1], data[1]) + " from IP %s"
+                          % field.ip_address)
                 raise ValidationError(field.gettext(self.internal_error_text))
