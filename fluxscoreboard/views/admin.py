@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
-from fluxscoreboard.forms.admin import (NewsForm, ChallengeForm, TeamForm,
-    SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm,
-    TeamCleanupForm, SettingsForm)
+from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, TeamForm, \
+    SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm, \
+    TeamCleanupForm, SettingsForm
 from fluxscoreboard.models import DBSession
-from fluxscoreboard.models.challenge import (Challenge, Submission,
-    get_submissions, Category)
+from fluxscoreboard.models.challenge import Challenge, Submission, \
+    get_submissions, Category
 from fluxscoreboard.models.news import News, MassMail
-from fluxscoreboard.models.team import Team, get_active_teams
 from fluxscoreboard.models.settings import get as get_settings
+from fluxscoreboard.models.team import Team, get_active_teams
 from pyramid.httpexceptions import HTTPFound
+from pyramid.security import remember
 from pyramid.view import view_config
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
@@ -693,3 +694,22 @@ class AdminView(object):
             self.request.session.flash("Settings updated!")
             return self.redirect('admin_settings')
         return retparams
+
+    @view_config(route_name='test_login')
+    def test_login(self):
+        """
+        If there is at least one team, log in as it to see the page.
+        """
+        team = DBSession().query(Team).first()
+        if not team:
+            self.request.session.flash("No team available, add one!")
+            return HTTPFound(location=self.request.route_url('admin_teams'))
+        # Start a new session due to new permissions
+        self.request.session.invalidate()
+        headers = remember(self.request, team.id)
+        self.request.session["test-login"] = True
+        self.request.session.flash("You were logged in as team %s. Please be "
+                                   "aware that this is only a test login, so "
+                                   "don't break anything." % team.name)
+        return HTTPFound(location=self.request.route_url('home'),
+                             headers=headers)
