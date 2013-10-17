@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
-from fluxscoreboard.models import settings
 from functools import wraps
 from pyramid.events import NewResponse, subscriber
 from pyramid.httpexceptions import HTTPFound
@@ -42,7 +41,7 @@ def display_design(request):
         return True
 
     # If the CTF has started, display the real design.
-    if settings.get().ctf_started:
+    if request.settings.ctf_started:
         return True
 
     # If no route was matched, it's 404 and that is public, too.

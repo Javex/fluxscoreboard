@@ -14,7 +14,6 @@ revision = 'c0d10863fa4'
 down_revision = '51d8bc17784c'
 
 
-
 def upgrade():
     op.alter_column('challenge', 'title',
                existing_type=sa.Unicode(255),
@@ -26,7 +25,7 @@ def upgrade():
                existing_type=sa.Boolean,
                nullable=False)
     op.execute(Challenge.__table__.update().
-               where(~Challenge.dynamic).
+               where(sa.or_(~Challenge.dynamic, Challenge.dynamic == None)).
                values({'dynamic': False}))
     op.alter_column('challenge', 'dynamic',
                existing_type=sa.Boolean,

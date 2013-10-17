@@ -1,13 +1,17 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
 from fluxscoreboard.config import ROOT_DIR
-from fluxscoreboard.models import Base, DBSession
+from fluxscoreboard.models import Base, DBSession, settings
+from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.team import get_team_by_ref
+from fluxscoreboard.util import now
 from fluxscoreboard.views.front import BaseView
 from pyramid.renderers import render
 from pyramid.view import view_config
 from requests.exceptions import RequestException
 from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from sqlalchemy.orm.mapper import validates
 from sqlalchemy.schema import ForeignKey, Column
 from sqlalchemy.sql.expression import func
 from sqlalchemy.types import Integer, Unicode, BigInteger
@@ -19,7 +23,6 @@ import requests
 import shutil
 import socket
 import zipfile
-from sqlalchemy.orm.mapper import validates
 
 
 log = logging.getLogger(__name__)
@@ -39,6 +42,29 @@ class FlagView(BaseView):
         location the client was from was not already in the list of registered
         locations for the team.
         """
+        try:
+            challenge = (DBSession().query(Challenge).
+                         filter(Challenge.module_name == 'flags').one())
+        except NoResultFound:
+            ret = {'success': False, 'msg': ("There is no challenge for flags "
+                                             "right now")}
+            return ret
+        except MultipleResultsFound:
+            ret = {'success': False, 'msg': ("More than one challenge is "
+                                             "online. This shouldn't happen, "
+                                             "contact FluxFingers.")}
+            return ret
+        if (not challenge.online or
+                self.request.settings.submission_disabled or
+                now() > self.request.settings.ctf_end_date):
+            ret = {'success': False}
+            if not challenge.online:
+                ret["msg"] = "Challenge is offline."
+            elif self.request.settings.submission_disabled:
+                ret["msg"] = "Submission is disabled."
+            elif now() > self.request.settings.ctf_end_date:
+                ret["msg"] = "CTF is over."
+            return ret
         ref_id = self.request.matchdict["ref_id"]
         team = get_team_by_ref(ref_id)
         # loc = get_location(self.request.client_addr)
@@ -158,6 +184,10 @@ def points_query():
                 filter(TeamFlag.team_id == Team.id).
                 correlate(Team))
     return subquery.as_scalar()
+
+
+def points(team):
+    return len(team.flags)
 
 
 def get_location(ip):

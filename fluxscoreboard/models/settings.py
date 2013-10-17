@@ -2,8 +2,20 @@
 from __future__ import unicode_literals, print_function, absolute_import
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.types import TZDateTime
+from pyramid.events import NewRequest, subscriber
 from sqlalchemy.schema import Column
 from sqlalchemy.types import Integer, Boolean
+from pyramid.threadlocal import get_current_request
+import logging
+
+
+log = logging.getLogger(__name__)
+
+
+@subscriber(NewRequest)
+def load_settings(event):
+    settings = DBSession().query(Settings).one()
+    event.request.settings = settings
 
 
 def get():
@@ -25,7 +37,9 @@ def get():
         from fluxscoreboard.models.settings import get as get_settings
         settings = get_settings()
     """
-    return DBSession().query(Settings).one()
+    log.warning("The get() function is deprecated. Access settings from the "
+                "request object: request.settings")
+    return get_current_request().settings
 
 
 class Settings(Base):

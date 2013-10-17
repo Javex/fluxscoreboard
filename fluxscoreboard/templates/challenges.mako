@@ -1,5 +1,9 @@
 <%inherit file="base.mako"/>
-<% from fluxscoreboard.models.challenge import manual_challenge_points%>
+<%
+from fluxscoreboard.models.challenge import manual_challenge_points
+import logging
+log = logging.getLogger(__name__)
+%>
 <table class="table sortable">
     <thead>
         <tr>
@@ -33,7 +37,13 @@
                     ${challenge.points or '-'}
                 % endif
             </td>
-            <td>${solved_count}</td>
+            <td>
+                % if not challenge.dynamic:
+                    ${solved_count}
+                % else:
+                    -
+                % endif
+            </td>
             <td class="text-${'success' if challenge.online else 'danger'}">
                 ${'online' if challenge.online else 'offline'}
             </td>

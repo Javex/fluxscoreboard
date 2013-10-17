@@ -1,8 +1,7 @@
 <%inherit file="base.mako"/>
 <%namespace name="announcements" file="announcements.mako"/>
 <%
-from fluxscoreboard.models import settings
-from fluxscoreboard.util import now
+from fluxscoreboard.util import now, nl2br
 %>
 <div class="panel panel-primary">
     <div class="panel-heading">
@@ -19,11 +18,11 @@ from fluxscoreboard.util import now
     <div class="col-12">
     % if not challenge.dynamic:
         <div class="row">
-            ${challenge.text | n}
+            ${challenge.text | nl2br,n}
         </div>
         <div class="row">&nbsp;</div>
         <div class="row">
-        % if not is_solved and challenge.online and not challenge.manual and not settings.get().submission_disabled and not now() > settings.get().ctf_end_date:
+        % if not is_solved and challenge.online and not challenge.manual and not request.settings.submission_disabled and not now() > request.settings.ctf_end_date:
             <form method="POST" action="${request.route_url('challenge', id=challenge.id)}" class="form-horizontal">
                 <legend>Enter solution for challenge</legend>
                 ${form.solution.label(class_='control-label col-2')}
@@ -40,16 +39,16 @@ from fluxscoreboard.util import now
             </form>
         % elif is_solved:
             <p class="text-success text-center">Congratulations! You have already solved this challenge.</p>
-        % elif now() > settings.get().ctf_end_date:
+        % elif now() > request.settings.ctf_end_date:
             <p class="text-danger text-center">The CTF is over. You cannot submit any more solutions.</p>
         % elif challenge.manual:
             <p class="text-warning text-center">This challenge is evaluated manually, you cannot submit a solution for it.</p>
-        % elif settings.get().submission_disabled:
+        % elif request.settings.submission_disabled:
             <p class="text-info text-center">Submission of solution is currently disabled, sorry.</p>
         % elif not challenge.online:
             <p class="text-warning text-center">This challenge is currently offline, check back later.</p>
         % else:
-            <p class="text-danger text-center">Something is seriously wrong here! Contact FluxFingers hacklu@fluxfingers.net</p>
+            <p class="text-danger text-center">Something is seriously wrong here! Contact FluxFingers fluxfingers@rub.de</p>
         % endif
         </div>
     % else:
@@ -59,5 +58,5 @@ from fluxscoreboard.util import now
     <div class="clearfix"></div>
 </div>
 
-${announcements.render_announcements(challenge.announcements, False)}
+${announcements.render_announcements(challenge.announcements, False, challenge.title)}
 

@@ -21,7 +21,7 @@ def upgrade():
                                          nullable=True))
     op.add_column('team', sa.Column('ref_token', sa.Unicode(length=15),
                                     nullable=False))
-    op.create_table('team_flag',
+    op.create_table('teamflag',
     sa.Column('team_id', sa.Integer(), nullable=True),
     sa.Column('flag', sa.Unicode(length=2), nullable=False),
     sa.ForeignKeyConstraint(['team_id'], [u'team.id'],),

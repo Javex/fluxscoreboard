@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from datetime import datetime
 from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
     SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
     ResetPasswordForm)
-from fluxscoreboard.models import DBSession, settings
+from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import (Challenge, Submission,
-    check_submission, Category)
+    check_submission)
 from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
-    password_reminder, check_password_reset_token, get_score_subquery,
-    get_leading_team)
+    password_reminder, check_password_reset_token, get_leading_team)
 from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
     display_design)
 from pyramid.decorator import reify
@@ -24,7 +22,6 @@ from sqlalchemy.orm import subqueryload
 from sqlalchemy.sql.expression import desc
 import functools
 import logging
-import math
 
 # TODO: Reduce requests per second on CSS and JS
 
@@ -114,7 +111,7 @@ class BaseView(object):
 
     @reify
     def seconds_until_end(self):
-        end = settings.get().ctf_end_date
+        end = self.request.settings.ctf_end_date
         return int((end - now()).total_seconds())
 
 
@@ -207,7 +204,7 @@ class FrontView(BaseView):
             is_solved, msg = check_submission(challenge,
                                            form.solution.data,
                                            team_id,
-                                           settings.get(),
+                                           self.request.settings,
                                            )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
@@ -225,11 +222,10 @@ class FrontView(BaseView):
         points right in the SQL.
         """
         dbsession = DBSession()
-        score = get_score_subquery()
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
-        teams = (dbsession.query(Team, score).
-                      order_by(desc(score)))
+        teams = (dbsession.query(Team, Team.score).
+                      order_by(desc("score")))
         return {'teams': teams}
 
     @logged_in_view(route_name='news', renderer='announcements.mako')
@@ -238,7 +234,6 @@ class FrontView(BaseView):
         Just a list of all announcements that are currently published, ordered
         by publication date, the most recent first.
         """
-        return HTTPFound(location=self.request.route_url('scoreboard'))
         return {'announcements': self.announcements}
 
     @logged_in_view(route_name='submit', renderer='submit.mako')
@@ -259,7 +254,7 @@ class FrontView(BaseView):
             is_solved, msg = check_submission(form.challenge.data,
                                               form.solution.data,
                                               team_id,
-                                              settings.get(),
+                                              self.request.settings,
                                               )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
@@ -325,8 +320,8 @@ class UserView(BaseView):
                           }
                          )
                 return retparams
-            ctf_start = settings.get().ctf_start_date
-            ctf_started = settings.get().ctf_started
+            ctf_start = self.request.settings.ctf_start_date
+            ctf_started = self.request.settings.ctf_started
             if not ctf_started:
                 self.request.session.flash("Your login was successful, but "
                                            "the CTF has not started yet. "

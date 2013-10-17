@@ -7,6 +7,7 @@ import pytz
 <!DOCTYPE html>
 <html lang="en">
     <head>
+        <link rel="shortcut icon" href="${request.static_url('fluxscoreboard:static/images/favicon.ico')}" />
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/jquery.min.js')}"></script>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/bootstrap.min.js')}"></script>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/sorttable.js')}"></script>
@@ -67,8 +68,8 @@ import pytz
                         players
                         <div class="bar-val">${view.team.size if view.team and view.team.size else '-'}</div>
                         <hr>
-                        teams
-                        <div class="bar-val">${view.team_count}</div>
+                        score
+                        <div class="bar-val">${view.team.score if view.team else '-'}</div>
                     </div>
                     <nav>
                         <ul class="menu">
@@ -91,6 +92,9 @@ import pytz
                         % for news in view.announcements:
                             <p>
                                 <span>[${tz_str(news.timestamp, view.team.timezone if view.team else pytz.utc)}]</span>
+                                % if news.challenge_id:
+                                    <em>[${news.challenge.title}]</em>
+                                % endif
                                 ${news.message}
                             </p>
                         % endfor
@@ -108,6 +112,7 @@ import pytz
                 ${self.body()}
             </div>
         </div>
+    </body>
     % else:
     <body class="container">
         <div id="menu" class="navbar ${'navbar-admin' if request.path.startswith('/admin') else ''}">
