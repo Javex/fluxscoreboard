@@ -183,7 +183,7 @@ def points_query():
     subquery = (DBSession().query(func.count('*')).
                 filter(TeamFlag.team_id == Team.id).
                 correlate(Team))
-    return subquery.as_scalar()
+    return func.coalesce(subquery.as_scalar(), 0)
 
 
 def points(team):
