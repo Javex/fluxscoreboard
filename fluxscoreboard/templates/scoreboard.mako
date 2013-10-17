@@ -28,7 +28,4 @@
         </tr>
     % endfor
     </tbody>
-<%
-print "Here..."
-%>
 </table>
