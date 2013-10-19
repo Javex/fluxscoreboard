@@ -182,10 +182,12 @@ class Challenge(Base):
         default of ``False`` this is just a normal challenge, otherwise, the
         attribute ``module`` must be set.
 
-        ``module``: If this challenge is dynamic, it must provide a valid
+        ``module_name``: If this challenge is dynamic, it must provide a valid
         dotted python name for a module that provides the interface for
         validation and display. The dotted python name given here will be
         prefixed with ``fluxscoreboard.dynamic_challenges.``
+
+        ``module``: Loads the module from the module name and returns it.
     """
     id = Column(Integer, primary_key=True)
     title = Column(Unicode(255), nullable=False)

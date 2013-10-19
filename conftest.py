@@ -24,6 +24,8 @@ import os
 import pytest
 import transaction
 from pyramid.tests.test_security import DummyAuthenticationPolicy
+from pyramid.config import Configurator
+from fluxscoreboard.views.front import BaseView
 ROOT_PATH = os.path.dirname(__file__)
 CONF = os.path.join(ROOT_PATH, 'pytest.ini')
 setup_logging(CONF + '#loggers')
@@ -46,7 +48,7 @@ def database(request, testapp):
         conn = dbsession.connection()
         Base.metadata.drop_all(bind=conn)
         # TODO: Why do we have to use this literally?
-        # If fixed test agains MySQL *and* Postgres!
+        # If fixed test against MySQL *and* Postgres!
         conn.execute("COMMIT")
     request.addfinalizer(_drop)
 
@@ -60,6 +62,14 @@ def dbsession(request, database):
         t.abort()
     request.addfinalizer(_rollback)
     return sess
+
+
+@pytest.fixture
+def dbsettings(pyramid_request, dbsession, config):
+    settings = Settings()
+    dbsession.add(settings)
+    pyramid_request.settings = settings
+    return settings
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -204,8 +214,8 @@ def make_teamflag():
 
 
 @pytest.fixture
-def view():
-    return DummyView()
+def view(pyramid_request):
+    return BaseView(pyramid_request)
 
 
 def _registerAuthenticationPolicy(reg):

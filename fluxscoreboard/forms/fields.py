@@ -101,8 +101,7 @@ class IntegerOrEvaluatedField(IntegerField):
 class IntegerOrNoneField(IntegerField):
 
     def process_formdata(self, valuelist):
-        [value] = valuelist
-        if value:
+        if valuelist and valuelist[0]:
             return IntegerField.process_formdata(self, valuelist)
         else:
             self.data = None

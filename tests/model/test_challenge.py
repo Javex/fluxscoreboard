@@ -2,14 +2,21 @@
 from __future__ import unicode_literals, print_function, absolute_import
 from datetime import datetime
 from fluxscoreboard.models import dynamic_challenges
-from fluxscoreboard.models.challenge import (get_all_challenges,
-    get_online_challenges, Submission, get_unsolved_challenges,
-    get_solvable_challenges, get_submissions, Category, get_all_categories,
-    check_submission, manual_challenge_points, Challenge)
+from fluxscoreboard.models.challenge import get_all_challenges, \
+    get_online_challenges, Submission, get_unsolved_challenges, \
+    get_solvable_challenges, get_submissions, Category, get_all_categories, \
+    check_submission, manual_challenge_points, Challenge
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.settings import Settings
-from sqlalchemy.exc import OperationalError, IntegrityError, DatabaseError
+from fluxscoreboard.util import now
+from datetime import timedelta
+from sqlalchemy.exc import IntegrityError, DatabaseError
 import pytest
+
+
+@pytest.fixture
+def ctf_end_date(dbsettings):
+    dbsettings.ctf_end_date = now() + timedelta(1)
 
 
 def test_get_all_challenges(all_challenges, dbsession):
@@ -66,19 +73,21 @@ def test_get_all_categories(dbsession):
     assert q[0] == cat
 
 
-def test_check_submission(dbsession, make_team, make_challenge):
+def test_check_submission(dbsession, make_team, make_challenge, dbsettings,
+                          ctf_end_date):
     c = make_challenge(online=True, solution="Test")
     t = make_team()
     dbsession.add_all([c, t])
     dbsession.flush()
-    result, msg = check_submission(c, "Test", t.id, Settings())
+    result, msg = check_submission(c, "Test", t.id, dbsettings)
     assert result is True
     assert msg == 'Congratulations: You solved this challenge as first!'
     assert len(c.submissions) == 1
     assert len(t.submissions) == 1
 
 
-def test_check_submission_places(dbsession, make_team, make_challenge):
+def test_check_submission_places(dbsession, make_team, make_challenge,
+                                 dbsettings, ctf_end_date):
     c = make_challenge(online=True, solution="Test")
     teams = [make_team() for _ in range(4)]
     dbsession.add_all(teams + [c])
@@ -88,7 +97,7 @@ def test_check_submission_places(dbsession, make_team, make_challenge):
             'Congratulations: You solved this challenge as third!',
             'Congratulations: That was the correct solution!']
     for i in range(4):
-        result, msg = check_submission(c, "Test", teams[i].id, Settings())
+        result, msg = check_submission(c, "Test", teams[i].id, dbsettings)
         assert result is True
         assert msg == msgs[i]
         assert len(c.submissions) == i + 1
@@ -102,40 +111,42 @@ def test_check_submission_disabled():
     assert msg == "Submission is currently disabled"
 
 
-def test_check_submission_offline(make_challenge):
-    result, msg = check_submission(make_challenge(), None, None, Settings())
+def test_check_submission_offline(make_challenge, dbsettings, ctf_end_date):
+    result, msg = check_submission(make_challenge(), None, None, dbsettings)
     assert result is False
     assert msg == "Challenge is offline."
 
 
-def test_check_submission_incorrect_solution(make_challenge):
+def test_check_submission_incorrect_solution(make_challenge, dbsettings,
+                                             ctf_end_date):
     c = make_challenge(solution="Test", online=True)
-    result, msg = check_submission(c, "Test ", None, Settings())
+    result, msg = check_submission(c, "Test ", None, dbsettings)
     assert result is False
     assert msg == "Solution incorrect."
 
 
-def test_check_submission_manual(make_challenge):
+def test_check_submission_manual(make_challenge, dbsettings, ctf_end_date):
     c = make_challenge(solution="Test", manual=True, online=True)
-    result, msg = check_submission(c, "Test", None, Settings())
+    result, msg = check_submission(c, "Test", None, dbsettings)
     assert result is False
     assert msg == "Credits for this challenge will be given manually."
 
 
-def test_check_submission_dynamic(make_challenge):
+def test_check_submission_dynamic(make_challenge, dbsettings, ctf_end_date):
     c = make_challenge(solution="Test", dynamic=True, online=True)
-    result, msg = check_submission(c, "Test", None, Settings())
+    result, msg = check_submission(c, "Test", None, dbsettings)
     assert result is False
     assert msg == "The challenge is dynamic, no submission possible."
 
 
-def test_check_submission_already_solved(make_team, make_challenge, dbsession):
+def test_check_submission_already_solved(make_team, make_challenge, dbsession,
+                                         dbsettings, ctf_end_date):
     c = make_challenge(solution="Test", online=True)
     t = make_team()
     s = Submission(team=t, challenge=c)
     dbsession.add(s)
     dbsession.flush()
-    result, msg = check_submission(c, "Test", t.id, Settings())
+    result, msg = check_submission(c, "Test", t.id, dbsettings)
     assert result is False
     assert msg == "Already solved."
 

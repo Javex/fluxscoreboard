@@ -5,7 +5,7 @@ from fluxscoreboard.models.settings import get, Settings
 from pytz import utc
 
 
-def test_get(dbsession):
+def test_get(dbsettings):
     assert isinstance(get(), Settings)
 
 

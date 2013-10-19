@@ -1,8 +1,10 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
-import re
+from conftest import dbsettings
 from mako.template import Template
 from tests.template import TemplateTestBase
+import pytest
+import re
 
 
 class TestBaseBody(TemplateTestBase):
