@@ -14,12 +14,13 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func, desc, exists
+from sqlalchemy.sql.expression import func, desc, exists, select
 from sqlalchemy.types import Integer, Unicode, Boolean
 import logging
 import os
 import random
 import string
+from sqlalchemy.orm.util import aliased
 
 
 log = logging.getLogger(__name__)
@@ -58,9 +59,15 @@ def get_active_teams():
 
 
 def get_leading_team():
+    """
+    Get the leading team with the highest rank.
+    """
     actives = get_active_teams()
     score = desc(Team.score)
-    return actives.order_by(score)[0]
+    try:
+        return actives.order_by(score)[0]
+    except IndexError:
+        return None
 
 
 def get_team_solved_subquery(team_id):
@@ -111,27 +118,6 @@ def get_number_solved_subquery():
             filter(Challenge.id == Submission.challenge_id).
             correlate(Challenge).
             as_scalar())
-
-
-def _get_score_subquery():
-    from ..models import dynamic_challenges
-    dbsession = DBSession()
-    # Calculate sum of all points, defalt to 0
-    challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
-    # Calculate sum of all bonus points, default to 0
-    bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
-    points_col = challenge_sum + bonus_sum
-    for module in dynamic_challenges.registry.values():
-        points_col += module.points_query()
-    # Create a subquery for the sum of the above points. The filters
-    # basically join the columns and the correlation is needed to reference
-    # the **outer** Team query.
-    team_score_subquery = (dbsession.query(points_col).
-                           filter(Challenge.id == Submission.challenge_id).
-                           filter(Team.id == Submission.team_id).
-                           filter(~Challenge.dynamic).
-                           correlate(Team))
-    return team_score_subquery.as_scalar()
 
 
 def get_team(request):
@@ -456,8 +442,8 @@ class Team(Base):
     @hybrid_property
     def score(self):
         from fluxscoreboard.models import dynamic_challenges
-        challenge_sum = sum(s.challenge.points for s in self.submissions)
-        bonus_sum = sum(s.bonus for s in self.submissions)
+        challenge_sum = sum(s.challenge.points or 0 for s in self.submissions)
+        bonus_sum = sum(s.bonus or 0 for s in self.submissions)
         dynamic_points = 0
         for module in dynamic_challenges.registry.values():
             dynamic_points += module.points(self)
@@ -484,8 +470,18 @@ class Team(Base):
                                correlate(Team))
         return team_score_subquery.label('score')
 
-    @property
+    @hybrid_property
     def rank(self):
         rank = (DBSession().query(Team).filter(Team.score > self.score).
                 order_by(desc(Team.score)).count()) + 1
         return rank
+
+    @rank.expression
+    def rank(self):
+        inner_team = aliased(Team)
+        return (DBSession().query(func.count('*') + 1).
+                select_from(inner_team).
+                filter(inner_team.score > Team.score).
+                order_by(desc(inner_team.score)).
+                correlate(Team).
+                label('rank'))

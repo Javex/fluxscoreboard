@@ -4,7 +4,8 @@ from fluxscoreboard.models.challenge import Submission, Challenge
 from fluxscoreboard.models.team import (get_team_solved_subquery, get_team,
     groupfinder, get_all_teams, get_active_teams, get_number_solved_subquery,
     register_team, confirm_registration, login, password_reminder,
-    check_password_reset_token, get_team_by_ref, ref_token, Team)
+    check_password_reset_token, get_team_by_ref, ref_token, Team,
+    get_leading_team)
 from fluxscoreboard.util import random_token
 from pyramid_mailer import get_mailer
 from pytz import timezone, utc
@@ -40,6 +41,21 @@ def test_get_active_teams(make_team, dbsession):
     q = get_active_teams()
     assert q.count() == 1
     assert q.first() == t1
+
+
+def test_get_leading_team(make_team, make_challenge, dbsession):
+    t1 = make_team(active=True)
+    t2 = make_team(active=True)
+    c1 = make_challenge(points=200)
+    c2 = make_challenge(points=100)
+    dbsession.add_all([t1, t2, c1, c2])
+    Submission(challenge=c1, team=t1, bonus=1)
+    Submission(challenge=c1, team=t2)
+    assert get_leading_team() is t1
+
+
+def test_get_leading_team_none():
+    assert get_leading_team() is None
 
 
 def test_get_team_solved_subquery(make_team, dbsession, make_challenge):
@@ -309,3 +325,74 @@ class TestTeam(object):
         f = make_teamflag(team=t)
         dbsession.add(f)
         assert t.team_flags == [f]
+
+    def test_score_no_chall(self, make_team, dbsession):
+        t = make_team()
+        dbsession.add(t)
+        assert t.score == 0
+
+        t_ref, score = dbsession.query(Team, Team.score).first()
+        assert t_ref is t
+        assert score == 0
+
+    def test_score(self, make_team, dbsession, make_challenge):
+        t = make_team()
+        c = make_challenge(points=100)
+        dbsession.add_all([t, c])
+        Submission(challenge=c, team=t)
+        assert t.score == 100
+
+        t_ref, score = dbsession.query(Team, Team.score).first()
+        assert t_ref is t
+        assert score == 100
+
+    def test_score_bonus(self, make_team, make_challenge, dbsession):
+        t = make_team()
+        c = make_challenge()
+        dbsession.add_all([t, c])
+        Submission(challenge=c, team=t, bonus=3)
+        assert t.score == 3
+
+        t_ref, score = dbsession.query(Team, Team.score).first()
+        assert t_ref is t
+        assert score == 3
+
+    def test_score_flags(self, make_team, make_challenge, make_teamflag,
+                         dbsession):
+        t = make_team()
+        c = make_challenge(dynamic=True, module_name='flags')
+        dbsession.add_all([t, c])
+        make_teamflag(team=t)
+        assert t.score == 1
+
+        t_ref, score = dbsession.query(Team, Team.score).first()
+        assert t_ref is t
+        assert score == 1
+
+        for _ in range(10):
+            make_teamflag(team=t)
+        assert t.score == 11
+
+        t_ref, score = dbsession.query(Team, Team.score).first()
+        assert t_ref is t
+        assert score == 11
+
+    def test_rank(self, make_team, make_challenge, dbsession):
+        t1 = make_team()
+        t2 = make_team()
+        c1 = make_challenge(points=100)
+        dbsession.add_all([t1, t2, c1])
+        Submission(challenge=c1, team=t1)
+        Submission(challenge=c1, team=t2, bonus=3)
+        assert t1.rank == 2
+        assert t2.rank == 1
+
+        team_list = dbsession.query(Team.name, Team.rank).order_by(Team.id).all()
+        assert len(team_list) == 2
+        t1_ref, t1_rank = team_list[0]
+        t2_ref, t2_rank = team_list[1]
+        assert t1_ref == "Team0"
+        assert t2_ref == "Team1"
+        assert t1_rank == 2
+        assert t2_rank == 1
+

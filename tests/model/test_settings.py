@@ -1,12 +1,22 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
 from datetime import datetime, timedelta
-from fluxscoreboard.models.settings import get, Settings
+from fluxscoreboard.models.settings import get, Settings, load_settings
 from pytz import utc
 
 
 def test_get(dbsettings):
     assert isinstance(get(), Settings)
+
+
+def test_load_settings(dbsettings, dbsession):
+    class A(object):
+        pass
+    event = A()
+    event.request = A()
+    print(dbsession.query(Settings).all())
+    load_settings(event)
+    assert event.request.settings is dbsettings
 
 
 class TestSettings(object):

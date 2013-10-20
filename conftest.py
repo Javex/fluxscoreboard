@@ -26,6 +26,7 @@ import transaction
 from pyramid.tests.test_security import DummyAuthenticationPolicy
 from pyramid.config import Configurator
 from fluxscoreboard.views.front import BaseView
+from sqlalchemy.orm.session import make_transient
 ROOT_PATH = os.path.dirname(__file__)
 CONF = os.path.join(ROOT_PATH, 'pytest.ini')
 setup_logging(CONF + '#loggers')
@@ -65,10 +66,20 @@ def dbsession(request, database):
 
 
 @pytest.fixture
-def dbsettings(pyramid_request, dbsession, config):
+def dbsettings(request, pyramid_request, dbsession, config):
+    old_settings = dbsession.query(Settings).one()
+    dbsession.delete(old_settings)
     settings = Settings()
     dbsession.add(settings)
+    dbsession.flush()
     pyramid_request.settings = settings
+
+    def _restore():
+        dbsession.delete(settings)
+        make_transient(old_settings)
+        dbsession.add(old_settings)
+        dbsession.flush()
+    request.addfinalizer(_restore)
     return settings
 
 

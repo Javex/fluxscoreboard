@@ -151,6 +151,13 @@ def test_check_submission_already_solved(make_team, make_challenge, dbsession,
     assert msg == "Already solved."
 
 
+def test_check_submission_ctf_over(dbsettings):
+    dbsettings.ctf_end_date = now() - timedelta(1)
+    result, msg = check_submission(None, None, None, dbsettings)
+    assert result is False
+    assert msg == "The CTF is over, no more solutions can be submitted."
+
+
 class TestManualChallengePoints(object):
 
     def test_printable(self):
