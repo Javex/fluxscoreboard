@@ -57,6 +57,7 @@ def database(request, testapp):
 @pytest.fixture
 def dbsession(request, database):
     sess = DBSession()
+    log.debug("Using session %s" % sess)
     t = transaction.begin()
 
     def _rollback():

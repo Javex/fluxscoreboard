@@ -380,19 +380,24 @@ class TestTeam(object):
     def test_rank(self, make_team, make_challenge, dbsession):
         t1 = make_team()
         t2 = make_team()
+        t3 = make_team()
         c1 = make_challenge(points=100)
-        dbsession.add_all([t1, t2, c1])
+        dbsession.add_all([t1, t2, t3, c1])
         Submission(challenge=c1, team=t1)
         Submission(challenge=c1, team=t2, bonus=3)
+        Submission(challenge=c1, team=t3)
         assert t1.rank == 2
         assert t2.rank == 1
+        assert t3.rank == 2
 
-        team_list = dbsession.query(Team.name, Team.rank).order_by(Team.id).all()
-        assert len(team_list) == 2
+        team_list = dbsession.query(Team, Team.rank).order_by(Team.id).all()
+        assert len(team_list) == 3
         t1_ref, t1_rank = team_list[0]
         t2_ref, t2_rank = team_list[1]
-        assert t1_ref == "Team0"
-        assert t2_ref == "Team1"
+        t3_ref, t3_rank = team_list[2]
+        assert t1_ref is t1
+        assert t2_ref is t2
+        assert t3_ref is t3
         assert t1_rank == 2
         assert t2_rank == 1
-
+        assert t3_rank == 2

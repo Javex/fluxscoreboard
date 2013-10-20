@@ -450,7 +450,7 @@ class Team(Base):
         return challenge_sum + bonus_sum + dynamic_points
 
     @score.expression
-    def score(self):
+    def score(cls):  # @NoSelf
         from fluxscoreboard.models import dynamic_challenges
         dbsession = DBSession()
         # Calculate sum of all points, defalt to 0
@@ -465,13 +465,29 @@ class Team(Base):
         # the **outer** Team query.
         team_score_subquery = (dbsession.query(points_col).
                                filter(Challenge.id == Submission.challenge_id).
-                               filter(Team.id == Submission.team_id).
+                               filter(cls.id == Submission.team_id).
                                filter(~Challenge.dynamic).
-                               correlate(Team))
+                               correlate(cls))
         return team_score_subquery.label('score')
 
     @hybrid_property
     def rank(self):
+        """
+        Return the teams current rank. Can be used as a hybrid property:
+
+        .. code-block:: python
+
+            DBSession().query(Team).order_by(Team.rank)
+            # or
+            team = Team()
+            team.rank
+
+        In both cases the database will be queried so be careful how you use
+        it.
+
+        .. todo::
+            This returns different ranks than those in the scoreboard display.
+        """
         rank = (DBSession().query(Team).filter(Team.score > self.score).
                 order_by(desc(Team.score)).count()) + 1
         return rank

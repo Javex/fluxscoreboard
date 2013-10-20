@@ -24,6 +24,6 @@ def all_challenges(make_challenge):
 def nullable_exc(dbsession):
     dialect = dbsession.bind.dialect.name
     if dialect == "mysql":
-        return Warning
+        return Exception
     elif dialect == "postgresql":
         return IntegrityError
