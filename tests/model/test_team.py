@@ -406,3 +406,21 @@ class TestTeam(object):
         assert t2_rank == 1
         assert t3_rank == 2
         assert t4_rank == 4
+
+    def test_rank_dynamic(self, make_team, make_challenge, make_teamflag,
+                          dbsession):
+        t1 = make_team()
+        t2 = make_team()
+        c = make_challenge(dynamic=True, module_name='flags')
+        make_teamflag(team=t1)
+        dbsession.add_all([t1, t2, c])
+        assert t1.rank == 1
+        assert t2.rank == 2
+
+        team_list = dbsession.query(Team, Team.rank).order_by(Team.id).all()
+        t1_ref, t1_rank = team_list[0]
+        t2_ref, t2_rank = team_list[1]
+        assert t1_ref is t1
+        assert t2_ref is t2
+        assert t1_rank == 1
+        assert t2_rank == 2

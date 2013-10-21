@@ -177,11 +177,28 @@ def display(challenge, request):
     return render('dynamic_flags.mako', params, request)
 
 
-def points_query():
-    from fluxscoreboard.models.team import Team
+def points_query(cls=None):
+    """
+    Returns a scalar query element that can be used in a ``SELECT`` statement
+    to be added to the points query. The parameter ``cls`` can be anything
+    that SQLAlchemy can correlate on. If left empty, it defaults to the
+    standard :cls`fluxscoreboard.models.team.Team`, which is normally fine.
+    However, if multiple teams are involved (as with the ranking algorithm)
+    one might pass in an alias like this:
+
+    .. code-block:: python
+        inner_team = aliased(Team)
+        dynamic_points = flags.points_query(inner_team)
+
+    This will then correlate on a specific alias of ``Team`` instead of the
+    default class.
+    """
+    if cls is None:
+        from fluxscoreboard.models.team import Team
+        cls = Team
     subquery = (DBSession().query(func.count('*')).
-                filter(TeamFlag.team_id == Team.id).
-                correlate(Team))
+                filter(TeamFlag.team_id == cls.id).
+                correlate(cls))
     return func.coalesce(subquery.as_scalar(), 0)
 
 
