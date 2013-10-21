@@ -423,6 +423,18 @@ class AdminView(object):
             status_messages={False: 'Challenge now offline',
                              True: 'Challenge now online'})
 
+    @view_config(route_name='admin_challenges_toggle_published',
+                 request_method='POST')
+    def chalenge_toggle_published(self):
+        """
+        Switch a challenge between published and unpublished.
+        """
+        return self._admin_toggle_status(
+            'admin_challenges', Challenge, "Challenge",
+            status_variable_name='published',
+            status_messages={False: 'Challenge unpublished',
+                             True: 'Challenge published'})
+
     @view_config(route_name='admin_categories',
                  renderer='admin_categories.mako')
     @view_config(route_name='admin_categories_edit',

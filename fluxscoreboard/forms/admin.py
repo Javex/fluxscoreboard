@@ -134,6 +134,11 @@ class ChallengeForm(CSRFForm):
         validators=[only_if_dynamic, dynamic_check_multiple_allowed]
     )
 
+    published = BooleanField(
+        "Published",
+        description=("An unpublished challenge will not be displayed in the "
+                     "frontend."))
+
     id = HiddenField()
 
     submit = SubmitField("Save")

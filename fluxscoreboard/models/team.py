@@ -422,6 +422,7 @@ class Team(Base):
         count_query = (dbsession.query(func.count(Challenge.id)).
                        filter(Challenge.category_id == Category.id).
                        filter(~Challenge.dynamic).
+                       filter(Challenge.published).
                        correlate(Category))
         submission = (dbsession.query(Submission).
                       filter(Submission.team_id == self.id).
@@ -442,8 +443,10 @@ class Team(Base):
     @hybrid_property
     def score(self):
         from fluxscoreboard.models import dynamic_challenges
-        challenge_sum = sum(s.challenge.points or 0 for s in self.submissions)
-        bonus_sum = sum(s.bonus or 0 for s in self.submissions)
+        challenge_sum = sum(s.challenge.points or 0 for s in self.submissions
+                            if s.challenge.published)
+        bonus_sum = sum(s.bonus or 0 for s in self.submissions
+                        if s.challenge.published)
         dynamic_points = 0
         for module in dynamic_challenges.registry.values():
             dynamic_points += module.points(self)
@@ -467,6 +470,7 @@ class Team(Base):
                                filter(Challenge.id == Submission.challenge_id).
                                filter(cls.id == Submission.team_id).
                                filter(~Challenge.dynamic).
+                               filter(Challenge.published).
                                correlate(cls))
         return team_score_subquery.label('score')
 

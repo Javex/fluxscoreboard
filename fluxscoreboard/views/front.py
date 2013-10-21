@@ -190,8 +190,9 @@ class FrontView(BaseView):
         challenges = (dbsession.query(Challenge,
                                            team_solved_subquery.exists(),
                                            number_of_solved_subquery).
-                           outerjoin(Submission).
-                           group_by(Challenge.id))
+                      filter(Challenge.published).
+                      outerjoin(Submission).
+                      group_by(Challenge.id))
         return {'challenges': challenges}
 
     @logged_in_view(route_name='challenge', renderer='challenge.mako')
@@ -210,6 +211,7 @@ class FrontView(BaseView):
         challenge, is_solved = (dbsession.query(Challenge,
                                                 team_solved_subquery.exists()).
                                  filter(Challenge.id == challenge_id).
+                                 filter(Challenge.published).
                                  options(subqueryload('announcements')).one())
         form = SolutionSubmitForm(self.request.POST, csrf_context=self.request)
         retparams = {'challenge': challenge,
@@ -247,7 +249,7 @@ class FrontView(BaseView):
                  options(subqueryload('submissions'),
                          joinedload('submissions.challenge')).
                  order_by(desc("score")))
-        challenges = (dbsession.query(Challenge))
+        challenges = (dbsession.query(Challenge).filter(Challenge.published))
         return {'teams': teams,
                 'challenges': challenges}
 
