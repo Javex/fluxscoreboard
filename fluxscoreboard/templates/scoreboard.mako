@@ -7,6 +7,9 @@
             <th>Team</th>
             <th>Location</th>
             <th>Local</th>
+            % for challenge in challenges:
+                <th title="challenge.title">${challenge.id}</th>
+            % endfor
             <th>Total</th>
         </tr>
     </thead>
@@ -24,6 +27,15 @@
             <td class="text-${'success' if team.local else 'danger'}">
                 ${'Yes' if team.local else 'No'}
             </td>
+            % for challenge in challenges:
+                <td>
+                    % if challenge in [s.challenge for s in team.submissions]:
+                        ${challenge.points + [s for s in team.submissions if s.challenge == challenge][0].bonus}
+                    % else:
+                        -
+                    % endif
+                </td>
+            % endfor
             <td>${points}</td>
         </tr>
     % endfor

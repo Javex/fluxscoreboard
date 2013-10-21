@@ -18,7 +18,7 @@ from pyramid.security import remember, authenticated_userid, forget
 from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
 from pytz import utc
-from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.sql.expression import desc
 import functools
 import logging
@@ -242,8 +242,12 @@ class FrontView(BaseView):
         # use this as a single value (i.e. take the first coulmn)
         teams = (dbsession.query(Team, Team.score, Team.rank).
                  filter(Team.active).
+                 options(subqueryload('submissions'),
+                         joinedload('submissions.challenge')).
                  order_by(desc("score")))
-        return {'teams': teams}
+        challenges = (dbsession.query(Challenge))
+        return {'teams': teams,
+                'challenges': challenges}
 
     @logged_in_view(route_name='news', renderer='announcements.mako')
     def news(self):
