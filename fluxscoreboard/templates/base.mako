@@ -95,7 +95,7 @@ import pytz
                                 % if news.challenge_id:
                                     <em>[${news.challenge.title}]</em>
                                 % endif
-                                ${news.message}
+                                ${news.message | n}
                             </p>
                         % endfor
                         </div>
