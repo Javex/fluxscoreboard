@@ -4,18 +4,13 @@ from fluxscoreboard.forms.front import LoginForm
 from fluxscoreboard.views.front import UserView
 from pyramid.security import authenticated_userid
 import pytest
+from tests.view import BaseViewTest
 
 
 @pytest.mark.usefixtures("config")
-class TestUserView(object):
+class TestUserView(BaseViewTest):
 
-    @pytest.fixture(autouse=True)
-    def _prepare(self, make_team, dbsession, pyramid_request, login_team):
-        self.login = login_team
-        self.make_team = make_team
-        self.dbsession = dbsession
-        self.request = pyramid_request
-        self.view = UserView(self.request)
+    view_class = UserView
 
     def _create_team(self):
         t = self.make_team()
