@@ -250,6 +250,10 @@ class Challenge(Base):
         if the challenge is manual, the :data:`manual_challenge_points`
         object to indicate that the points are manually assigned.
         """
+        if self.dynamic:
+            raise ValueError("This is a dynamic challenge, its points are "
+                             "fetched by calling "
+                             "challenge.module.points(team).")
         if self.manual:
             return manual_challenge_points
         else:

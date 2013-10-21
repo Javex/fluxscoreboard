@@ -8,7 +8,7 @@
             <th>Location</th>
             <th>Local</th>
             % for challenge in challenges:
-                <th title="challenge.title">${challenge.id}</th>
+                <th title="challenge.title">${challenge.title}</th>
             % endfor
             <th>Total</th>
         </tr>
@@ -31,6 +31,8 @@
                 <td>
                     % if challenge in [s.challenge for s in team.submissions]:
                         ${challenge.points + [s for s in team.submissions if s.challenge == challenge][0].bonus}
+                    % elif challenge.dynamic:
+                        ${challenge.module.points(team)}
                     % else:
                         -
                     % endif
