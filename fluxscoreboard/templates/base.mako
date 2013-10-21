@@ -41,6 +41,7 @@ import pytz
                 <div id="stats-wrapper">
                     ${orb("Web")}
                     ${orb("Binary")}
+                    ${orb("Internals")}
                     <div id="stats-middle">
                         <div id="lgraph">
                             ctf timer progress<br>
@@ -56,6 +57,7 @@ import pytz
                         </div>
                     </div>
                     ${orb("Crypto")}
+                    ${orb("Exploiting")}
                     ${orb("Misc")}
                 </div>
             </div>
