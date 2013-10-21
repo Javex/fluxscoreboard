@@ -11,9 +11,9 @@
         </tr>
     </thead>
     <tbody>
-    % for index, (team, points) in enumerate(teams, 1):
+    % for team, points, rank in teams:
         <tr class="${'success bold' if request.team and team.id == request.team.id else ''}">
-            <td>${index}</td>
+            <td>${rank}</td>
             <td>
             % if team.avatar_filename:
                 <img src="${request.static_url('fluxscoreboard:static/images/avatars/%s' % team.avatar_filename)}" class="avatar" title="${team.name}"/>

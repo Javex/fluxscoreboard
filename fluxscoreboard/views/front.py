@@ -224,7 +224,7 @@ class FrontView(BaseView):
         dbsession = DBSession()
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
-        teams = (dbsession.query(Team, Team.score).
+        teams = (dbsession.query(Team, Team.score, Team.rank).
                       order_by(desc("score")))
         return {'teams': teams}
 

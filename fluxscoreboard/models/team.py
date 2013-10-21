@@ -483,10 +483,9 @@ class Team(Base):
             team.rank
 
         In both cases the database will be queried so be careful how you use
-        it.
-
-        .. todo::
-            This returns different ranks than those in the scoreboard display.
+        it. For equal points the same rank is returned. In general we use a
+        `"1224" ranking <http://en.wikipedia.org/wiki/Ranking#Standard_competition_ranking_.28.221224.22_ranking.29>`_
+        here.
         """
         rank = (DBSession().query(Team).filter(Team.score > self.score).
                 order_by(desc(Team.score)).count()) + 1
