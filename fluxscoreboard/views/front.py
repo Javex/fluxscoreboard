@@ -127,6 +127,8 @@ class BaseView(object):
         progress = already_passed / total_time
         if progress >= 1:
             return 1
+        elif progress < 0:
+            return 0
         else:
             return progress
 
