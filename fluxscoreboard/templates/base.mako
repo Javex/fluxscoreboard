@@ -40,7 +40,7 @@ import pytz
             <div id="stats">
                 <div id="stats-wrapper">
                     ${orb("Web")}
-                    ${orb("Binary")}
+                    ${orb("Reversing")}
                     ${orb("Internals")}
                     <div id="stats-middle">
                         <div id="lgraph">
