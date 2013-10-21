@@ -43,8 +43,8 @@ import pytz
                     ${orb("Binary")}
                     <div id="stats-middle">
                         <div id="lgraph">
-                            another stat<br>
-                            <img src="${request.static_url('fluxscoreboard:static/images/lgraph_0.png')}">
+                            ctf timer progress<br>
+                            <img src="${request.static_url('fluxscoreboard:static/images/lgraph_%s.png' % (int(view.ctf_progress * 10) * 10))}">
                         </div>
                         <div id="timer">
                             <div>seconds until end</div>

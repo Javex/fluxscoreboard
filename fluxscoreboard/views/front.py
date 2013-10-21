@@ -112,7 +112,23 @@ class BaseView(object):
     @reify
     def seconds_until_end(self):
         end = self.request.settings.ctf_end_date
-        return int((end - now()).total_seconds())
+        countdown = int((end - now()).total_seconds())
+        if countdown <= 0:
+            return 0
+        else:
+            return countdown
+
+    @reify
+    def ctf_progress(self):
+        end = self.request.settings.ctf_end_date
+        start = self.request.settings.ctf_start_date
+        total_time = (end - start).total_seconds()
+        already_passed = (now() - start).total_seconds()
+        progress = already_passed / total_time
+        if progress >= 1:
+            return 1
+        else:
+            return progress
 
 
 class SpecialView(BaseView):
