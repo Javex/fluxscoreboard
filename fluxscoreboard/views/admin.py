@@ -555,13 +555,12 @@ class AdminView(object):
         form = IPSearchForm(self.request.POST, csrf_context=self.request)
         retparams = {'form': form}
         redirect = self.redirect('admin_ip_search')
+        query = DBSession().query(Team).join(TeamIP)
         if self.request.method == 'POST':
             if not form.validate():
                 return redirect
-            query = (DBSession().query(Team).
-                     join(TeamIP).
-                     filter(TeamIP.ip == form.term.data).all())
-            retparams["results"] = query
+            query = query.filter(TeamIP.ip == form.term.data)
+        retparams["results"] = query.all()
         return retparams
 
     @view_config(route_name='admin_submissions',
