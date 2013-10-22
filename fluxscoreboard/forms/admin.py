@@ -231,6 +231,15 @@ class TeamForm(CSRFForm):
     cancel = SubmitField("Cancel")
 
 
+class IPSearchForm(CSRFForm):
+    """
+    Form to search for an IP address and find the resulting team(s).
+    """
+    term = TextField("IP Address")
+
+    submit = SubmitField("Search")
+
+
 class SubmissionForm(CSRFForm):
     """
     Form to add or edit a submission of a team.

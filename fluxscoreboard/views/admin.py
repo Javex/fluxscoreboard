@@ -2,18 +2,19 @@
 from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, TeamForm, \
     SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm, \
-    TeamCleanupForm, SettingsForm
+    TeamCleanupForm, SettingsForm, IPSearchForm
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission, \
     get_submissions, Category
 from fluxscoreboard.models.news import News, MassMail
 from fluxscoreboard.models.settings import get as get_settings
-from fluxscoreboard.models.team import Team, get_active_teams
+from fluxscoreboard.models.team import Team, get_active_teams, TeamIP
 from pyramid.httpexceptions import HTTPFound
 from pyramid.security import remember
 from pyramid.view import view_config
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
+from sqlalchemy.orm import subqueryload
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.sql.expression import not_
 from webhelpers.paginate import Page, PageURL_WebOb
@@ -34,6 +35,7 @@ class AdminView(object):
              ('admin_challenges', 'Challenges'),
              ('admin_categories', 'Categories'),
              ('admin_teams', 'Teams'),
+             ('admin_ip_search', 'Search IP'),
              ('admin_submissions', 'Submissions'),
              ('admin_massmail', 'Mass Mail'),
              ('admin_settings', 'Settings'),
@@ -537,6 +539,30 @@ class AdminView(object):
             dbsession.delete(team)
         self.request.session.flash("Deleted %d teams" % delete_count)
         return redirect
+
+    @view_config(route_name='admin_teams_ips', renderer='admin_team_ips.mako')
+    def team_ips(self):
+        """A list of IPs per team."""
+        team_id = self.request.matchdict.get("id")
+        team = (DBSession().query(Team).
+                filter(Team.id == team_id).
+                options(subqueryload('team_ips')).
+                one())
+        return {'team': team}
+
+    @view_config(route_name='admin_ip_search', renderer='admin_ips.mako')
+    def search_ips(self):
+        form = IPSearchForm(self.request.POST, csrf_context=self.request)
+        retparams = {'form': form}
+        redirect = self.redirect('admin_ip_search')
+        if self.request.method == 'POST':
+            if not form.validate():
+                return redirect
+            query = (DBSession().query(Team).
+                     join(TeamIP).
+                     filter(TeamIP.ip == form.term.data).all())
+            retparams["results"] = query
+        return retparams
 
     @view_config(route_name='admin_submissions',
                  renderer='admin_submissions.mako')

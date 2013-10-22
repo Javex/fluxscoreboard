@@ -1,7 +1,7 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
 from fluxscoreboard.config import ROOT_DIR
-from fluxscoreboard.models import Base, DBSession, settings
+from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.team import get_team_by_ref
 from fluxscoreboard.util import now

@@ -4,23 +4,25 @@ from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Submission, Challenge, Category
 from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token
 from pyramid.decorator import reify
+from pyramid.events import subscriber, NewRequest
 from pyramid.renderers import render
-from pyramid.security import unauthenticated_userid
+from pyramid.security import unauthenticated_userid, authenticated_userid
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from pytz import utc, timezone, all_timezones
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, subqueryload, joinedload
+from sqlalchemy.orm import relationship, subqueryload, joinedload, backref
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func, desc, exists, select
+from sqlalchemy.sql.expression import func, desc
 from sqlalchemy.types import Integer, Unicode, Boolean
 import logging
-import os
 import random
 import string
-from sqlalchemy.orm.util import aliased
+import transaction
 
 
 log = logging.getLogger(__name__)
@@ -350,6 +352,7 @@ class Team(Base):
 
     # TODO: Make it a set (and update TeamFlags docs)
     flags = association_proxy("team_flags", "flag")
+    ips = association_proxy("team_ips", "ip")
 
     country = relationship("Country", lazy='joined')
 
@@ -504,3 +507,30 @@ class Team(Base):
                 order_by(desc(inner_team.score)).
                 correlate(Team).
                 label('rank'))
+
+
+@subscriber(NewRequest)
+def register_ip(event):
+    if ("test-login" in event.request.session and
+            event.request.session["test-login"]):
+        return None
+    team_id = authenticated_userid(event.request)
+    t = transaction.savepoint()
+    if not team_id:
+        return
+    ip = unicode(event.request.client_addr)
+    try:
+        dbsession = DBSession()
+        dbsession.add(TeamIP(team_id=team_id, ip=ip))
+        dbsession.flush()
+    except IntegrityError:
+        t.rollback()
+
+
+class TeamIP(Base):
+    __tablename__ = 'team_ip'
+    team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
+    ip = Column(Unicode(15), primary_key=True)
+
+    team = relationship("Team", backref=backref("team_ips",
+                                                cascade="all, delete-orphan"))
