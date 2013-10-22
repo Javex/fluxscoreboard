@@ -512,7 +512,8 @@ class Team(Base):
 @subscriber(NewRequest)
 def register_ip(event):
     if ("test-login" in event.request.session and
-            event.request.session["test-login"]):
+            event.request.session["test-login"] or
+            event.request.path.startswith('/static')):
         return None
     team_id = authenticated_userid(event.request)
     t = transaction.savepoint()
