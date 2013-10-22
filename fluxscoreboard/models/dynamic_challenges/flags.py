@@ -78,11 +78,13 @@ class FlagView(BaseView):
                             "range.")
             return ret
         ret["location"] = loc
-        if loc not in team.flags:
+        try:
             team.flags.append(loc)
-            ret["msg"] = "Location successfully registered."
-        else:
+            DBSession().flush()
+        except Exception:
             ret["msg"] = "Location already registered."
+        else:
+            ret["msg"] = "Location successfully registered."
         return ret
 
 
