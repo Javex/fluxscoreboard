@@ -16,7 +16,7 @@ from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from sqlalchemy.orm import subqueryload
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from sqlalchemy.sql.expression import not_
+from sqlalchemy.sql.expression import not_, desc, asc
 from webhelpers.paginate import Page, PageURL_WebOb
 import logging
 
@@ -132,7 +132,8 @@ class AdminView(object):
         else:
             self.request.session.flash("%s deleted!" % title)
 
-    def _admin_list(self, route_name, FormClass, DatabaseClass, title):
+    def _admin_list(self, route_name, FormClass, DatabaseClass, title,
+                    change_query=None):
         """
         A generic function for all views that contain a list of things and also
         a form to edit or add entries.
@@ -157,6 +158,10 @@ class AdminView(object):
             ``title``: A string that expresses a singular item, for example
             ``"Challenge"``. Will be used for flash messages.
 
+            ``change_query``: A function that receives one parameter (a query),
+            modifies it and returns the new query. May for example be used to
+            modify the order or refine results. Optional.
+
         Returns:
             A dictionary or similar that can be directly returned to the
             application to be rendered as a view.
@@ -172,6 +177,8 @@ class AdminView(object):
         # Prepare some paramters
         dbsession = DBSession()
         items = self.items(DatabaseClass)
+        if change_query:
+            items = change_query(items)
         page = self.page(items)
         redirect = self.redirect(route_name, page.page)
         item_id = None
@@ -354,7 +361,9 @@ class AdminView(object):
         A view to list, add and edit announcements. Implemented with
         :meth:`_admin_list`.
         """
-        return self._admin_list('admin_news', NewsForm, News, "Announcement")
+        order = lambda q: q.order_by(desc(News.timestamp))
+        return self._admin_list('admin_news', NewsForm, News, "Announcement",
+                                change_query=order)
 
     @view_config(route_name='admin_news_edit', renderer='admin_news.mako',
                  request_method='POST')
