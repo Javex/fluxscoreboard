@@ -23,6 +23,8 @@ import logging
 import random
 import string
 import transaction
+from sqlalchemy import event
+from pyramid.threadlocal import get_current_request
 
 
 log = logging.getLogger(__name__)
@@ -507,6 +509,14 @@ class Team(Base):
                 order_by(desc(inner_team.score)).
                 correlate(Team).
                 label('rank'))
+
+
+@event.listens_for(Team._password, 'set')
+def log_password_change(target, value, oldvalue, initiator):
+    request = get_current_request()
+    log.warning("Password changed for team with ID %s and name %s from IP "
+                "address %s"
+                % (target.id, target.name, request.client_addr))
 
 
 @subscriber(NewRequest)
