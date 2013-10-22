@@ -104,7 +104,7 @@ class TeamFlag(Base):
         accordingly.
     """
     __tablename__ = 'team_flag'
-    team_id = Column(Integer, ForeignKey('team.id'), nullable=False)
+    team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
     flag = Column(Unicode(2), primary_key=True)
     team = relationship("Team",
                         backref=backref("team_flags",
