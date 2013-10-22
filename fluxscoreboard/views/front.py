@@ -22,6 +22,7 @@ from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.sql.expression import desc
 import functools
 import logging
+from PIL.ImageFilter import RankFilter
 
 # TODO: Reduce requests per second on CSS and JS
 
@@ -244,14 +245,22 @@ class FrontView(BaseView):
         dbsession = DBSession()
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
-        teams = (dbsession.query(Team, Team.score, Team.rank).
+        teams = (dbsession.query(Team, Team.score).
                  filter(Team.active).
                  options(subqueryload('submissions'),
                          joinedload('submissions.challenge')).
+                 options(subqueryload('team_flags')).
                  order_by(desc("score")))
+        team_list = []
+        last_score = None
+        for index, (team, score) in enumerate(teams, 1):
+            if last_score is None or score < last_score:
+                rank = index
+                last_score = score
+            team_list.append((team, score, rank))
         challenges = (dbsession.query(Challenge).filter(Challenge.published))
-        return {'teams': teams,
-                'challenges': challenges}
+        return {'teams': team_list,
+                'challenges': challenges.all()}
 
     @logged_in_view(route_name='news', renderer='announcements.mako')
     def news(self):
