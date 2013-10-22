@@ -543,9 +543,9 @@ class AdminView(object):
     @view_config(route_name='admin_teams_ips', renderer='admin_team_ips.mako')
     def team_ips(self):
         """A list of IPs per team."""
-        team_id = self.request.matchdict.get("id")
+        form = ButtonForm(self.request.POST, csrf_context=self.request)
         team = (DBSession().query(Team).
-                filter(Team.id == team_id).
+                filter(Team.id == form.id.data).
                 options(subqueryload('team_ips')).
                 one())
         return {'team': team}
