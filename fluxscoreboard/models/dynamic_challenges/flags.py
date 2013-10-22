@@ -22,6 +22,7 @@ import os.path
 import requests
 import shutil
 import socket
+import transaction
 import zipfile
 
 
@@ -84,10 +85,12 @@ class FlagView(BaseView):
             return ret
         ret["location"] = loc
         try:
+            t = transaction.savepoint()
             team.flags.append(loc)
             DBSession().flush()
         except Exception:
             ret["msg"] = "Location already registered."
+            t.rollback()
         else:
             ret["msg"] = "Location successfully registered."
         return ret
