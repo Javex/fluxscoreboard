@@ -23,6 +23,7 @@ from sqlalchemy.sql.expression import desc
 import functools
 import logging
 from PIL.ImageFilter import RankFilter
+from sqlalchemy.orm.exc import NoResultFound
 
 # TODO: Reduce requests per second on CSS and JS
 
@@ -209,11 +210,15 @@ class FrontView(BaseView):
         team_id = authenticated_userid(self.request)
         dbsession = DBSession()
         team_solved_subquery = get_team_solved_subquery(team_id)
-        challenge, is_solved = (dbsession.query(Challenge,
+        try:
+            challenge, is_solved = (dbsession.query(Challenge,
                                                 team_solved_subquery.exists()).
                                  filter(Challenge.id == challenge_id).
                                  filter(Challenge.published).
                                  options(subqueryload('announcements')).one())
+        except NoResultFound:
+            self.request.session.flash("Challenge not found or published.")
+            return HTTPFound(location=self.request.route_url('challenges'))
         form = SolutionSubmitForm(self.request.POST, csrf_context=self.request)
         retparams = {'challenge': challenge,
                      'form': form,
