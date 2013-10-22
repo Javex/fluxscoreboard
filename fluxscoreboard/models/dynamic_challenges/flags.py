@@ -66,7 +66,12 @@ class FlagView(BaseView):
                 ret["msg"] = "CTF is over."
             return ret
         ref_id = self.request.matchdict["ref_id"]
-        team = get_team_by_ref(ref_id)
+        try:
+            team = get_team_by_ref(ref_id)
+        except NoResultFound:
+            ret = {'success': False,
+                   'msg': "Team not found."}
+            return ret
         loc = get_location(self.request.client_addr)
         ret = {'success': True}
         if loc is None:
