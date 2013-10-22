@@ -222,10 +222,10 @@ nav a {
     color:#66d6ff;
     text-decoration:none;
 }
-.menu .scoreboard a, .menu .register a {
+.menu .scoreboard a {
     border-left:11px solid #00ff6c;
 }
-.menu .profile a {
+.menu .profile a, .menu .register a {
     border-left:11px solid #ff7f3f;
 }
 .menu .logout a, .menu .login a {

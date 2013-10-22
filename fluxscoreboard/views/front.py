@@ -46,15 +46,15 @@ class BaseView(object):
     logged in.
     """
 
-    _logged_in_menu = [  # ('news', "Announcements"),
-                      ('scoreboard', "Scoreboard"),
+    _logged_in_menu = [('scoreboard', "Scoreboard"),
                       ('challenges', "Challenges"),
                       ('submit', "Submit"),
                       ('profile', "Profile"),
                       ('logout', "Logout"),
                       ]
-    _logged_out_menu = [('login', "Login"),
-                       ('register', "Register"),
+    _logged_out_menu = [('scoreboard', "Scoreboard"),
+                        ('login', "Login"),
+                        ('register', "Register"),
                        ]
 
     def __init__(self, request):
@@ -233,7 +233,7 @@ class FrontView(BaseView):
                              )
         return retparams
 
-    @logged_in_view(route_name='scoreboard', renderer='scoreboard.mako')
+    @view_config(route_name='scoreboard', renderer='scoreboard.mako')
     def scoreboard(self):
         """
         The central most interesting view. This contains a list of all teams
