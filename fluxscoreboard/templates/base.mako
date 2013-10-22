@@ -107,7 +107,11 @@ import pytz
         </div>
         <div id="content">
             <h2 id="scoreboard">${view.title}</h2>
-            <div id="content-wrapper">
+            <div id="content-wrapper"
+            % if request.path != "/scoreboard":
+                class="scale"
+            % endif
+            >
                 % for queue, css_type in [('', 'info'), ('error', 'danger'), ('success', 'success'), ('warning', '')]:
                     ${render_flash(queue, css_type)}
                 % endfor

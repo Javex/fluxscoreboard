@@ -324,6 +324,11 @@ nav a:hover {
 #announce-items p:nth-child(2) {
     border-left:6px solid #ff7f3f;
 }
+
+#content {
+    padding: 0 20px;
+}
+
 #content h2 {
     position:relative;
     bottom:1px;
@@ -340,10 +345,14 @@ nav a:hover {
     background:url(../images/content_title.png);
 }
 #content-wrapper {
-    width:1000px;
     padding:20px 0;
     margin:auto;
 }
+
+#content-wrapper.scale {
+    width:1000px;
+}
+
 #content-wrapper form {
     margin-top:20px;
 }
