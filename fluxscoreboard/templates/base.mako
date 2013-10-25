@@ -1,6 +1,6 @@
 <%
 from pyramid.security import authenticated_userid, has_permission
-from fluxscoreboard.util import display_design, tz_str
+from fluxscoreboard.util import display_design, tz_str, is_admin_path
 import pytz
 %>
 
@@ -11,7 +11,7 @@ import pytz
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/jquery.min.js')}"></script>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/bootstrap.min.js')}"></script>
         <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/sorttable.js')}"></script>
-        % if request.path.startswith('/admin'):
+        % if is_admin_path(request):
             <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/admin.js')}"></script>
         % else:
             <script type="text/javascript" src="${request.static_url('fluxscoreboard:static/js/hacklu.js')}"></script>
@@ -121,7 +121,7 @@ import pytz
     </body>
     % else:
     <body class="container">
-        <div id="menu" class="navbar ${'navbar-admin' if request.path.startswith('/admin') else ''}">
+        <div id="menu" class="navbar ${'navbar-admin' if is_admin_path(request) else ''}">
             <ul class="nav navbar-nav">
             % for name, title in view.menu:
                 <li class="${'active' if request.path_url.startswith(request.route_url(name)) else ''}">
@@ -129,7 +129,7 @@ import pytz
                 </li>
             % endfor
             </ul>
-            % if request.path.startswith('/admin'):
+            % if is_admin_path(request):
             <ul class="nav navbar-nav pull-right">
                 <li>
                     <a href="${request.route_url('test_login')}">[Test-Login]</a>

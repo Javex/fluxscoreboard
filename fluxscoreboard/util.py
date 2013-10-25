@@ -33,7 +33,7 @@ def display_design(request):
     The conditions are processed in order, i.e. the first match is returned.
     """
     # If the admin backend is loaded, display the default design.
-    if request.path.startswith('/admin'):
+    if is_admin_path(request):
         return False
 
     # If the login is a test-login, then show the design anyway
@@ -56,6 +56,15 @@ def display_design(request):
         return False
     else:
         return True
+
+
+def is_admin_path(request):
+    settings = request.registry.settings
+    subdir = settings.get("subdirectory", "")
+    admin_path = "/admin"
+    if subdir:
+        admin_path = "/" + subdir + admin_path
+    return request.path.startswith(admin_path)
 
 
 def now():
