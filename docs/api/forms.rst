@@ -74,7 +74,7 @@ Administrative Forms
 
 .. autofunction:: password_min_length_if_set_validator
 
-.. autofunction:: required_or_manual
+.. autofunction:: required_or_not_allowed
 
 .. autoclass:: AvatarDimensions
 

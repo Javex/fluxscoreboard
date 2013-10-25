@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import
+from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
     SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
     ResetPasswordForm)
-from fluxscoreboard.models import DBSession, settings
+from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import (Challenge, Submission,
     check_submission)
-from fluxscoreboard.models.news import News
+from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
-    password_reminder, check_password_reset_token)
-from fluxscoreboard.util import not_logged_in, random_token, now, tz_str
+    password_reminder, check_password_reset_token, get_leading_team)
+from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
+    display_design)
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.security import remember, authenticated_userid, forget
 from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
 from pytz import utc
-from sqlalchemy.orm import subqueryload
-from sqlalchemy.sql.expression import func, desc
+from sqlalchemy.orm import subqueryload, joinedload
+from sqlalchemy.sql.expression import desc
 import functools
 import logging
+from PIL.ImageFilter import RankFilter
+from sqlalchemy.orm.exc import NoResultFound
 
 # TODO: Reduce requests per second on CSS and JS
 
@@ -45,19 +48,20 @@ class BaseView(object):
     logged in.
     """
 
-    _logged_in_menu = [('news', "Announcements"),
-                      ('scoreboard', "Scoreboard"),
+    _logged_in_menu = [('scoreboard', "Scoreboard"),
                       ('challenges', "Challenges"),
                       ('submit', "Submit"),
                       ('profile', "Profile"),
                       ('logout', "Logout"),
                       ]
-    _logged_out_menu = [('login', "Login"),
-                       ('register', "Register"),
+    _logged_out_menu = [('scoreboard', "Scoreboard"),
+                        ('login', "Login"),
+                        ('register', "Register"),
                        ]
 
     def __init__(self, request):
         self.request = request
+        self.orb_count = None
 
     @reify
     def team(self):
@@ -72,10 +76,63 @@ class BaseView(object):
         """
         Get the current menu items as a list of tuples ``(view_name, title)``.
         """
+        max_len = max([len(self._logged_in_menu), len(self._logged_out_menu)])
         if authenticated_userid(self.request):
-            return self._logged_in_menu
+            menu = list(self._logged_in_menu)
         else:
-            return self._logged_out_menu
+            menu = list(self._logged_out_menu)
+        if display_design(self.request):
+            while len(menu) < max_len:
+                menu.append((None, None))
+        return menu
+
+    @reify
+    def title(self):
+        """
+        From the menu get a title for the page.
+        """
+        for name, title in self.menu:
+            if not name:
+                continue
+            if self.request.path_url.startswith(self.request.route_url(name)):
+                return title
+        else:
+            return ""
+
+    @reify
+    def team_count(self):
+        return DBSession().query(Team).filter(Team.active).count()
+
+    @reify
+    def leading_team(self):
+        return get_leading_team()
+
+    @reify
+    def announcements(self):
+        return get_published_news()
+
+    @reify
+    def seconds_until_end(self):
+        end = self.request.settings.ctf_end_date
+        countdown = int((end - now()).total_seconds())
+        if countdown <= 0:
+            return 0
+        else:
+            return countdown
+
+    @reify
+    def ctf_progress(self):
+        end = self.request.settings.ctf_end_date
+        start = self.request.settings.ctf_start_date
+        total_time = (end - start).total_seconds()
+        already_passed = (now() - start).total_seconds()
+        progress = already_passed / total_time
+        if progress >= 1:
+            return 1
+        elif progress < 0:
+            return 0
+        else:
+            return progress
 
 
 class SpecialView(BaseView):
@@ -104,17 +161,19 @@ class SpecialView(BaseView):
 class FrontView(BaseView):
     """
     All views that are part of the actual page, i.e. the scoreboard and
-    anything surrounding it. All views in here **must** be protected by
+    anything surrounding it. Most views in here **must** be protected by
     :class:`logged_in_view` and not the usual
-    :class:`pyramid.view.view_config`.
+    :class:`pyramid.view.view_config`. Some exceptions may exist, such as the
+    :meth:`ref` view.
     """
 
     @logged_in_view(route_name='home')
     def home(self):
         """
-        A view for the page root which just redirects to the ``news`` view.
+        A view for the page root which just redirects to the ``scoreboard``
+        view.
         """
-        return HTTPFound(location=self.request.route_url('news'))
+        return HTTPFound(location=self.request.route_url('scoreboard'))
 
     @logged_in_view(route_name='challenges', renderer='challenges.mako')
     def challenges(self):
@@ -128,13 +187,14 @@ class FrontView(BaseView):
         """
         dbsession = DBSession()
         team_id = authenticated_userid(self.request)
-        team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+        team_solved_subquery = get_team_solved_subquery(team_id)
         number_of_solved_subquery = get_number_solved_subquery()
         challenges = (dbsession.query(Challenge,
                                            team_solved_subquery.exists(),
                                            number_of_solved_subquery).
-                           outerjoin(Submission).
-                           group_by(Challenge.id))
+                      filter(Challenge.published).
+                      outerjoin(Submission).
+                      group_by(Challenge.id))
         return {'challenges': challenges}
 
     @logged_in_view(route_name='challenge', renderer='challenge.mako')
@@ -149,11 +209,16 @@ class FrontView(BaseView):
         challenge_id = int(self.request.matchdict["id"])
         team_id = authenticated_userid(self.request)
         dbsession = DBSession()
-        team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
-        challenge, is_solved = (dbsession.query(Challenge,
+        team_solved_subquery = get_team_solved_subquery(team_id)
+        try:
+            challenge, is_solved = (dbsession.query(Challenge,
                                                 team_solved_subquery.exists()).
                                  filter(Challenge.id == challenge_id).
+                                 filter(Challenge.published).
                                  options(subqueryload('announcements')).one())
+        except NoResultFound:
+            self.request.session.flash("Challenge not found or published.")
+            return HTTPFound(location=self.request.route_url('challenges'))
         form = SolutionSubmitForm(self.request.POST, csrf_context=self.request)
         retparams = {'challenge': challenge,
                      'form': form,
@@ -165,7 +230,7 @@ class FrontView(BaseView):
             is_solved, msg = check_submission(challenge,
                                            form.solution.data,
                                            team_id,
-                                           settings.get(),
+                                           self.request.settings,
                                            )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
@@ -174,7 +239,7 @@ class FrontView(BaseView):
                              )
         return retparams
 
-    @logged_in_view(route_name='scoreboard', renderer='scoreboard.mako')
+    @view_config(route_name='scoreboard', renderer='scoreboard.mako')
     def scoreboard(self):
         """
         The central most interesting view. This contains a list of all teams
@@ -183,23 +248,24 @@ class FrontView(BaseView):
         points right in the SQL.
         """
         dbsession = DBSession()
-        # Calculate sum of all points, defalt to 0
-        challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
-        # Calculate sum of all bonus points, default to 0
-        bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
-        # Create a subquery for the sum of the above points. The filters
-        # basically join the columns and the correlation is needed to reference
-        # the **outer** Team query.
-        team_score_subquery = (dbsession.query(challenge_sum + bonus_sum).
-                               filter(Challenge.id == Submission.challenge_id).
-                               filter(Team.id == Submission.team_id).
-                               correlate(Team))
-        score = team_score_subquery.as_scalar()
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
-        teams = (dbsession.query(Team, score).
-                      order_by(desc(score)))
-        return {'teams': teams}
+        teams = (dbsession.query(Team, Team.score).
+                 filter(Team.active).
+                 options(subqueryload('submissions'),
+                         joinedload('submissions.challenge')).
+                 options(subqueryload('team_flags')).
+                 order_by(desc("score")))
+        team_list = []
+        last_score = None
+        for index, (team, score) in enumerate(teams, 1):
+            if last_score is None or score < last_score:
+                rank = index
+                last_score = score
+            team_list.append((team, score, rank))
+        challenges = (dbsession.query(Challenge).filter(Challenge.published))
+        return {'teams': team_list,
+                'challenges': challenges.all()}
 
     @logged_in_view(route_name='news', renderer='announcements.mako')
     def news(self):
@@ -207,10 +273,7 @@ class FrontView(BaseView):
         Just a list of all announcements that are currently published, ordered
         by publication date, the most recent first.
         """
-        announcements = (DBSession().query(News).
-                         filter(News.published == True).
-                         order_by(desc(News.timestamp)))
-        return {'announcements': announcements}
+        return {'announcements': self.announcements}
 
     @logged_in_view(route_name='submit', renderer='submit.mako')
     def submit_solution(self):
@@ -230,7 +293,7 @@ class FrontView(BaseView):
             is_solved, msg = check_submission(form.challenge.data,
                                               form.solution.data,
                                               team_id,
-                                              settings.get(),
+                                              self.request.settings,
                                               )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
@@ -257,10 +320,17 @@ class UserView(BaseView):
         A simple view that logs out the user and redirects to the login page.
         """
         headers = forget(self.request)
+        is_test_login = self.request.session.get("test-login", False)
         self.request.session.invalidate()
-        self.request.session.flash("You have been logged out.")
-        return HTTPFound(location=self.request.route_url('login'),
-                         headers=headers)
+        if is_test_login:
+            self.request.session.flash("Welcome back, you are no longer "
+                                       "logged in.")
+            return HTTPFound(location=self.request.route_url('admin_teams'),
+                             headers=headers)
+        else:
+            self.request.session.flash("You have been logged out.")
+            return HTTPFound(location=self.request.route_url('login'),
+                             headers=headers)
 
     @view_config(route_name='login', renderer='login.mako')
     @not_logged_in("Doh! You are already logged in.")
@@ -279,7 +349,7 @@ class UserView(BaseView):
             login_success, msg, team = login(form.email.data,
                                              form.password.data)
             if not login_success:
-                self.request.session.flash("Login failed.")
+                self.request.session.flash("Login failed.", 'error')
                 log.warn("Failed login attempt for team '%(team_email)s' "
                          "with IP Address '%(ip_address)s' and reason "
                          "'%(message)s'" %
@@ -289,8 +359,8 @@ class UserView(BaseView):
                           }
                          )
                 return retparams
-            ctf_start = settings.get().ctf_start_date
-            ctf_started = settings.get().ctf_started
+            ctf_start = self.request.settings.ctf_start_date
+            ctf_started = self.request.settings.ctf_started
             if not ctf_started:
                 self.request.session.flash("Your login was successful, but "
                                            "the CTF has not started yet. "
@@ -303,8 +373,8 @@ class UserView(BaseView):
             # Start a new session due to new permissions
             self.request.session.invalidate()
             headers = remember(self.request, team.id)
-            self.request.session.flash("You have been logged in.")
-            return HTTPFound(location=self.request.route_url('news'),
+            self.request.session.flash("You have been logged in.", 'success')
+            return HTTPFound(location=self.request.route_url('home'),
                                  headers=headers)
         return retparams
 

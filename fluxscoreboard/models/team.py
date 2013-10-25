@@ -1,21 +1,30 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
-from fluxscoreboard.models.challenge import Submission, Challenge
+from fluxscoreboard.models.challenge import Submission, Challenge, Category
 from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token
+from pyramid.decorator import reify
+from pyramid.events import subscriber, NewRequest
 from pyramid.renderers import render
-from pyramid.security import unauthenticated_userid
+from pyramid.security import unauthenticated_userid, authenticated_userid
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from pytz import utc, timezone, all_timezones
-from sqlalchemy.orm import relationship
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship, subqueryload, joinedload, backref
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func
+from sqlalchemy.sql.expression import func, desc
 from sqlalchemy.types import Integer, Unicode, Boolean
-import binascii
 import logging
-import os
+import random
+import string
+import transaction
+from sqlalchemy import event
+from pyramid.threadlocal import get_current_request
 
 
 log = logging.getLogger(__name__)
@@ -53,7 +62,19 @@ def get_active_teams():
     return DBSession().query(Team).filter(Team.active == True)
 
 
-def get_team_solved_subquery(dbsession, team_id):
+def get_leading_team():
+    """
+    Get the leading team with the highest rank.
+    """
+    actives = get_active_teams()
+    score = desc(Team.score)
+    try:
+        return actives.order_by(score)[0]
+    except IndexError:
+        return None
+
+
+def get_team_solved_subquery(team_id):
     """
     Get a query that searches for a submission from a team for a given
     challenge. The challenge is supposed to come from an outer query.
@@ -61,7 +82,7 @@ def get_team_solved_subquery(dbsession, team_id):
     Example usage:
         .. code-block:: python
 
-            team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+            team_solved_subquery = get_team_solved_subquery(team_id)
             challenge_query = (dbsession.query(Challenge,
                                                team_solved_subquery.exists()))
 
@@ -72,7 +93,7 @@ def get_team_solved_subquery(dbsession, team_id):
     # solved the corresponding challenge. The correlate statement is
     # a SQLAlchemy statement that tells it to use the **outer** challenge
     # column.
-    team_solved_subquery = (dbsession.query(Submission).
+    team_solved_subquery = (DBSession().query(Submission).
                             filter(Submission.team_id == team_id).
                             filter(Challenge.id ==
                                    Submission.challenge_id).
@@ -90,16 +111,17 @@ def get_number_solved_subquery():
 
             number_of_solved_subquery = get_number_solved_subquery()
             challenge_query = (dbsession.query(Challenge,
-                                               number_of_solved_subquery).
-                               outerjoin(Submission).
-                               group_by(Submission.challenge_id))
+                                               number_of_solved_subquery)
 
     Here we query for a list of all challenges and additionally fetch the
-    number of times it has been solved. This subquery alone is not worth
-    much, it needs to be used together with other statements as shown in the
-    example.
+    number of times it has been solved. This subquery will use the outer
+    challenge to correlate on, so make sure to provide one or this query
+    makes no sense.
     """
-    return func.count(Submission.team_id)
+    return (DBSession().query(func.count('*')).
+            filter(Challenge.id == Submission.challenge_id).
+            correlate(Challenge).
+            as_scalar())
 
 
 def get_team(request):
@@ -112,6 +134,9 @@ def get_team(request):
         team_id = unauthenticated_userid(request)
         try:
             team = (dbsession.query(Team).
+                    options(subqueryload('submissions'),
+                            joinedload('submissions.challenge'),
+                            joinedload('team_flags')).
                     filter(Team.id == team_id).
                     filter(Team.active == True).one())
             request.team = team
@@ -172,6 +197,7 @@ def confirm_registration(token):
     except NoResultFound:
         return False
     team.active = True
+    team.token = random_token()
     return True
 
 
@@ -233,6 +259,7 @@ def password_reminder(email, request):
                       html=html,
                       )
     mailer.send(message)
+    return team
 
 
 def check_password_reset_token(token):
@@ -243,6 +270,21 @@ def check_password_reset_token(token):
     team = (dbsession.query(Team).
             filter(Team.reset_token == token).first())
     return team
+
+
+def get_team_by_ref(ref_id):
+    return (DBSession().query(Team).
+            # options(subqueryload(Team.flags)).
+            filter(Team.ref_token == ref_id).one())
+
+
+def ref_token():
+    """
+    Create a ``ref`` token (a random string of 15 letters or digits) for usage
+    with the ref feature.
+    """
+    keyspace = string.letters + string.digits
+    return "".join(random.choice(keyspace) for __ in xrange(15))
 
 
 class Team(Base):
@@ -264,7 +306,11 @@ class Team(Base):
 
         ``local``: Whether the team is local at the conference.
 
-        ``token``: Token for verification.
+        ``token``: Token for E-Mail verification.
+
+        ``reset_token``: When requesting a new password, this token is used.
+
+        ``ref_token``: When using the ``ref`` feature, this token is used.
 
         ``active``: Whether the team's mail address has been verified and the
         team can actively log in.
@@ -272,6 +318,18 @@ class Team(Base):
         ``timezone``: A timezone, specified as a string, like
         ``"Europe/Berlin"`` or something that, when coerced to unicode, turns
         out as a string like this. Must be valid timezone.
+
+        ``acatar_filename``: The filename under which the avatar is stored
+        in the ``static/images/avatars`` directory.
+
+        ``size``: The size of the team.
+
+        ``flags``: A list of countries from which the team already visited.
+        See :mod:`fluxscoreboard.models.dynamic_challenges.flags` for more
+        information on this feature.
+
+        .. todo::
+            Update this once ``flags`` is a ``set``.
 
         ``country``: Direct access to the teams
         :class:`fluxscoreboard.models.country.Country` attribute.
@@ -285,6 +343,8 @@ class Team(Base):
     local = Column(Boolean, default=False)
     token = Column(Unicode(64), nullable=False, unique=True)
     reset_token = Column(Unicode(64), unique=True)
+    ref_token = Column(Unicode(15), nullable=False, default=ref_token,
+                       unique=True)
     active = Column(Boolean, default=False)
     # TODO: Timezone as seperate type
     _timezone = Column('timezone', Unicode(30),
@@ -293,12 +353,21 @@ class Team(Base):
     avatar_filename = Column(Unicode(68), unique=True)
     size = Column(Integer)
 
+    # TODO: Make it a set (and update TeamFlags docs)
+    flags = association_proxy("team_flags", "flag")
+    ips = association_proxy("team_ips", "ip")
+
     country = relationship("Country", lazy='joined')
 
     def __init__(self, *args, **kwargs):
-        if "token" not in kwargs:
-            self.token = random_token()
+        kwargs.setdefault("token", random_token())
         Base.__init__(self, *args, **kwargs)
+
+    def __str__(self):
+        return unicode(self).encode("utf-8")
+
+    def __unicode__(self):
+        return self.name
 
     def __repr__(self):
         return (('<Team name=%s, email=%s, local=%s, active=%s>'
@@ -327,7 +396,10 @@ class Team(Base):
 
     @property
     def timezone(self):
-        return timezone(self._timezone)
+        if self._timezone is None:
+            return None
+        else:
+            return timezone(self._timezone)
 
     @timezone.setter
     def timezone(self, tz):
@@ -335,8 +407,142 @@ class Team(Base):
         assert timezone in all_timezones
         self._timezone = timezone
 
-    def __str__(self):
-        return unicode(self).encode("utf-8")
+    def get_category_solved(self, category):
+        cat_solved, total = self.stats.get(category, (0, 0))
+        if total == 0:
+            return 0
+        else:
+            return float(cat_solved) / total
 
-    def __unicode__(self):
-        return self.name
+    def get_overall_stats(self):
+        done, total = self.stats["_overall"]
+        if total == 0:
+            return 0
+        else:
+            return float(done) / total
+
+    @reify
+    def stats(self):
+        _stats = {}
+        dbsession = DBSession()
+        count_query = (dbsession.query(func.count(Challenge.id)).
+                       filter(Challenge.category_id == Category.id).
+                       filter(~Challenge.dynamic).
+                       filter(Challenge.published).
+                       correlate(Category))
+        submission = (dbsession.query(Submission).
+                      filter(Submission.team_id == self.id).
+                      filter(Submission.challenge_id == Challenge.id).
+                      correlate(Challenge))
+        team_count_query = count_query.filter(submission.exists())
+        query = dbsession.query(Category.name, count_query.as_scalar(),
+                                team_count_query.as_scalar())
+        for name, total, team_count in query:
+            _stats[name] = (team_count, total)
+        overall_stats = [0, 0]
+        for team_stat, total in _stats.values():
+            overall_stats[0] += team_stat
+            overall_stats[1] += total
+        _stats["_overall"] = tuple(overall_stats)
+        return _stats
+
+    @hybrid_property
+    def score(self):
+        from fluxscoreboard.models import dynamic_challenges
+        challenge_sum = sum(s.challenge.points or 0 for s in self.submissions
+                            if s.challenge.published)
+        bonus_sum = sum(s.bonus or 0 for s in self.submissions
+                        if s.challenge.published)
+        dynamic_points = 0
+        for module in dynamic_challenges.registry.values():
+            dynamic_points += module.points(self)
+        return challenge_sum + bonus_sum + dynamic_points
+
+    @score.expression
+    def score(cls):  # @NoSelf
+        from fluxscoreboard.models import dynamic_challenges
+        dbsession = DBSession()
+        # Calculate sum of all points, defalt to 0
+        challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
+        # Calculate sum of all bonus points, default to 0
+        bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
+        points_col = challenge_sum + bonus_sum
+        for module in dynamic_challenges.registry.values():
+            points_col += module.points_query(cls)
+        # Create a subquery for the sum of the above points. The filters
+        # basically join the columns and the correlation is needed to reference
+        # the **outer** Team query.
+        team_score_subquery = (dbsession.query(points_col).
+                               filter(Challenge.id == Submission.challenge_id).
+                               filter(cls.id == Submission.team_id).
+                               filter(~Challenge.dynamic).
+                               filter(Challenge.published).
+                               correlate(cls))
+        return team_score_subquery.label('score')
+
+    @hybrid_property
+    def rank(self):
+        """
+        Return the teams current rank. Can be used as a hybrid property:
+
+        .. code-block:: python
+
+            DBSession().query(Team).order_by(Team.rank)
+            # or
+            team = Team()
+            team.rank
+
+        In both cases the database will be queried so be careful how you use
+        it. For equal points the same rank is returned. In general we use a
+        `"1224" ranking <http://en.wikipedia.org/wiki/Ranking#Standard_competition_ranking_.28.221224.22_ranking.29>`_
+        here.
+        """
+        rank = (DBSession().query(Team).filter(Team.score > self.score).
+                order_by(desc(Team.score)).count()) + 1
+        return rank
+
+    @rank.expression
+    def rank(self):
+        inner_team = aliased(Team)
+        return (DBSession().query(func.count('*') + 1).
+                select_from(inner_team).
+                filter(inner_team.score > Team.score).
+                order_by(desc(inner_team.score)).
+                correlate(Team).
+                label('rank'))
+
+
+@event.listens_for(Team._password, 'set')
+def log_password_change(target, value, oldvalue, initiator):
+    request = get_current_request()
+    log.warning("Password changed for team with ID %s and name %s from IP "
+                "address %s"
+                % (target.id, target.name, request.client_addr))
+
+
+@subscriber(NewRequest)
+def register_ip(event):
+    if ("test-login" in event.request.session and
+            event.request.session["test-login"] or
+            event.request.path.startswith('/static')):
+        return None
+    team_id = authenticated_userid(event.request)
+    t = transaction.savepoint()
+    if not team_id:
+        return
+    ip = unicode(event.request.client_addr)
+    try:
+        dbsession = DBSession()
+        dbsession.add(TeamIP(team_id=team_id, ip=ip))
+        dbsession.flush()
+    except IntegrityError:
+        t.rollback()
+
+
+class TeamIP(Base):
+    __tablename__ = 'team_ip'
+    team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
+    ip = Column(Unicode(15), primary_key=True)
+
+    team = relationship("Team", backref=backref("team_ips",
+                                                cascade="all, delete-orphan"))

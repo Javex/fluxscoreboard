@@ -2,8 +2,20 @@
 from __future__ import unicode_literals, print_function, absolute_import
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.types import TZDateTime
+from pyramid.events import NewRequest, subscriber
 from sqlalchemy.schema import Column
 from sqlalchemy.types import Integer, Boolean
+from pyramid.threadlocal import get_current_request
+import logging
+
+
+log = logging.getLogger(__name__)
+
+
+@subscriber(NewRequest)
+def load_settings(event):
+    settings = DBSession().query(Settings).one()
+    event.request.settings = settings
 
 
 def get():
@@ -25,7 +37,9 @@ def get():
         from fluxscoreboard.models.settings import get as get_settings
         settings = get_settings()
     """
-    return DBSession().query(Settings).one()
+    log.warning("The get() function is deprecated. Access settings from the "
+                "request object: request.settings")
+    return get_current_request().settings
 
 
 class Settings(Base):
@@ -48,6 +62,9 @@ class Settings(Base):
         the CTF should start. Before that, the application will behave
         differently, e.g. may not allow login.
 
+        ``ctf_end_date``: When the CTF will end. Same type as
+        ``ctf_start_date``.
+
         ``ctf_started``: This is a property that can only be read and just
         compares ``ctf_start_date`` with the current time to find out whether
         the CTF has already started or not.
@@ -55,6 +72,7 @@ class Settings(Base):
     id = Column(Integer, primary_key=True)
     submission_disabled = Column(Boolean, default=False)
     ctf_start_date = Column(TZDateTime)
+    ctf_end_date = Column(TZDateTime)
 
     @property
     def ctf_started(self):

@@ -2,20 +2,21 @@
 from __future__ import unicode_literals, absolute_import
 from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, TeamForm, \
     SubmissionForm, MassMailForm, ButtonForm, SubmissionButtonForm, CategoryForm, \
-    TeamCleanupForm, SettingsForm
+    TeamCleanupForm, SettingsForm, IPSearchForm
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission, \
     get_submissions, Category
 from fluxscoreboard.models.news import News, MassMail
 from fluxscoreboard.models.settings import get as get_settings
-from fluxscoreboard.models.team import Team, get_active_teams
+from fluxscoreboard.models.team import Team, get_active_teams, TeamIP
 from pyramid.httpexceptions import HTTPFound
 from pyramid.security import remember
 from pyramid.view import view_config
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
+from sqlalchemy.orm import subqueryload
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from sqlalchemy.sql.expression import not_
+from sqlalchemy.sql.expression import not_, desc, asc
 from webhelpers.paginate import Page, PageURL_WebOb
 import logging
 
@@ -34,6 +35,7 @@ class AdminView(object):
              ('admin_challenges', 'Challenges'),
              ('admin_categories', 'Categories'),
              ('admin_teams', 'Teams'),
+             ('admin_ip_search', 'Search IP'),
              ('admin_submissions', 'Submissions'),
              ('admin_massmail', 'Mass Mail'),
              ('admin_settings', 'Settings'),
@@ -130,7 +132,8 @@ class AdminView(object):
         else:
             self.request.session.flash("%s deleted!" % title)
 
-    def _admin_list(self, route_name, FormClass, DatabaseClass, title):
+    def _admin_list(self, route_name, FormClass, DatabaseClass, title,
+                    change_query=None):
         """
         A generic function for all views that contain a list of things and also
         a form to edit or add entries.
@@ -155,6 +158,10 @@ class AdminView(object):
             ``title``: A string that expresses a singular item, for example
             ``"Challenge"``. Will be used for flash messages.
 
+            ``change_query``: A function that receives one parameter (a query),
+            modifies it and returns the new query. May for example be used to
+            modify the order or refine results. Optional.
+
         Returns:
             A dictionary or similar that can be directly returned to the
             application to be rendered as a view.
@@ -170,6 +177,8 @@ class AdminView(object):
         # Prepare some paramters
         dbsession = DBSession()
         items = self.items(DatabaseClass)
+        if change_query:
+            items = change_query(items)
         page = self.page(items)
         redirect = self.redirect(route_name, page.page)
         item_id = None
@@ -352,7 +361,9 @@ class AdminView(object):
         A view to list, add and edit announcements. Implemented with
         :meth:`_admin_list`.
         """
-        return self._admin_list('admin_news', NewsForm, News, "Announcement")
+        order = lambda q: q.order_by(desc(News.timestamp))
+        return self._admin_list('admin_news', NewsForm, News, "Announcement",
+                                change_query=order)
 
     @view_config(route_name='admin_news_edit', renderer='admin_news.mako',
                  request_method='POST')
@@ -422,6 +433,18 @@ class AdminView(object):
             status_variable_name='online',
             status_messages={False: 'Challenge now offline',
                              True: 'Challenge now online'})
+
+    @view_config(route_name='admin_challenges_toggle_published',
+                 request_method='POST')
+    def chalenge_toggle_published(self):
+        """
+        Switch a challenge between published and unpublished.
+        """
+        return self._admin_toggle_status(
+            'admin_challenges', Challenge, "Challenge",
+            status_variable_name='published',
+            status_messages={False: 'Challenge unpublished',
+                             True: 'Challenge published'})
 
     @view_config(route_name='admin_categories',
                  renderer='admin_categories.mako')
@@ -526,6 +549,29 @@ class AdminView(object):
         self.request.session.flash("Deleted %d teams" % delete_count)
         return redirect
 
+    @view_config(route_name='admin_teams_ips', renderer='admin_team_ips.mako')
+    def team_ips(self):
+        """A list of IPs per team."""
+        form = ButtonForm(self.request.POST, csrf_context=self.request)
+        team = (DBSession().query(Team).
+                filter(Team.id == form.id.data).
+                options(subqueryload('team_ips')).
+                one())
+        return {'team': team}
+
+    @view_config(route_name='admin_ip_search', renderer='admin_ips.mako')
+    def search_ips(self):
+        form = IPSearchForm(self.request.POST, csrf_context=self.request)
+        retparams = {'form': form}
+        redirect = self.redirect('admin_ip_search')
+        query = DBSession().query(Team).join(TeamIP)
+        if self.request.method == 'POST':
+            if not form.validate():
+                return redirect
+            query = query.filter(TeamIP.ip == form.term.data)
+        retparams["results"] = query.all()
+        return retparams
+
     @view_config(route_name='admin_submissions',
                  renderer='admin_submissions.mako')
     def submissions(self):
@@ -615,7 +661,7 @@ class AdminView(object):
         return redirect
 
     @view_config(route_name='admin_submissions_delete', request_method='POST')
-    def sbumissions_delete(self):
+    def submissions_delete(self):
         """Delete a submission."""
         # Prepare parameters
         delete_form = SubmissionButtonForm(self.request.POST,
@@ -717,16 +763,23 @@ class AdminView(object):
         """
         If there is at least one team, log in as it to see the page.
         """
-        team = DBSession().query(Team).first()
+        form = ButtonForm(self.request.POST, csrf_context=self.request)
+        team_query = DBSession().query(Team)
+        if form.id.data:
+            team_query = team_query.filter(Team.id == form.id.data)
+        team = team_query.first()
         if not team:
             self.request.session.flash("No team available, add one!")
             return HTTPFound(location=self.request.route_url('admin_teams'))
-        # Start a new session due to new permissions
+        return self._test_login(team)
+
+    def _test_login(self, team):  # Start a new session due to new permissions
         self.request.session.invalidate()
         headers = remember(self.request, team.id)
         self.request.session["test-login"] = True
         self.request.session.flash("You were logged in as team %s. Please be "
                                    "aware that this is only a test login, so "
-                                   "don't break anything." % team.name)
+                                   "don't break anything." % team.name,
+                                   'warning')
         return HTTPFound(location=self.request.route_url('home'),
-                             headers=headers)
+                         headers=headers)

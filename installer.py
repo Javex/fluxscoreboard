@@ -76,7 +76,7 @@ if __name__ == '__main__':
         DBSession.configure(bind=engine)
         uninstall(settings)
         for dir_ in EXISTING_SUBDIRS:
-            shutil.rmtree(os.path.abspath(os.path.join(ROOT_PATH, dir)))
+            shutil.rmtree(os.path.abspath(os.path.join(ROOT_PATH, dir_)))
         print("[*] Application uninstalled")
     else:
         raise ValueError("First argument must be either 'install' or "

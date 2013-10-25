@@ -3,11 +3,12 @@ from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.types import TZDateTime
-from pyramid.security import authenticated_userid
-from pyramid.threadlocal import get_current_request
+from fluxscoreboard.util import now
+from sqlalchemy import event
 from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.sql.expression import not_
+from sqlalchemy.sql.functions import count
 from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText
 
 
@@ -32,24 +33,21 @@ def get_online_challenges():
     Return a query that gets only those challenges that are online.
     """
     return (DBSession().query(Challenge).
-            filter(Challenge.online == True))
+            filter(Challenge.online))
 
 
-def get_unsolved_challenges():
+def get_unsolved_challenges(team_id):
     """
     Return a query that produces a list of all unsolved challenges for a given
     team.
     """
     from fluxscoreboard.models.team import get_team_solved_subquery
-    request = get_current_request()
-    team_id = authenticated_userid(request)
-    dbsession = DBSession()
-    team_solved_subquery = get_team_solved_subquery(dbsession, team_id)
+    team_solved_subquery = get_team_solved_subquery(team_id)
     online = get_online_challenges()
     return (online.filter(not_(team_solved_subquery.exists())))
 
 
-def get_solvable_challenges():
+def get_solvable_challenges(team_id):
     """
     Return a list of challenges that the current team can solve right now. It
     returns a list of challenges that are
@@ -58,8 +56,11 @@ def get_solvable_challenges():
     - unsolved by the current team
     - not manual (i.e. solvable by entering a solution)
     """
-    unsolved = get_unsolved_challenges()
-    return unsolved.filter(Challenge.manual == False)
+    unsolved = get_unsolved_challenges(team_id)
+    return (unsolved.
+            filter(~Challenge.manual).
+            filter(~Challenge.dynamic).
+            filter(Challenge.published))
 
 
 def get_submissions():
@@ -101,6 +102,9 @@ def check_submission(challenge, solution, team_id, settings):
     if settings.submission_disabled:
         return False, "Submission is currently disabled"
 
+    if now() > settings.ctf_end_date:
+        return False, "The CTF is over, no more solutions can be submitted."
+
     if not challenge.online:
         return False, "Challenge is offline."
 
@@ -110,9 +114,12 @@ def check_submission(challenge, solution, team_id, settings):
     if challenge.manual:
         return False, "Credits for this challenge will be given manually."
 
-    submissions = (dbsession.query(Submission.team_id).
-                   filter(Submission.challenge_id == challenge.id).
-                   all())
+    if challenge.dynamic:
+        return False, "The challenge is dynamic, no submission possible."
+
+    query = (dbsession.query(Submission.team_id).
+             filter(Submission.challenge_id == challenge.id))
+    submissions = [id_ for id_, in query]
 
     if team_id in submissions:
         return False, "Already solved."
@@ -126,7 +133,7 @@ def check_submission(challenge, solution, team_id, settings):
 
     submission = Submission(bonus=bonus)
     submission.team_id = team_id
-    submission.challenge_id = challenge.id
+    submission.challenge = challenge
     dbsession.add(submission)
     return True, msg
 
@@ -173,16 +180,33 @@ class Challenge(Base):
 
         ``author``: A simple string that contains an author (or a list
         thereof).
+
+        ``dynamic``: Whether this challenge is dynamically handled. At the
+        default of ``False`` this is just a normal challenge, otherwise, the
+        attribute ``module`` must be set.
+
+        ``module_name``: If this challenge is dynamic, it must provide a valid
+        dotted python name for a module that provides the interface for
+        validation and display. The dotted python name given here will be
+        prefixed with ``fluxscoreboard.dynamic_challenges.``
+
+        ``module``: Loads the module from the module name and returns it.
+
+        ``published``: Whether the challenge should be displayed in the
+        frontend at all.
     """
     id = Column(Integer, primary_key=True)
-    title = Column(Unicode(255))
+    title = Column(Unicode(255), nullable=False)
     text = Column(UnicodeText)
     solution = Column(Unicode(255))
     _points = Column('points', Integer, default=0)
-    online = Column(Boolean, default=False)
-    manual = Column(Boolean, default=False)
+    online = Column(Boolean, default=False, nullable=False)
+    manual = Column(Boolean, default=False, nullable=False)
     category_id = Column(Integer, ForeignKey('category.id'))
     author = Column(Unicode(255))
+    dynamic = Column(Boolean, default=False, nullable=False)
+    module_name = Column(Unicode(255))
+    published = Column(Boolean, default=False, nullable=False)
 
     category = relationship("Category", backref="challenges", lazy="joined")
 
@@ -197,6 +221,28 @@ class Challenge(Base):
     def __unicode__(self):
         return self.title
 
+    def __repr__(self):
+        if self.manual:
+            annotation = "manual"
+        elif self.dynamic:
+            annotation = "dynamic"
+        else:
+            annotation = "normal"
+        additional_info = []
+        if self.category:
+            additional_info.append("category=%s" % self.category)
+        if self.author:
+            additional_info.append("author(s)=%s" % self.author)
+        if self.module_name:
+            additional_info.append("module=%s" % self.module_name)
+        if additional_info:
+            additional_info = ", " + ", ".join(additional_info)
+        else:
+            additional_info = ""
+        r = ("<Challenge (%s) title=%s, online=%s%s>"
+             % (annotation, self.title, self.online, additional_info))
+        return r.encode("utf-8")
+
     @property
     def points(self):
         """
@@ -204,6 +250,10 @@ class Challenge(Base):
         if the challenge is manual, the :data:`manual_challenge_points`
         object to indicate that the points are manually assigned.
         """
+        if self.dynamic:
+            raise ValueError("This is a dynamic challenge, its points are "
+                             "fetched by calling "
+                             "challenge.module.points(team).")
         if self.manual:
             return manual_challenge_points
         else:
@@ -212,6 +262,24 @@ class Challenge(Base):
     @points.setter
     def points(self, points):
         self._points = points
+
+    @property
+    def module(self):
+        from . import dynamic_challenges
+        return dynamic_challenges.registry.get(self.module_name, None)
+
+
+@event.listens_for(Challenge, 'before_update')
+@event.listens_for(Challenge, 'before_insert')
+def assert_not_manual_and_dynamic(mapper, connection, target):
+    """
+    Makes sure a dynamic challenge is not at the same time manual via an
+    event. This should be catched beforehand and reported to the user, this
+    is only a safety net.
+    """
+    challenge = target
+    if challenge.manual and challenge.dynamic:
+        raise ValueError("Cannot have a manual dynamic challenge!")
 
 
 class Category(Base):
@@ -226,13 +294,18 @@ class Category(Base):
         ``challenges``: List of challenges in that category.
     """
     id = Column(Integer, primary_key=True)
-    name = Column(Unicode(255))
+    name = Column(Unicode(255), nullable=False)
 
     def __str__(self):
         return unicode(self).encode("utf-8")
 
     def __unicode__(self):
         return self.name
+
+    def __repr__(self):
+        r = ("<Category id=%s, name=%s, challenges=%d>"
+             % (self.id, self.name, len(self.challenges)))
+        return r.encode("utf-8")
 
 
 class Submission(Base):
@@ -260,9 +333,9 @@ class Submission(Base):
     challenge_id = Column(Integer, ForeignKey('challenge.id'),
                           primary_key=True)
     timestamp = Column(TZDateTime,
-                        nullable=False,
-                        default=datetime.utcnow
-                        )
+                       nullable=False,
+                       default=datetime.utcnow
+                       )
     bonus = Column(Integer, default=0, nullable=False)
 
     team = relationship("Team",
@@ -277,6 +350,12 @@ class Submission(Base):
     def __init__(self, *args, **kwargs):
         if "timestamp" not in kwargs:
             self.timestamp = datetime.utcnow()
+        Base.__init__(self, *args, **kwargs)
+
+    def __repr__(self):
+        r = ("<Submission challenge=%s, team=%s, bonus=%d, timestamp=%s>"
+             % (self.challenge, self.team, self.bonus, self.timestamp))
+        return r.encode("utf-8")
 
     @property
     def points(self):

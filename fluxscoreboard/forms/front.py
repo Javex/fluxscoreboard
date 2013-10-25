@@ -11,6 +11,8 @@ from fluxscoreboard.forms.validators import (name_length_validator,
     avatar_size_validator, name_unique_validator)
 from fluxscoreboard.models.challenge import get_solvable_challenges
 from fluxscoreboard.models.country import get_all_countries
+from pyramid.security import authenticated_userid
+from pyramid.threadlocal import get_current_request
 from pytz import common_timezones, utc
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.fields.core import SelectField
@@ -26,6 +28,16 @@ to be implemented by the developer and is not done automatically by it.
 However, validatation restrictions (e.g. length) are enforced. But alone,
 without a database to persist them, they are mostly useless.
 """
+
+
+def _solvable_challenges_factory():
+    """
+    A helper function that uses :func:`get_solvable_challenges` but first gets
+    the request from the current context.
+    """
+    request = get_current_request()
+    team_id = authenticated_userid(request)
+    return get_solvable_challenges(team_id)
 
 
 class RegisterForm(CSRFForm):
@@ -260,5 +272,5 @@ class SolutionSubmitListForm(SolutionSubmitForm):
         ``challenge``: A list of challenges to choose from. Required.
     """
     challenge = QuerySelectField("Challenge",
-                                 query_factory=get_solvable_challenges,
+                                 query_factory=_solvable_challenges_factory,
                                  )

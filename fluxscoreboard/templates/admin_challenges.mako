@@ -14,6 +14,8 @@
                 <th>Author(s)</th>
                 <th>Manual</th>
                 <th>Online</th>
+                <th>Published</th>
+                <th>Dynamic</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -30,7 +32,7 @@
                 % endif
                 </td>
                 <td><em>Hidden</em></td>
-                <td>${challenge.points}</td>
+                <td>${'dynamic' if challenge.dynamic else challenge.points}</td>
                 <td>
                 % if challenge.author:
                     ${challenge.author}
@@ -44,11 +46,18 @@
                 <td class="text-${'success' if challenge.online else 'danger'}">
                     ${'Yes' if challenge.online else 'No'}
                 </td>
+                <td class="text-${'success' if challenge.published else 'danger'}">
+                    ${'Yes' if challenge.published else 'No'}
+                </td>
+                <td class="text-${'success' if challenge.dynamic else 'danger'}">
+                    ${'Yes' if challenge.dynamic else 'No'}
+                </ts>
                 <td class="btn-group">
                     ${admin_funcs.display_action_list(page.page, request, challenge.id,
                                                       [('admin_challenges', "Edit"),
                                                        ('admin_challenges_delete', "Delete"), 
-                                                       ('admin_challenges_toggle_status', "Take Challenge " + ("offline" if challenge.online else "online"))])}
+                                                       ('admin_challenges_toggle_status', "Take Challenge " + ("offline" if challenge.online else "online")),
+                                                       ('admin_challenges_toggle_published', ("Unpublish" if challenge.published else "Publish")  + " Challenge")])}
                 </td>
             </tr>
         % endfor

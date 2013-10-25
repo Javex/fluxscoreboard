@@ -1,12 +1,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
-from fluxscoreboard.models import Base
+from fluxscoreboard.models import Base, DBSession
+from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.types import TZDateTime, JSONList
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.schema import Column, ForeignKey
+from sqlalchemy.sql.expression import desc, or_
 from sqlalchemy.types import Integer, UnicodeText, Boolean
-import json
+
+
+def get_published_news():
+    announcements = (DBSession().query(News).
+                     outerjoin(Challenge).
+                     filter(News.published == True).
+                     filter(or_(Challenge.published,
+                                Challenge.published == None)).
+                     order_by(desc(News.timestamp)))
+    return announcements
 
 
 class News(Base):
@@ -46,9 +57,15 @@ class News(Base):
                              lazy='joined')
 
     def __init__(self, *args, **kwargs):
-        if "timestamp" not in kwargs:
-            self.timestamp = datetime.utcnow()
+        kwargs.setdefault("timestamp", datetime.utcnow())
         Base.__init__(self, *args, **kwargs)
+
+    def __repr__(self):
+        r = ("<News id=%s, from=%s, message=%s, challenge=%s>"
+             % (self.id, self.timestamp,
+                self.message[:20] if self.message else None,
+                repr(self.challenge)))
+        return r.encode("utf-8")
 
 
 class MassMail(Base):

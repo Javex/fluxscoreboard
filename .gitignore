@@ -1,3 +1,4 @@
 development.ini
 production.ini
-data/*
+data/session/*
+tests/template/cache

@@ -1,4 +1,12 @@
 <%inherit file="base.mako"/>
+<%
+from fluxscoreboard.util import tz_str, now
+import pytz
+%>
+
+% if now() < request.settings.ctf_start_date:
+    <div class="alert alert-info">The CTF starts at ${tz_str(request.settings.ctf_start_date, pytz.utc)} UTC. You can find further information under <a href="http://2013.hack.lu/index.php/CaptureTheFlag">http://2013.hack.lu/index.php/CaptureTheFlag</a></div>
+% endif
 
 <div class="col-2"></div>
 <div class="col-8">
