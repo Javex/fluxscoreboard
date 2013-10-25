@@ -165,6 +165,26 @@ default user and group are configured to ``http``. But you might want to choose
 any different user name (it does not have to be the one of your webserver,
 though that has to read the ``static/`` directory.
 
+Running the Scoreboard in a Subdirectory
+----------------------------------------
+
+Sometimes, for example for the archive, you might want to run the scoreboard
+in a subdirectory. Let's say to want to run the 2013 scoreboard in the
+subdirectory "hacklu2013". There are only a few settings you have to adjust:
+
+- For the application, you need to insert the setting "subdirectory =
+  hacklu2013", this will make all routes go to this subdirectory.
+- For the Nginx configuration (or whatever your server is) you need to adjust
+  all the routes to match the new subdirectory. To achieve this, you just
+  prepend all routes with ``/hacklu2013``:
+  - ``location /`` => ``location /hacklu2013``
+  - ``location /admin`` => ``location /hacklu2013/admin``
+  - ``location /static`` => ``location /hacklu2013/static``
+
+And that's it, you can now run your scoreboard in a subdirectory. However, you
+might want to adjust some paths in such a way that they are reflected as being
+a subdirectory.
+
 Test it!
 --------
 

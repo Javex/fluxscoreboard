@@ -26,7 +26,7 @@ ${render_announcements(announcements)}
             % endif
                 <small>(Published on ${tz_str(news.timestamp, view.team.timezone)})</small>
             </h4>
-        <p>${news.message}</p>
+        <p>${news.message | n}</p>
         </div>
     % endfor
 % else:

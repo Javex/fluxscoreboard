@@ -1,12 +1,16 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
+from datetime import timedelta
 from fluxscoreboard.models import DBSession
+from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.dynamic_challenges.flags import (flag_list,
     points_query, title, get_location, install, GeoIP, FlagView)
 from fluxscoreboard.models.team import Team
+from fluxscoreboard.util import now
 from sqlalchemy.exc import OperationalError, IntegrityError
 import logging
 import pytest
+import time
 
 
 log = logging.getLogger(__name__)
@@ -18,25 +22,32 @@ def location(dbsession, request):
     start, end = (dbsession.query(GeoIP.ip_range_start, GeoIP.ip_range_start).
                   filter(GeoIP.country_code == ccode)[0])
     return ccode, [start, (start + end) / 2, end]
-    """country_code = label('code', GeoIP.country_code.distinct())
-    country = alias(dbsession.query(country_code).subquery(), 'country')
-    ip_subq = (dbsession.query(GeoIP.ip_range_start).
-               filter(country.c.code == GeoIP.country_code).
-               limit(1).
-               as_scalar())
-    q = dbsession.query(country.c.code, ip_subq)
-    raise NotImplementedError"""
 
 
 @pytest.fixture(scope="session")
 def geoip_db(request):
     sess = DBSession()
+    log.debug("Using session %s" % sess)
+
     with sess.bind.begin() as conn:
         install(conn, False)
 
     def _remove():
         sess.query(GeoIP).delete()
     request.addfinalizer(_remove)
+
+
+@pytest.fixture
+def challenge(dbsession, request):
+    c = Challenge(title="Geolocation Flags", dynamic=True, module_name="flags",
+                  online=True)
+    dbsession.add(c)
+    dbsession.flush()
+
+    def _remove():
+        dbsession.delete(c)
+    request.addfinalizer(_remove)
+    return c
 
 
 @pytest.fixture
@@ -59,35 +70,81 @@ def make_geoip():
     return _make
 
 
+@pytest.mark.usefixtures("geoip_db")
 class TestFlagView(object):
 
-    def test_ref(self, dbsession, flag_view, make_team, geoip_db):
+    @pytest.fixture(autouse=True)
+    def _prepare(self, geoip_db, challenge, dbsettings, flag_view):
+        self.challenge = challenge
+        self.settings = dbsettings
+        self.settings.ctf_end_date = now() + timedelta(1)
+        self.view = flag_view
+
+    def test_ref_special(self, dbsession, make_team):
         t = make_team()
         dbsession.add(t)
         dbsession.flush()
-        flag_view.request.client_addr = "1.0.32.0"
-        flag_view.request.matchdict["ref_id"] = t.ref_token
-        ret = flag_view.ref()
+        self.view.request.client_addr = "1.0.32.0"
+        assert dbsession.query(GeoIP).count() != 0
+        self.view.request.matchdict["ref_id"] = t.ref_token
+        ret = self.view.ref()
+        print(ret)
         assert ret["success"]
         assert ret["msg"] == "Location successfully registered."
         assert ret["location"] == "cn"
 
-        ret = flag_view.ref()
+        ret = self.view.ref()
         print(ret)
         assert ret["success"]
         assert ret["msg"] == "Location already registered."
         assert ret["location"] == "cn"
 
-    def test_ref_no_loc(self, dbsession, flag_view, make_team):
+    def test_ref_no_loc(self, dbsession, make_team, geoip_db):
         t = make_team()
         dbsession.add(t)
         dbsession.flush()
-        flag_view.request.client_addr = "127.0.0.1"
-        flag_view.request.matchdict["ref_id"] = t.ref_token
-        ret = flag_view.ref()
+        self.view.request.client_addr = "127.0.0.1"
+        self.view.request.matchdict["ref_id"] = t.ref_token
+        ret = self.view.ref()
         assert not ret["success"]
         assert ret["msg"] == ("No location found. Try a different IP from "
                               "that range.")
+        assert "location" not in ret
+
+    def test_ref_no_chall(self):
+        self.challenge.module_name = 'abc'  # remove chall
+        ret = self.view.ref()
+        assert not ret["success"]
+        assert ret["msg"] == ("There is no challenge for flags right now")
+        assert "location" not in ret
+
+    def test_ref_multiple_chall(self, dbsession):
+        dbsession.add(Challenge(title="ABC", module_name="flags", online=True))
+        ret = self.view.ref()
+        assert not ret["success"]
+        assert ret["msg"] == ("More than one challenge is online. This "
+                              "shouldn't happen, contact FluxFingers.")
+        assert "location" not in ret
+
+    def test_ref_chall_off(self):
+        self.challenge.online = False
+        ret = self.view.ref()
+        assert not ret["success"]
+        assert ret["msg"] == "Challenge is offline."
+        assert "location" not in ret
+
+    def test_ref_subm_disabled(self):
+        self.settings.submission_disabled = True
+        ret = self.view.ref()
+        assert not ret["success"]
+        assert ret["msg"] == "Submission is disabled."
+        assert "location" not in ret
+
+    def test_ref_ctf_over(self):
+        self.settings.ctf_end_date = now() - timedelta(1)
+        ret = self.view.ref()
+        assert not ret["success"]
+        assert ret["msg"] == "CTF is over."
         assert "location" not in ret
 
 
@@ -200,11 +257,13 @@ class TestGeoIP(object):
         assert GeoIP.ip_int('127.0.0.1') == 2130706433
         assert GeoIP.ip_int("255.255.255.255") == 4294967295
         assert GeoIP.ip_int("0.0.0.0") == 0
+        assert GeoIP.ip_int("1.0.32.0") == 16785408
 
     def test_ip_str(self):
         assert GeoIP.ip_str(2130706433L) == '127.0.0.1'
         assert GeoIP.ip_str(0xFFFFFFFF) == "255.255.255.255"
         assert GeoIP.ip_str(0) == "0.0.0.0"
+        assert GeoIP.ip_str(16785408) == "1.0.32.0"
 
     def test_check_ip_range(self, make_geoip):
         g = make_geoip()

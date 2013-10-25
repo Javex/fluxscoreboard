@@ -57,7 +57,10 @@ def get_solvable_challenges(team_id):
     - not manual (i.e. solvable by entering a solution)
     """
     unsolved = get_unsolved_challenges(team_id)
-    return unsolved.filter(~Challenge.manual).filter(~Challenge.dynamic)
+    return (unsolved.
+            filter(~Challenge.manual).
+            filter(~Challenge.dynamic).
+            filter(Challenge.published))
 
 
 def get_submissions():
@@ -182,10 +185,15 @@ class Challenge(Base):
         default of ``False`` this is just a normal challenge, otherwise, the
         attribute ``module`` must be set.
 
-        ``module``: If this challenge is dynamic, it must provide a valid
+        ``module_name``: If this challenge is dynamic, it must provide a valid
         dotted python name for a module that provides the interface for
         validation and display. The dotted python name given here will be
         prefixed with ``fluxscoreboard.dynamic_challenges.``
+
+        ``module``: Loads the module from the module name and returns it.
+
+        ``published``: Whether the challenge should be displayed in the
+        frontend at all.
     """
     id = Column(Integer, primary_key=True)
     title = Column(Unicode(255), nullable=False)
@@ -198,6 +206,7 @@ class Challenge(Base):
     author = Column(Unicode(255))
     dynamic = Column(Boolean, default=False, nullable=False)
     module_name = Column(Unicode(255))
+    published = Column(Boolean, default=False, nullable=False)
 
     category = relationship("Category", backref="challenges", lazy="joined")
 
@@ -241,6 +250,10 @@ class Challenge(Base):
         if the challenge is manual, the :data:`manual_challenge_points`
         object to indicate that the points are manually assigned.
         """
+        if self.dynamic:
+            raise ValueError("This is a dynamic challenge, its points are "
+                             "fetched by calling "
+                             "challenge.module.points(team).")
         if self.manual:
             return manual_challenge_points
         else:

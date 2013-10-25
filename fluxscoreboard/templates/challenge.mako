@@ -18,7 +18,7 @@ from fluxscoreboard.util import now, nl2br
     <div class="col-12">
     % if not challenge.dynamic:
         <div class="row">
-            ${challenge.text | nl2br,n}
+            ${challenge.text | n}
         </div>
         <div class="row">&nbsp;</div>
         <div class="row">

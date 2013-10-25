@@ -134,6 +134,11 @@ class ChallengeForm(CSRFForm):
         validators=[only_if_dynamic, dynamic_check_multiple_allowed]
     )
 
+    published = BooleanField(
+        "Published",
+        description=("An unpublished challenge will not be displayed in the "
+                     "frontend."))
+
     id = HiddenField()
 
     submit = SubmitField("Save")
@@ -224,6 +229,15 @@ class TeamForm(CSRFForm):
     submit = SubmitField("Save")
 
     cancel = SubmitField("Cancel")
+
+
+class IPSearchForm(CSRFForm):
+    """
+    Form to search for an IP address and find the resulting team(s).
+    """
+    term = TextField("IP Address")
+
+    submit = SubmitField("Search")
 
 
 class SubmissionForm(CSRFForm):

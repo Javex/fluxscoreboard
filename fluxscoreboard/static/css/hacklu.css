@@ -71,3 +71,13 @@ img.avatar-large {
 .flag-container {
 	margin-left: 10px;
 }
+
+#scoreboard th.challenge, #scoreboard td.challenge {
+    max-width: 50px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 5px;
+}
+

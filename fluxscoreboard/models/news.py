@@ -2,16 +2,20 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
 from fluxscoreboard.models import Base, DBSession
+from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.types import TZDateTime, JSONList
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.schema import Column, ForeignKey
-from sqlalchemy.sql.expression import desc
+from sqlalchemy.sql.expression import desc, or_
 from sqlalchemy.types import Integer, UnicodeText, Boolean
 
 
 def get_published_news():
     announcements = (DBSession().query(News).
+                     outerjoin(Challenge).
                      filter(News.published == True).
+                     filter(or_(Challenge.published,
+                                Challenge.published == None)).
                      order_by(desc(News.timestamp)))
     return announcements
 

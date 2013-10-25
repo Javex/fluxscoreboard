@@ -1,7 +1,7 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
 from fluxscoreboard.config import ROOT_DIR
-from fluxscoreboard.models import Base, DBSession, settings
+from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.team import get_team_by_ref
 from fluxscoreboard.util import now
@@ -22,6 +22,7 @@ import os.path
 import requests
 import shutil
 import socket
+import transaction
 import zipfile
 
 
@@ -66,9 +67,13 @@ class FlagView(BaseView):
                 ret["msg"] = "CTF is over."
             return ret
         ref_id = self.request.matchdict["ref_id"]
-        team = get_team_by_ref(ref_id)
-        # loc = get_location(self.request.client_addr)
-        loc = get_location("80.142.33.44")
+        try:
+            team = get_team_by_ref(ref_id)
+        except NoResultFound:
+            ret = {'success': False,
+                   'msg': "Team not found."}
+            return ret
+        loc = get_location(self.request.client_addr)
         ret = {'success': True}
         if loc is None:
             log.warn("No valid location returned for IP address '%s' for "
@@ -79,11 +84,15 @@ class FlagView(BaseView):
                             "range.")
             return ret
         ret["location"] = loc
-        if loc not in team.flags:
+        try:
+            t = transaction.savepoint()
             team.flags.append(loc)
-            ret["msg"] = "Location successfully registered."
-        else:
+            DBSession().flush()
+        except Exception:
             ret["msg"] = "Location already registered."
+            t.rollback()
+        else:
+            ret["msg"] = "Location successfully registered."
         return ret
 
 
@@ -103,7 +112,7 @@ class TeamFlag(Base):
         accordingly.
     """
     __tablename__ = 'team_flag'
-    team_id = Column(Integer, ForeignKey('team.id'), nullable=False)
+    team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
     flag = Column(Unicode(2), primary_key=True)
     team = relationship("Team",
                         backref=backref("team_flags",
@@ -178,12 +187,29 @@ def display(challenge, request):
     return render('dynamic_flags.mako', params, request)
 
 
-def points_query():
-    from fluxscoreboard.models.team import Team
+def points_query(cls=None):
+    """
+    Returns a scalar query element that can be used in a ``SELECT`` statement
+    to be added to the points query. The parameter ``cls`` can be anything
+    that SQLAlchemy can correlate on. If left empty, it defaults to the
+    standard :cls`fluxscoreboard.models.team.Team`, which is normally fine.
+    However, if multiple teams are involved (as with the ranking algorithm)
+    one might pass in an alias like this:
+
+    .. code-block:: python
+        inner_team = aliased(Team)
+        dynamic_points = flags.points_query(inner_team)
+
+    This will then correlate on a specific alias of ``Team`` instead of the
+    default class.
+    """
+    if cls is None:
+        from fluxscoreboard.models.team import Team
+        cls = Team
     subquery = (DBSession().query(func.count('*')).
-                filter(TeamFlag.team_id == Team.id).
-                correlate(Team))
-    return subquery.as_scalar()
+                filter(TeamFlag.team_id == cls.id).
+                correlate(cls))
+    return func.coalesce(subquery.as_scalar(), 0)
 
 
 def points(team):

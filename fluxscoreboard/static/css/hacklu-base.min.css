@@ -115,7 +115,7 @@ form legend {
     background:#013066;
 }
 #stats-wrapper {
-    width:1001px;
+    width:1221px;
     margin:auto;
 }
 #stats-middle, .perc-orb {
@@ -222,10 +222,10 @@ nav a {
     color:#66d6ff;
     text-decoration:none;
 }
-.menu .scoreboard a, .menu .register a {
+.menu .scoreboard a {
     border-left:11px solid #00ff6c;
 }
-.menu .profile a {
+.menu .profile a, .menu .register a {
     border-left:11px solid #ff7f3f;
 }
 .menu .logout a, .menu .login a {
@@ -324,6 +324,11 @@ nav a:hover {
 #announce-items p:nth-child(2) {
     border-left:6px solid #ff7f3f;
 }
+
+#content {
+    padding: 0 20px;
+}
+
 #content h2 {
     position:relative;
     bottom:1px;
@@ -340,10 +345,14 @@ nav a:hover {
     background:url(../images/content_title.png);
 }
 #content-wrapper {
-    width:1000px;
     padding:20px 0;
     margin:auto;
 }
+
+#content-wrapper.scale {
+    width:1000px;
+}
+
 #content-wrapper form {
     margin-top:20px;
 }

@@ -31,7 +31,9 @@ log = logging.getLogger(__name__)
             % endif
             </td>
             <td>
-                % if challenge.points is manual_challenge_points:
+                % if challenge.dynamic:
+                    -
+                % elif challenge.points is manual_challenge_points:
                     <em>${challenge.points}</em>
                 % else:
                     ${challenge.points or '-'}

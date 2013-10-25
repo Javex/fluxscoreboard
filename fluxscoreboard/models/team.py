@@ -4,22 +4,27 @@ from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Submission, Challenge, Category
 from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token
 from pyramid.decorator import reify
+from pyramid.events import subscriber, NewRequest
 from pyramid.renderers import render
-from pyramid.security import unauthenticated_userid
+from pyramid.security import unauthenticated_userid, authenticated_userid
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from pytz import utc, timezone, all_timezones
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, subqueryload, joinedload
+from sqlalchemy.orm import relationship, subqueryload, joinedload, backref
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func, desc, exists
+from sqlalchemy.sql.expression import func, desc
 from sqlalchemy.types import Integer, Unicode, Boolean
 import logging
-import os
 import random
 import string
+import transaction
+from sqlalchemy import event
+from pyramid.threadlocal import get_current_request
 
 
 log = logging.getLogger(__name__)
@@ -58,9 +63,15 @@ def get_active_teams():
 
 
 def get_leading_team():
+    """
+    Get the leading team with the highest rank.
+    """
     actives = get_active_teams()
     score = desc(Team.score)
-    return actives.order_by(score)[0]
+    try:
+        return actives.order_by(score)[0]
+    except IndexError:
+        return None
 
 
 def get_team_solved_subquery(team_id):
@@ -111,27 +122,6 @@ def get_number_solved_subquery():
             filter(Challenge.id == Submission.challenge_id).
             correlate(Challenge).
             as_scalar())
-
-
-def _get_score_subquery():
-    from ..models import dynamic_challenges
-    dbsession = DBSession()
-    # Calculate sum of all points, defalt to 0
-    challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
-    # Calculate sum of all bonus points, default to 0
-    bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
-    points_col = challenge_sum + bonus_sum
-    for module in dynamic_challenges.registry.values():
-        points_col += module.points_query()
-    # Create a subquery for the sum of the above points. The filters
-    # basically join the columns and the correlation is needed to reference
-    # the **outer** Team query.
-    team_score_subquery = (dbsession.query(points_col).
-                           filter(Challenge.id == Submission.challenge_id).
-                           filter(Team.id == Submission.team_id).
-                           filter(~Challenge.dynamic).
-                           correlate(Team))
-    return team_score_subquery.as_scalar()
 
 
 def get_team(request):
@@ -207,6 +197,7 @@ def confirm_registration(token):
     except NoResultFound:
         return False
     team.active = True
+    team.token = random_token()
     return True
 
 
@@ -364,6 +355,7 @@ class Team(Base):
 
     # TODO: Make it a set (and update TeamFlags docs)
     flags = association_proxy("team_flags", "flag")
+    ips = association_proxy("team_ips", "ip")
 
     country = relationship("Country", lazy='joined')
 
@@ -436,6 +428,7 @@ class Team(Base):
         count_query = (dbsession.query(func.count(Challenge.id)).
                        filter(Challenge.category_id == Category.id).
                        filter(~Challenge.dynamic).
+                       filter(Challenge.published).
                        correlate(Category))
         submission = (dbsession.query(Submission).
                       filter(Submission.team_id == self.id).
@@ -456,15 +449,17 @@ class Team(Base):
     @hybrid_property
     def score(self):
         from fluxscoreboard.models import dynamic_challenges
-        challenge_sum = sum(s.challenge.points for s in self.submissions)
-        bonus_sum = sum(s.bonus for s in self.submissions)
+        challenge_sum = sum(s.challenge.points or 0 for s in self.submissions
+                            if s.challenge.published)
+        bonus_sum = sum(s.bonus or 0 for s in self.submissions
+                        if s.challenge.published)
         dynamic_points = 0
         for module in dynamic_challenges.registry.values():
             dynamic_points += module.points(self)
         return challenge_sum + bonus_sum + dynamic_points
 
     @score.expression
-    def score(self):
+    def score(cls):  # @NoSelf
         from fluxscoreboard.models import dynamic_challenges
         dbsession = DBSession()
         # Calculate sum of all points, defalt to 0
@@ -473,19 +468,81 @@ class Team(Base):
         bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
         points_col = challenge_sum + bonus_sum
         for module in dynamic_challenges.registry.values():
-            points_col += module.points_query()
+            points_col += module.points_query(cls)
         # Create a subquery for the sum of the above points. The filters
         # basically join the columns and the correlation is needed to reference
         # the **outer** Team query.
         team_score_subquery = (dbsession.query(points_col).
                                filter(Challenge.id == Submission.challenge_id).
-                               filter(Team.id == Submission.team_id).
+                               filter(cls.id == Submission.team_id).
                                filter(~Challenge.dynamic).
-                               correlate(Team))
+                               filter(Challenge.published).
+                               correlate(cls))
         return team_score_subquery.label('score')
 
-    @property
+    @hybrid_property
     def rank(self):
+        """
+        Return the teams current rank. Can be used as a hybrid property:
+
+        .. code-block:: python
+
+            DBSession().query(Team).order_by(Team.rank)
+            # or
+            team = Team()
+            team.rank
+
+        In both cases the database will be queried so be careful how you use
+        it. For equal points the same rank is returned. In general we use a
+        `"1224" ranking <http://en.wikipedia.org/wiki/Ranking#Standard_competition_ranking_.28.221224.22_ranking.29>`_
+        here.
+        """
         rank = (DBSession().query(Team).filter(Team.score > self.score).
                 order_by(desc(Team.score)).count()) + 1
         return rank
+
+    @rank.expression
+    def rank(self):
+        inner_team = aliased(Team)
+        return (DBSession().query(func.count('*') + 1).
+                select_from(inner_team).
+                filter(inner_team.score > Team.score).
+                order_by(desc(inner_team.score)).
+                correlate(Team).
+                label('rank'))
+
+
+@event.listens_for(Team._password, 'set')
+def log_password_change(target, value, oldvalue, initiator):
+    request = get_current_request()
+    log.warning("Password changed for team with ID %s and name %s from IP "
+                "address %s"
+                % (target.id, target.name, request.client_addr))
+
+
+@subscriber(NewRequest)
+def register_ip(event):
+    if ("test-login" in event.request.session and
+            event.request.session["test-login"] or
+            event.request.path.startswith('/static')):
+        return None
+    team_id = authenticated_userid(event.request)
+    t = transaction.savepoint()
+    if not team_id:
+        return
+    ip = unicode(event.request.client_addr)
+    try:
+        dbsession = DBSession()
+        dbsession.add(TeamIP(team_id=team_id, ip=ip))
+        dbsession.flush()
+    except IntegrityError:
+        t.rollback()
+
+
+class TeamIP(Base):
+    __tablename__ = 'team_ip'
+    team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
+    ip = Column(Unicode(15), primary_key=True)
+
+    team = relationship("Team", backref=backref("team_ips",
+                                                cascade="all, delete-orphan"))

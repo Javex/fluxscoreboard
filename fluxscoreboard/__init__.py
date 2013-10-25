@@ -14,7 +14,7 @@ from sqlalchemy import engine_from_config
 import warnings
 
 
-__version__ = '0.2.9'
+__version__ = '0.3'
 # ALWAYS make an exception for a warning (from sqlalchemy)
 warnings.filterwarnings("error", category=Warning, module=r'.*sqlalchemy.*')
 
@@ -48,22 +48,36 @@ def main(global_config, **settings):
                           )
 
     # Routes & Views
-    config.add_static_view('static', 'static', cache_max_age=3600)
-    init_routes(config)
+    static_dir = 'static'
+    subdirectory = settings.get("subdirectory", "")
+    if subdirectory:
+        static_dir = subdirectory + "/" + static_dir
+    config.add_static_view(static_dir, 'static', cache_max_age=3600)
+    init_routes(config, subdirectory)
     config.scan()
     return config.make_wsgi_app()
 
 
-def init_routes(config):
+def init_routes(config, subdirectory = ""):
     for name, path in routes.routes:
+        if subdirectory:
+            path = "/" + subdirectory + path
         config.add_route(name, path)
 
 
 def fix_setting_types(settings):
     """
     Parses a settings dictionary and adjusts the types of certain settings so
-    they are not all strings.
+    they are not all strings. Additionally, may adjust some setting values,
+    for example strip their strings.
     """
+    # settings to be converted to boolean
     # currently no settings to convert
     for setting in []:
         settings[setting] = asbool(settings[setting])
+
+    # settings to be stripped
+    for setting in ["subdirectory"]:
+        if setting in settings:
+            settings[setting] = settings[setting].strip()
+

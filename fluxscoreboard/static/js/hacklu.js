@@ -14,7 +14,7 @@ var HackLu = {
 	},
 	
 	bindEvents: function() {
-		$("div#content>h2").click(HackLu.slideMenu);
+		/*$("div#content>h2").click(HackLu.slideMenu);*/
 	},
 	
 	startTimer: function() {

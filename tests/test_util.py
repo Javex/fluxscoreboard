@@ -29,15 +29,15 @@ def header(request):
 class TestDisplayDesign(object):
 
     @pytest.fixture(autouse=True)
-    def _prepare(self, pyramid_request):
+    def _prepare(self, pyramid_request, dbsettings):
         self.request = pyramid_request
         self.request.path = "/start"
-        self.settings = settings.get()
+        self.settings = pyramid_request.settings
         self.settings.ctf_start_date = utc.localize(datetime.utcnow() +
                                                     timedelta(1))
 
     def test_else(self):
-        assert not settings.get().ctf_started
+        assert not self.request.settings.ctf_started
         assert display_design(self.request)
 
     def test_admin(self):

@@ -18,10 +18,12 @@ from pyramid.security import remember, authenticated_userid, forget
 from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
 from pytz import utc
-from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.sql.expression import desc
 import functools
 import logging
+from PIL.ImageFilter import RankFilter
+from sqlalchemy.orm.exc import NoResultFound
 
 # TODO: Reduce requests per second on CSS and JS
 
@@ -46,15 +48,15 @@ class BaseView(object):
     logged in.
     """
 
-    _logged_in_menu = [  # ('news', "Announcements"),
-                      ('scoreboard', "Scoreboard"),
+    _logged_in_menu = [('scoreboard', "Scoreboard"),
                       ('challenges', "Challenges"),
                       ('submit', "Submit"),
                       ('profile', "Profile"),
                       ('logout', "Logout"),
                       ]
-    _logged_out_menu = [('login', "Login"),
-                       ('register', "Register"),
+    _logged_out_menu = [('scoreboard', "Scoreboard"),
+                        ('login', "Login"),
+                        ('register', "Register"),
                        ]
 
     def __init__(self, request):
@@ -112,7 +114,25 @@ class BaseView(object):
     @reify
     def seconds_until_end(self):
         end = self.request.settings.ctf_end_date
-        return int((end - now()).total_seconds())
+        countdown = int((end - now()).total_seconds())
+        if countdown <= 0:
+            return 0
+        else:
+            return countdown
+
+    @reify
+    def ctf_progress(self):
+        end = self.request.settings.ctf_end_date
+        start = self.request.settings.ctf_start_date
+        total_time = (end - start).total_seconds()
+        already_passed = (now() - start).total_seconds()
+        progress = already_passed / total_time
+        if progress >= 1:
+            return 1
+        elif progress < 0:
+            return 0
+        else:
+            return progress
 
 
 class SpecialView(BaseView):
@@ -172,8 +192,9 @@ class FrontView(BaseView):
         challenges = (dbsession.query(Challenge,
                                            team_solved_subquery.exists(),
                                            number_of_solved_subquery).
-                           outerjoin(Submission).
-                           group_by(Challenge.id))
+                      filter(Challenge.published).
+                      outerjoin(Submission).
+                      group_by(Challenge.id))
         return {'challenges': challenges}
 
     @logged_in_view(route_name='challenge', renderer='challenge.mako')
@@ -189,10 +210,15 @@ class FrontView(BaseView):
         team_id = authenticated_userid(self.request)
         dbsession = DBSession()
         team_solved_subquery = get_team_solved_subquery(team_id)
-        challenge, is_solved = (dbsession.query(Challenge,
+        try:
+            challenge, is_solved = (dbsession.query(Challenge,
                                                 team_solved_subquery.exists()).
                                  filter(Challenge.id == challenge_id).
+                                 filter(Challenge.published).
                                  options(subqueryload('announcements')).one())
+        except NoResultFound:
+            self.request.session.flash("Challenge not found or published.")
+            return HTTPFound(location=self.request.route_url('challenges'))
         form = SolutionSubmitForm(self.request.POST, csrf_context=self.request)
         retparams = {'challenge': challenge,
                      'form': form,
@@ -213,7 +239,7 @@ class FrontView(BaseView):
                              )
         return retparams
 
-    @logged_in_view(route_name='scoreboard', renderer='scoreboard.mako')
+    @view_config(route_name='scoreboard', renderer='scoreboard.mako')
     def scoreboard(self):
         """
         The central most interesting view. This contains a list of all teams
@@ -225,8 +251,21 @@ class FrontView(BaseView):
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
         teams = (dbsession.query(Team, Team.score).
-                      order_by(desc("score")))
-        return {'teams': teams}
+                 filter(Team.active).
+                 options(subqueryload('submissions'),
+                         joinedload('submissions.challenge')).
+                 options(subqueryload('team_flags')).
+                 order_by(desc("score")))
+        team_list = []
+        last_score = None
+        for index, (team, score) in enumerate(teams, 1):
+            if last_score is None or score < last_score:
+                rank = index
+                last_score = score
+            team_list.append((team, score, rank))
+        challenges = (dbsession.query(Challenge).filter(Challenge.published))
+        return {'teams': team_list,
+                'challenges': challenges.all()}
 
     @logged_in_view(route_name='news', renderer='announcements.mako')
     def news(self):
