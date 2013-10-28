@@ -58,7 +58,7 @@ def main(global_config, **settings):
     return config.make_wsgi_app()
 
 
-def init_routes(config, subdirectory = ""):
+def init_routes(config, subdirectory=""):
     for name, path in routes.routes:
         if subdirectory:
             path = "/" + subdirectory + path

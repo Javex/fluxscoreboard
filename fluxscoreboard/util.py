@@ -63,7 +63,12 @@ def is_admin_path(request):
     subdir = settings.get("subdirectory", "")
     admin_path = "/admin"
     if subdir:
-        admin_path = "/" + subdir + admin_path
+        subdir = "/" + subdir
+        if not request.path.startswith(subdir):
+            raise ValueError("Invalid route: subdirectory setting set to %s "
+                             "but path does not start with it: %s" %
+                             (subdir, request.path))
+        admin_path = subdir + admin_path
     return request.path.startswith(admin_path)
 
 

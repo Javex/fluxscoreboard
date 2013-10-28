@@ -2,11 +2,10 @@
 from __future__ import unicode_literals, print_function, absolute_import
 from datetime import datetime, timedelta
 from fluxscoreboard import util
-from fluxscoreboard.models import settings
 from fluxscoreboard.util import (display_design, encrypt_pw, bcrypt_split,
     random_token, nl2br, random_str, tz_str, not_logged_in,
     add_header_x_frame_options, add_header_x_xss_protection, add_header_hsts,
-    add_header_csp)
+    add_header_csp, is_admin_path)
 from pytz import utc, timezone
 import pytest
 
@@ -55,6 +54,58 @@ class TestDisplayDesign(object):
     def test_public_route(self, public_route):
         self.request.matched_route.name = public_route
         assert not display_design(self.request)
+
+
+class Test_is_admin_path(object):
+
+    @pytest.fixture(autouse=True)
+    def _prepare(self, pyramid_request, settings, request):
+        self.request = pyramid_request
+        self.request.registry.settings = settings
+        self.settings = self.request.registry.settings
+        old_subdirectory = settings.get("subdirectory")
+
+        def _restore():
+            if old_subdirectory is None:
+                if "subdirectory" in settings:
+                    del settings["subdirectory"]
+            else:
+                settings["subdirectory"] = old_subdirectory
+        request.addfinalizer(_restore)
+
+    def test_no_admin_no_subdir(self):
+        assert "subdirectory" not in self.settings
+        self.request.path = "/some/non/admin/path"
+        assert not is_admin_path(self.request)
+
+    def test_no_admin_subdir(self):
+        self.settings["subdirectory"] = "abc"
+        self.request.path = "/abc/some/non/admin/path"
+        assert not is_admin_path(self.request)
+
+        self.request.path = "/abc/no/admin"
+        assert not is_admin_path(self.request)
+
+        self.request.path = "/some/non/admin/path"
+        with pytest.raises(ValueError):
+            is_admin_path(self.request)
+
+    def test_admin_no_subdir(self):
+        assert "subdirectory" not in self.settings
+        self.request.path = "/admin"
+        assert is_admin_path(self.request)
+
+        self.request.path = "/admin/path"
+        assert is_admin_path(self.request)
+
+    def test_admin_subdir(self):
+        self.settings["subdirectory"] = "abc"
+        self.request.path = "/abc/admin"
+        assert is_admin_path(self.request)
+
+        self.request.path = "/admin/path"
+        with pytest.raises(ValueError):
+            is_admin_path(self.request)
 
 
 def test_now():
