@@ -67,7 +67,7 @@ if __name__ == '__main__':
         print("[*] Installing database")
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
-        install(settings, test_data=(task == "install_test"))
+        install(settings, config_file, test_data=(task == "install_test"))
         print("[*] Minifying and joining CSS/JS files")
         minify()
         print("[*] Application installed")
