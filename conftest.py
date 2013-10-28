@@ -9,24 +9,25 @@ from fluxscoreboard.models.dynamic_challenges.flags import TeamFlag
 from fluxscoreboard.models.news import MassMail
 from fluxscoreboard.models.settings import Settings
 from fluxscoreboard.models.team import Team
+from fluxscoreboard.views.front import BaseView
 from paste.deploy.loadwsgi import appconfig  # @UnresolvedImport
 from pyramid import testing
 from pyramid.authentication import SessionAuthenticationPolicy
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.paster import setup_logging
 from pyramid.security import remember
+from pyramid.tests.test_security import DummyAuthenticationPolicy
 from pyramid_beaker import BeakerSessionFactoryConfig
 from pyramid_mailer import get_mailer
+from sqlalchemy.orm.session import make_transient
 from webob.multidict import MultiDict
 from webtest.app import TestApp
+import Queue
 import logging
 import os
 import pytest
+import sys
 import transaction
-from pyramid.tests.test_security import DummyAuthenticationPolicy
-from pyramid.config import Configurator
-from fluxscoreboard.views.front import BaseView
-from sqlalchemy.orm.session import make_transient
 ROOT_PATH = os.path.dirname(__file__)
 CONF = os.path.join(ROOT_PATH, 'pytest.ini')
 setup_logging(CONF + '#loggers')
@@ -119,16 +120,20 @@ def config(settings, pyramid_request, request):
     return cfg
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def session_factory():
     return BeakerSessionFactoryConfig()
 
 
 @pytest.fixture
-def pyramid_request(session_factory):
+def pyramid_request(session_factory, request):
     r = testing.DummyRequest(params=MultiDict())
     r.client_addr = "127.0.0.1"
     r.session = session_factory(r)
+
+    def clean_flash():
+        r.session.pop_flash()
+    request.addfinalizer(clean_flash)
     return r
 
 

@@ -7,12 +7,9 @@ from fluxscoreboard.models.team import (get_team_solved_subquery, get_team,
     check_password_reset_token, get_team_by_ref, ref_token, Team,
     get_leading_team)
 from fluxscoreboard.util import random_token
-from pyramid_mailer import get_mailer
 from pytz import timezone, utc
-from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm.exc import NoResultFound
 import pytest
-import transaction
 
 
 def test_groupfinder(make_team):
@@ -253,6 +250,7 @@ class TestTeam(object):
         assert t._timezone == "UTC"
         assert t.timezone is utc
 
+    @pytest.mark.usefixtures("config")
     def test_nullables(self, make_team, dbsession, nullable_exc):
         teams = []
         for param in  ["name", "_password", "email", "country_id"]:
@@ -337,7 +335,7 @@ class TestTeam(object):
 
     def test_score(self, make_team, dbsession, make_challenge):
         t = make_team()
-        c = make_challenge(points=100)
+        c = make_challenge(points=100, published=True)
         dbsession.add_all([t, c])
         Submission(challenge=c, team=t)
         assert t.score == 100
@@ -348,7 +346,7 @@ class TestTeam(object):
 
     def test_score_bonus(self, make_team, make_challenge, dbsession):
         t = make_team()
-        c = make_challenge()
+        c = make_challenge(published=True)
         dbsession.add_all([t, c])
         Submission(challenge=c, team=t, bonus=3)
         assert t.score == 3
@@ -382,7 +380,7 @@ class TestTeam(object):
         t2 = make_team()
         t3 = make_team()
         t4 = make_team()
-        c1 = make_challenge(points=100)
+        c1 = make_challenge(points=100, published=True)
         dbsession.add_all([t1, t2, t3, t4, c1])
         Submission(challenge=c1, team=t1)
         Submission(challenge=c1, team=t2, bonus=3)

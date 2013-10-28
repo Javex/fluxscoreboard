@@ -21,8 +21,8 @@ class TestScoreboardView(BaseViewTest):
         assert isinstance(ret, HTTPFound)
 
     def test_challenges(self):
-        c1 = self.make_challenge(online=True)
-        c2 = self.make_challenge(online=False)
+        c1 = self.make_challenge(online=True, published=True)
+        c2 = self.make_challenge(online=False, published=True)
         self.dbsession.add_all([c1, c2])
         ret = self.view.challenges()
         assert len(ret) == 1
@@ -32,7 +32,7 @@ class TestScoreboardView(BaseViewTest):
         assert challenges[1] == (c2, False, 0)
 
     def test_challenges_solved_count(self):
-        c1 = self.make_challenge()
+        c1 = self.make_challenge(published=True)
         t1 = self.make_team()
         self.dbsession.add_all([c1, t1])
         Submission(challenge=c1, team=t1)
@@ -43,7 +43,7 @@ class TestScoreboardView(BaseViewTest):
         assert challenges[0] == (c1, False, 1)
 
     def test_challenges_team_solved(self):
-        c1 = self.make_challenge()
+        c1 = self.make_challenge(published=True)
         t1 = self.make_team()
         self.dbsession.add_all([c1, t1])
         self.dbsession.flush()
@@ -56,7 +56,7 @@ class TestScoreboardView(BaseViewTest):
         assert challenges[0] == (c1, True, 1)
 
     def test_challenge(self):
-        c = self.make_challenge()
+        c = self.make_challenge(published=True)
         self.dbsession.add(c)
         self.dbsession.flush()
         self.view.request.matchdict["id"] = c.id
@@ -68,7 +68,7 @@ class TestScoreboardView(BaseViewTest):
         assert challenge is c
 
     def test_challenge_solved(self):
-        c = self.make_challenge()
+        c = self.make_challenge(published=True)
         t = self.make_team()
         self.dbsession.add_all([t, c])
         Submission(challenge=c, team=t)
@@ -83,7 +83,7 @@ class TestScoreboardView(BaseViewTest):
 
     def test_challenge_solution_submit(self):
         token = self.request.session.get_csrf_token()
-        c = self.make_challenge(solution="Test", online=True)
+        c = self.make_challenge(solution="Test", online=True, published=True)
         t = self.make_team()
         self.dbsession.add_all([c, t])
         self.dbsession.flush()
@@ -103,7 +103,7 @@ class TestScoreboardView(BaseViewTest):
 
     def test_challenge_solution_submit_unsolved(self):
         token = self.request.session.get_csrf_token()
-        c = self.make_challenge(solution="Test", online=True)
+        c = self.make_challenge(solution="Test", online=True, published=True)
         t = self.make_team()
         self.dbsession.add_all([c, t])
         self.dbsession.flush()
@@ -122,15 +122,18 @@ class TestScoreboardView(BaseViewTest):
     def test_scoreboard(self):
         t1 = self.make_team(active=True)
         t2 = self.make_team(active=True)
-        c = self.make_challenge(points=100)
+        c = self.make_challenge(points=100, published=True)
         self.dbsession.add_all([t1, t2, c])
         Submission(challenge=c, team=t1)
         ret = self.view.scoreboard()
-        assert len(ret) == 1
+        assert len(ret) == 2
         teams = list(ret["teams"])
         assert len(teams) == 2
         assert teams[0] == (t1, 100, 1)
         assert teams[1] == (t2, 0, 2)
+        challenges = list(ret["challenges"])
+        assert len(challenges) == 1
+        assert challenges[0] is c
 
     def test_scoreboard_inactive_teams(self):
         t1 = self.make_team(active=True)

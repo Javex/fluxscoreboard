@@ -204,6 +204,8 @@ def test_not_logged_in_msg(dummy_login, pyramid_request):
     def _nop(b):
         pass
     dummy_login(5)
+    q = pyramid_request.session.peek_flash()
+    assert len(q) == 0
     f = not_logged_in("Testmsg")(_nop)
     a = A()
     a.request = pyramid_request
