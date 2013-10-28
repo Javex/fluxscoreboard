@@ -15,6 +15,10 @@ use = egg:fluxscoreboard
 # The domain on which the site runs
 domain = localhost
 
+# If the site should run in a subdirectory, set the name of the subroute you
+# wish to use here.
+#subdirectory =
+
 # reCAPTCHA keys
 recaptcha.public_key =
 recaptcha.private_key =
