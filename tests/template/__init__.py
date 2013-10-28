@@ -18,7 +18,7 @@ class TemplateTestBase(object):
         self.load_template()
         self.settings = dbsettings
         self.settings.ctf_end_date = now() + timedelta(1)
-        self.settings.ctf_end_date = now() - timedelta(1)
+        self.settings.ctf_start_date = now() - timedelta(1)
 
     def get_def(self, name):
         original = self.tmpl.get_def(name)
