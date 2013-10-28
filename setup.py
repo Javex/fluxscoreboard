@@ -35,6 +35,7 @@ requires = [
     'webtest',  # Testing
     'PIL',  # Avatars
     'requests',  # Download data (GeoIP)
+    'alembic',  # Database migration
     ]
 
 setup(name='fluxscoreboard',
