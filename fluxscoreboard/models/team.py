@@ -7,13 +7,16 @@ from pyramid.decorator import reify
 from pyramid.events import subscriber, NewRequest
 from pyramid.renderers import render
 from pyramid.security import unauthenticated_userid, authenticated_userid
+from pyramid.threadlocal import get_current_request
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from pytz import utc, timezone, all_timezones
+from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, subqueryload, joinedload, backref
+from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
@@ -23,8 +26,6 @@ import logging
 import random
 import string
 import transaction
-from sqlalchemy import event
-from pyramid.threadlocal import get_current_request
 
 
 log = logging.getLogger(__name__)
@@ -514,6 +515,8 @@ class Team(Base):
 
 @event.listens_for(Team._password, 'set')
 def log_password_change(target, value, oldvalue, initiator):
+    if oldvalue is NO_VALUE:
+        return
     request = get_current_request()
     log.warning("Password changed for team with ID %s and name %s from IP "
                 "address %s"
