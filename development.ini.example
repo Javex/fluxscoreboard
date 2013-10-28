@@ -101,6 +101,7 @@ pyramid.includes =
     pyramid_debugtoolbar
     pyramid_tm
     pyramid_beaker
+    pyramid_mako
     pyramid_mailer
 
 
