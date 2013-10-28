@@ -22,7 +22,6 @@ from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.sql.expression import desc
 import functools
 import logging
-from PIL.ImageFilter import RankFilter
 from sqlalchemy.orm.exc import NoResultFound
 
 # TODO: Reduce requests per second on CSS and JS

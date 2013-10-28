@@ -1,15 +1,14 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
-from datetime import datetime
+from datetime import datetime, timedelta
 from fluxscoreboard.models import dynamic_challenges
-from fluxscoreboard.models.challenge import get_all_challenges, \
-    get_online_challenges, Submission, get_unsolved_challenges, \
-    get_solvable_challenges, get_submissions, Category, get_all_categories, \
-    check_submission, manual_challenge_points, Challenge
+from fluxscoreboard.models.challenge import (get_all_challenges,
+    get_online_challenges, Submission, get_unsolved_challenges,
+    get_solvable_challenges, get_submissions, Category, get_all_categories,
+    check_submission, manual_challenge_points, Challenge)
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.settings import Settings
 from fluxscoreboard.util import now
-from datetime import timedelta
 from sqlalchemy.exc import IntegrityError, DatabaseError
 import pytest
 
@@ -43,9 +42,9 @@ def test_get_unsolved_challenges(dbsession, make_team, make_challenge):
 
 def test_get_solvable_challenges(dbsession, make_team, make_challenge):
     t = make_team()
-    c1 = make_challenge(online=True)
-    c2 = make_challenge(online=True, manual=True)
-    c3 = make_challenge(online=True)
+    c1 = make_challenge(online=True, published=True)
+    c2 = make_challenge(online=True, manual=True, published=True)
+    c3 = make_challenge(online=True, published=True)
     s = Submission(challenge=c1, team=t)
     dbsession.add_all([s, c2, c3])
     dbsession.flush()

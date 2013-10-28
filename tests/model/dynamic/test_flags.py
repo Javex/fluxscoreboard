@@ -7,10 +7,8 @@ from fluxscoreboard.models.dynamic_challenges.flags import (flag_list,
     points_query, title, get_location, install, GeoIP, FlagView)
 from fluxscoreboard.models.team import Team
 from fluxscoreboard.util import now
-from sqlalchemy.exc import OperationalError, IntegrityError
 import logging
 import pytest
-import time
 
 
 log = logging.getLogger(__name__)

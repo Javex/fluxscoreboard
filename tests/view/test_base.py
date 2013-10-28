@@ -49,7 +49,7 @@ class TestBaseView(BaseViewTest):
         assert ret[0] == n2
 
     def test_announcements_with_challenge(self):
-        c = self.make_challenge()
+        c = self.make_challenge(published=True)
         self.dbsession.add(c)
         n = News(published=True, challenge=c)
         ret = list(self.view.announcements)

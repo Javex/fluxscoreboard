@@ -8,7 +8,6 @@ from sqlalchemy import event
 from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.sql.expression import not_
-from sqlalchemy.sql.functions import count
 from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText
 
 
