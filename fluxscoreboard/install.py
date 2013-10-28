@@ -8,6 +8,8 @@ import json
 import logging
 import random
 import transaction
+from alembic.config import Config
+from alembic import command
 
 __doc__ = """
 Installation module that provides the application with mechanisms for
@@ -19,13 +21,14 @@ installing and uninstalling the application. Also useful for testing.
 log = logging.getLogger(__name__)
 
 
-def install(settings, test_data=False):
+def install(settings, cfg_file, test_data=False):
     """
     Installs the application. Only required to be called once per installation.
     """
     dbsession = DBSession()
     transaction.begin()
     try:
+        install_alembic_table(cfg_file)
         Base.metadata.create_all(bind=dbsession.connection())
         create_country_list(dbsession)
         if test_data:
@@ -39,6 +42,11 @@ def install(settings, test_data=False):
         raise
     else:
         transaction.commit()
+
+
+def install_alembic_table(configuration_file):
+    config = Config(file_=configuration_file, ini_section="alembic")
+    command.stamp(config, "head")
 
 
 def install_test_data(dbsession, settings):
