@@ -113,6 +113,7 @@ def config(settings, pyramid_request, request):
                            cache_max_age=3600)
     init_routes(cfg)
     cfg.scan('fluxscoreboard.views')
+    cfg.include('pyramid_mako')
 
     def teardown():
         testing.tearDown()
