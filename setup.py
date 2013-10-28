@@ -23,6 +23,7 @@ requires = [
     'pyramid_tm',  # Transactions
     'pyramid_beaker',  # Sessions
     'beaker',  # Sessions
+    'pyramid_mako',  # Templates
     'mako',  # Template
     'pyramid_mailer',  # Mail
     'webhelpers',  # Utility

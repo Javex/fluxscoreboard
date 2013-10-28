@@ -104,6 +104,7 @@ pyramid.default_locale_name = en
 pyramid.includes =
     pyramid_tm
     pyramid_beaker
+    pyramid_mako
     pyramid_mailer
 
 
