@@ -18,30 +18,6 @@ def load_settings(event):
     event.request.settings = settings
 
 
-def get():
-    """
-    Get the single settings row. This intentionally calls ``one`` on the
-    query to make sure the application breaks as soon as someone inserts more
-    than one row.
-
-    There's genrally two recommended ways to import and call this function
-    without causing confusion:
-
-    .. code-block:: python
-
-        # If you have no local naming conflict
-        from fluxscoreboard.models import settings
-        settings.get()
-
-        # If you want to name your variable settings do this:
-        from fluxscoreboard.models.settings import get as get_settings
-        settings = get_settings()
-    """
-    log.warning("The get() function is deprecated. Access settings from the "
-                "request object: request.settings")
-    return get_current_request().settings
-
-
 class Settings(Base):
     """
     Represents application settings. Do **not** insert rows of this. There

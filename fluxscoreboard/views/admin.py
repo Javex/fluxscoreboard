@@ -7,7 +7,6 @@ from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission, \
     get_submissions, Category
 from fluxscoreboard.models.news import News, MassMail
-from fluxscoreboard.models.settings import get as get_settings
 from fluxscoreboard.models.team import Team, get_active_teams, TeamIP
 from pyramid.httpexceptions import HTTPFound
 from pyramid.security import remember
@@ -745,7 +744,7 @@ class AdminView(object):
         """
         Adjust runtime application settings.
         """
-        settings = get_settings()
+        settings = self.request.settings
         form = SettingsForm(self.request.POST, settings,
                             csrf_context=self.request)
         retparams = {'form': form}
