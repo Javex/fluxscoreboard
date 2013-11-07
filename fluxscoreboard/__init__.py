@@ -14,7 +14,7 @@ from sqlalchemy import engine_from_config
 import warnings
 
 
-__version__ = '0.3.5'
+__version__ = '0.3.6'
 # ALWAYS make an exception for a warning (from sqlalchemy)
 warnings.filterwarnings("error", category=Warning, module=r'.*sqlalchemy.*')
 
