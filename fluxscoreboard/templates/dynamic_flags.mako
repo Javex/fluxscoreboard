@@ -12,8 +12,10 @@ from fluxscoreboard.util import now
     activated and you gain an additional point. You already have
     ${"%d/%d" % flag_stats} points.
 </p>
-% if challenge.online and not request.settings.submission_disabled and not now() > request.settings.ctf_end_date:
+% if not request.settings.archive_mode and challenge.online and not request.settings.submission_disabled and not now() > request.settings.ctf_end_date:
     <p>To collect points for that challenge, use this URL: <a href="${request.route_url('ref', ref_id=team.ref_token)}">${request.route_url('ref', ref_id=team.ref_token)}</a></p>
+% elif request.settings.archive_mode:
+    <p class="text-warning text-center">This challenge cannot be solved in archive mode.</p>
 % elif now() > request.settings.ctf_end_date:
     <p class="text-danger text-center">The CTF is over. You cannot submit any more solutions.</p>
 % elif challenge.manual:

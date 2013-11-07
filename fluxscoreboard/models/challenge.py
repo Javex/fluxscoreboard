@@ -98,23 +98,30 @@ def check_submission(challenge, solution, team_id, settings):
     """
     dbsession = DBSession()
 
+    # Perform all checks that filter out invalid submissions
     if settings.submission_disabled:
         return False, "Submission is currently disabled"
-
-    if now() > settings.ctf_end_date:
-        return False, "The CTF is over, no more solutions can be submitted."
 
     if not challenge.online:
         return False, "Challenge is offline."
 
-    if challenge.solution != solution:
-        return False, "Solution incorrect."
+    if not settings.archive_mode and now() > settings.ctf_end_date:
+        return False, "The CTF is over, no more solutions can be submitted."
 
     if challenge.manual:
         return False, "Credits for this challenge will be given manually."
 
     if challenge.dynamic:
         return False, "The challenge is dynamic, no submission possible."
+
+    if challenge.solution != solution:
+        return False, "Solution incorrect."
+
+    # After this, the solution is correct and we can return True
+    if settings.archive_mode:
+        return True, ("Congratulations: That was the correct solution! "
+                      "However, since the scoreboard is in archive mode, you "
+                      "will not be awarded any points.")
 
     query = (dbsession.query(Submission.team_id).
              filter(Submission.challenge_id == challenge.id))

@@ -58,6 +58,10 @@ class BaseView(object):
                         ('register', "Register"),
                        ]
 
+    _archive_menu = [('scoreboard', "Scoreboard"),
+                     ('challenges', "Challenges"),
+                     ('submit', "Submit")]
+
     def __init__(self, request):
         self.request = request
         self.orb_count = None
@@ -76,7 +80,9 @@ class BaseView(object):
         Get the current menu items as a list of tuples ``(view_name, title)``.
         """
         max_len = max([len(self._logged_in_menu), len(self._logged_out_menu)])
-        if authenticated_userid(self.request):
+        if self.archive_mode:
+            menu = list(self._archive_menu)
+        elif authenticated_userid(self.request):
             menu = list(self._logged_in_menu)
         else:
             menu = list(self._logged_out_menu)
@@ -112,6 +118,9 @@ class BaseView(object):
 
     @reify
     def seconds_until_end(self):
+        if self.archive_mode:
+            raise ValueError("CTF is in archive mode. Cannot yield remaining "
+                             "seconds")
         end = self.request.settings.ctf_end_date
         countdown = int((end - now()).total_seconds())
         if countdown <= 0:
@@ -121,6 +130,8 @@ class BaseView(object):
 
     @reify
     def ctf_progress(self):
+        if self.archive_mode:
+            return 1
         end = self.request.settings.ctf_end_date
         start = self.request.settings.ctf_start_date
         total_time = (end - start).total_seconds()
@@ -132,6 +143,10 @@ class BaseView(object):
             return 0
         else:
             return progress
+
+    @property
+    def archive_mode(self):
+        return self.request.settings.archive_mode
 
 
 class SpecialView(BaseView):
@@ -166,7 +181,7 @@ class FrontView(BaseView):
     :meth:`ref` view.
     """
 
-    @logged_in_view(route_name='home')
+    @view_config(route_name='home', permission='view_or_archive')
     def home(self):
         """
         A view for the page root which just redirects to the ``scoreboard``
@@ -174,7 +189,8 @@ class FrontView(BaseView):
         """
         return HTTPFound(location=self.request.route_url('scoreboard'))
 
-    @logged_in_view(route_name='challenges', renderer='challenges.mako')
+    @view_config(route_name='challenges', renderer='challenges.mako',
+                 permission='view_or_archive')
     def challenges(self):
         """
         A list of all challenges similar to the scoreboard view in a table.
@@ -196,7 +212,8 @@ class FrontView(BaseView):
                       group_by(Challenge.id))
         return {'challenges': challenges}
 
-    @logged_in_view(route_name='challenge', renderer='challenge.mako')
+    @view_config(route_name='challenge', renderer='challenge.mako',
+                 permission='view_or_archive')
     def challenge(self):
         """
         A view of a single challenge. The query is very similar to that of
@@ -274,7 +291,8 @@ class FrontView(BaseView):
         """
         return {'announcements': self.announcements}
 
-    @logged_in_view(route_name='submit', renderer='submit.mako')
+    @view_config(route_name='submit', renderer='submit.mako',
+                 permission='view_or_archive')
     def submit_solution(self):
         """
         A special form that, in addition to the form provided by
@@ -339,6 +357,11 @@ class UserView(BaseView):
         ``POST`` request, handles the login by checking whether it is valid.
         If it is, the user is logged in and redirected to the frontpage.
         """
+        if self.archive_mode:
+            self.request.session.flash("Login disabled in archive mode.",
+                                       'error')
+            return HTTPFound(location=self.request.route_url('home'))
+
         form = LoginForm(self.request.POST, csrf_context=self.request)
         retparams = {'form': form,
                      }
@@ -383,6 +406,10 @@ class UserView(BaseView):
         """
         Display and handle registration of new teams.
         """
+        if self.archive_mode:
+            self.request.session.flash(("Registration disabled in archive "
+                                        "mode."), 'error')
+            return HTTPFound(location=self.request.route_url('home'))
         ip = self.request.client_addr
         form = RegisterForm(self.request.POST, csrf_context=self.request,
                             captcha={'ip_address': ip})
@@ -407,6 +434,10 @@ class UserView(BaseView):
         visitng this view. It fetches the team corresponding to the token and
         activates it.
         """
+        if self.archive_mode:
+            self.request.session.flash(("Registration disabled in archive "
+                                        "mode."), 'error')
+            return HTTPFound(location=self.request.route_url('home'))
         # TODO: Its probably a better idea if the token contained the userid
         token = self.request.matchdict.get('token', None)
         if not confirm_registration(token):
@@ -451,6 +482,10 @@ class UserView(BaseView):
     @view_config(route_name='reset-password-start',
                  renderer='reset_password_start.mako')
     def reset_password_start(self):
+        if self.archive_mode:
+            self.request.session.flash(("Password reset impossible in "
+                                        "archive mode."), 'error')
+            return HTTPFound(location=self.request.route_url('home'))
         # TODO: The token should probably contain the userid here as well
         form = ForgotPasswordForm(self.request.POST, csrf_context=self.request)
         retparams = {'form': form}
@@ -468,6 +503,10 @@ class UserView(BaseView):
 
     @view_config(route_name='reset-password', renderer='reset_password.mako')
     def reset_password(self):
+        if self.archive_mode:
+            self.request.session.flash(("Password reset impossible in "
+                                        "archive mode."), 'error')
+            return HTTPFound(location=self.request.route_url('home'))
         form = ResetPasswordForm(self.request.POST, csrf_context=self.request)
         redirect = HTTPFound(location=self.request.route_url('login'))
         token = self.request.matchdict["token"]
