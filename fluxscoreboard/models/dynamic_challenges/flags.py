@@ -6,6 +6,7 @@ from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.team import get_team_by_ref
 from fluxscoreboard.util import now
 from fluxscoreboard.views.front import BaseView
+from pyramid.httpexceptions import HTTPFound
 from pyramid.renderers import render
 from pyramid.view import view_config
 from requests.exceptions import RequestException
@@ -43,6 +44,10 @@ class FlagView(BaseView):
         location the client was from was not already in the list of registered
         locations for the team.
         """
+        if self.archive_mode:
+            flash_msg = "This challenge cannot be solved in archive mode."
+            self.request.session.flash(flash_msg, 'error')
+            return HTTPFound(location=self.request.route_url('home'))
         try:
             challenge = (DBSession().query(Challenge).
                          filter(Challenge.module_name == 'flags').one())
@@ -168,7 +173,7 @@ def display(challenge, request):
     flags = []
     team = get_team(request)
     solved_flags = 0
-    team_flags = set(team.flags)
+    team_flags = set(team.flags) if team else set()
     for row in xrange(15):
         flag_row = []
         for col in xrange(15):

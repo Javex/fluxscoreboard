@@ -235,6 +235,10 @@ nav a {
 	border-left:11px solid #595959;
 }
 
+.menu .submit a {
+	border-left:11px solid #6E2FBC;
+}
+
 nav a:hover {
     color:#fff;
 }

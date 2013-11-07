@@ -48,8 +48,12 @@ import pytz
                             <img src="${request.static_url('fluxscoreboard:static/images/lgraph_%s.png' % (int(view.ctf_progress * 10) * 10))}">
                         </div>
                         <div id="timer">
+                        % if not view.archive_mode:
                             <div>seconds until end</div>
                             <span id="timer-seconds">${view.seconds_until_end}</span>
+                        % else:
+                            <span id="time-seconds">Archive Mode</span>
+                        % endif
                         </div>
                         <div id="rgraph">
                             overall completion<br>
@@ -108,7 +112,7 @@ import pytz
         <div id="content">
             <h2 id="scoreboard">${view.title}</h2>
             <div id="content-wrapper"
-            % if request.path != "/scoreboard":
+            % if request.matched_route.name != "scoreboard":
                 class="scale"
             % endif
             >

@@ -366,4 +366,11 @@ class SettingsForm(CSRFForm):
                      "'%Y-%m-%d %H:%M:%S' and UTC timezone.")
     )
 
+    archive_mode = BooleanField(
+        "Archive Mode",
+        description=("Put the scoreboard in archive mode, protecting it from "
+                     "changes in the frontend and allowing public access. See "
+                     "documentation for details.")
+    )
+
     submit = SubmitField("Send")

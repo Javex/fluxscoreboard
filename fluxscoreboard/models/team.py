@@ -133,16 +133,21 @@ def get_team(request):
     if not hasattr(request, 'team'):
         dbsession = DBSession()
         team_id = unauthenticated_userid(request)
-        try:
-            team = (dbsession.query(Team).
-                    options(subqueryload('submissions'),
-                            joinedload('submissions.challenge'),
-                            joinedload('team_flags')).
-                    filter(Team.id == team_id).
-                    filter(Team.active == True).one())
-            request.team = team
-        except NoResultFound:
+        if not request.settings.archive_mode:
+            try:
+                team = (dbsession.query(Team).
+                        options(subqueryload('submissions'),
+                                joinedload('submissions.challenge'),
+                                joinedload('team_flags')).
+                        filter(Team.id == team_id).
+                        filter(Team.active == True).one())
+                request.team = team
+            except NoResultFound:
+                request.team = None
+        else:
             request.team = None
+            if team_id:
+                request.session.invalidate()
     return request.team
 
 

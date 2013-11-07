@@ -5,7 +5,6 @@ from fluxscoreboard.models.types import TZDateTime
 from pyramid.events import NewRequest, subscriber
 from sqlalchemy.schema import Column
 from sqlalchemy.types import Integer, Boolean
-from pyramid.threadlocal import get_current_request
 import logging
 
 
@@ -44,11 +43,25 @@ class Settings(Base):
         ``ctf_started``: This is a property that can only be read and just
         compares ``ctf_start_date`` with the current time to find out whether
         the CTF has already started or not.
+
+        ``archive_mode``: When the scoreboard is in archive mode, the frontend
+        will not allow alteration to the database. Additionally, the whole
+        system is public so everyone can get their solutions checked. This is
+        then verified and the result is returned, but it is not added to the
+        database. The following things will change in archive mode:
+
+            - No registration
+            - No login
+            - Start / End times ignored
+            - Solutions can be submitted but will only return the result, not
+              enter something into the databse
+            - Challenges are public in addition to the scoreboard
     """
     id = Column(Integer, primary_key=True)
     submission_disabled = Column(Boolean, default=False)
     ctf_start_date = Column(TZDateTime)
     ctf_end_date = Column(TZDateTime)
+    archive_mode = Column(Boolean, default=False, nullable=False)
 
     @property
     def ctf_started(self):
