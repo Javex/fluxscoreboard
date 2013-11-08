@@ -163,7 +163,7 @@ class SpecialView(BaseView):
             return HTTPForbidden()
         return HTTPFound(location=self.request.route_url('login'))
 
-    @notfound_view_config(renderer='404.mako')
+    @notfound_view_config(renderer='404.mako', append_slash=True)
     def notfound(self):
         """
         Renders a 404 view that integrates with the page. The attached template

@@ -112,7 +112,7 @@ import pytz
         <div id="content">
             <h2 id="scoreboard">${view.title}</h2>
             <div id="content-wrapper"
-            % if request.matched_route.name != "scoreboard":
+            % if request.matched_route and request.matched_route.name != "scoreboard":
                 class="scale"
             % endif
             >
