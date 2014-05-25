@@ -2,3 +2,7 @@ development.ini
 production.ini
 data/session/*
 tests/template/cache
+log
+docs/_build
+fluxscoreboard.egg-info
+*.pyc
