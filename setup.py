@@ -16,7 +16,7 @@ v.close()
 
 requires = [
     'pyramid',  # WSGI framework
-    'SQLAlchemy',  # Database
+    'SQLAlchemy==0.8.6',  # Database
     'mysql-python',  # Database
     'zope.sqlalchemy',  # Database
     'transaction',  # Transactions
@@ -28,13 +28,13 @@ requires = [
     'pyramid_mailer',  # Mail
     'webhelpers',  # Utility
     'py_bcrypt',  # Password storage
-    'wtforms',  # Forms
+    'wtforms==1.0.5',  # Forms
     'pytz',  # Timezone
     'pyramid_debugtoolbar',  # Dev Server
     'waitress',  # Dev Server
     'pytest',  # Testing
     'webtest',  # Testing
-    'PIL',  # Avatars
+    'Pillow',  # Avatars
     'requests',  # Download data (GeoIP)
     'alembic',  # Database migration
     ]

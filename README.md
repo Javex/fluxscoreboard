@@ -6,10 +6,10 @@ To run the scoreboard you need to:
 - Install a Python 2.7 virtualenv
 - Run `python setup.py develop`
 - Create a development.ini (see below)
-- Start the development version with `pserve development.ini`
-- Install the application with `python installer.py install`. You can also
+- Install the application with `python installer.py install development.ini`. You can also
   install test data if you want (just random strings). Then, instead, run
   `python installer.py install_test`
+- Start the development version with `pserve development.ini`
 
 Then visit localhost:6543 and start testing the application (Note: It can send
 real mails so make sure to enter **your** address).
