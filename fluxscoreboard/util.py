@@ -26,9 +26,8 @@ def display_design(request):
     - If it is a test-login from the backend, show the design.
     - If the CTF has started, the real design is loaded for the frontpage
       (i.e. ``True``).
-    - If no route is matched or a public route is matched, the default design
-      is loaded (``False``).
-    - Otherwise the real design is loaded (``True``).
+    - If no route is matched, the default design is loaded (``False``).
+    - Otherwise we fall back to not show the design (``False``).
 
     The conditions are processed in order, i.e. the first match is returned.
     """
@@ -48,14 +47,8 @@ def display_design(request):
     if not request.matched_route:
         return False
 
-    # If the view is something that is public and we did not launch yet
-    # we display the default one. This is a list of routes that is public.
-    if request.matched_route.name in ['login', 'register',
-                                      'reset-password-start', 'reset-password',
-                                      'confirm']:
-        return False
-    else:
-        return True
+    # Safe fallback: No reason to display the real design
+    return False
 
 
 def is_admin_path(request):
