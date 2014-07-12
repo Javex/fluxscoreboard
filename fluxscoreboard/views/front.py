@@ -418,21 +418,23 @@ class UserView(BaseView):
                           }
                          )
                 return retparams
-            ctf_start = self.request.settings.ctf_start_date
-            ctf_started = self.request.settings.ctf_started
-            if not ctf_started:
-                self.request.session.flash("Your login was successful, but "
-                                           "the CTF has not started yet. "
-                                           "Please come back at "
-                                           "%s (%s), i.e. %s UTC."
-                                           % (tz_str(ctf_start, team.timezone),
-                                              team.timezone,
-                                              tz_str(ctf_start, utc)))
-                return HTTPFound(location=self.request.route_url('login'))
             # Start a new session due to new permissions
             self.request.session.invalidate()
+
+            # Check if CTF has started already
+            ctf_started = self.request.settings.ctf_started
+            if not ctf_started:
+                ctf_start = self.request.settings.ctf_start_date
+                self.request.session.flash(
+                    "You are now logged in. However, the CTF has not started "
+                    "yet and thus you cannot see any challenges or the "
+                    "scoreboard. The CTF will start at %s (%s), i.e. %s UTC."
+                    % (tz_str(ctf_start, team.timezone), team.timezone,
+                       tz_str(ctf_start, utc)))
+            else:
+                self.request.session.flash("You have been logged in.",
+                                           'success')
             headers = remember(self.request, team.id)
-            self.request.session.flash("You have been logged in.", 'success')
             return HTTPFound(location=self.request.route_url('home'),
                                  headers=headers)
         return retparams
