@@ -17,6 +17,7 @@ routes = [('home', '/'),
           ('challenges', '/challenges'),
           ('challenge', '/challenges/{id}'),
           ('scoreboard', '/scoreboard'),
+          ('teams', '/teams'),
           ('ref', '/ref/{ref_id}'),
           # User routes
           ('submit', '/submit'),

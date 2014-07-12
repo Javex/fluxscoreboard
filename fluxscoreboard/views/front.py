@@ -47,20 +47,36 @@ class BaseView(object):
     logged in.
     """
 
-    _logged_in_menu = [('scoreboard', "Scoreboard"),
-                      ('challenges', "Challenges"),
-                      ('submit', "Submit"),
-                      ('profile', "Profile"),
-                      ('logout', "Logout"),
-                      ]
-    _logged_out_menu = [('scoreboard', "Scoreboard"),
-                        ('login', "Login"),
-                        ('register', "Register"),
-                       ]
+    _menu_item_map = {
+        'scoreboard': "Scoreboard",
+        'teams': "Teams",
+        'challenges': "Challenges",
+        'submit': "Submit",
+        'profile': "Profile",
+        'logout': "Logout",
+        'login': "Login",
+        'register': "Register",
+        }
 
-    _archive_menu = [('scoreboard', "Scoreboard"),
-                     ('challenges', "Challenges"),
-                     ('submit', "Submit")]
+    # A matrix that gives a list of allowed views per possible state. The three
+    # categories are 'before', 'during' and 'after' with respect to the CTF
+    # start and end. The other states represent the login state, meaning that
+    # True represents a logged in team, False the opposite.
+    _menu_item_matrix = {
+        'before': {
+            True: ['teams', 'profile', 'logout'],
+            False: ['teams', 'login', 'register'],
+        },
+
+        'during': {
+            True: ['scoreboard', 'challenges', 'submit', 'profile', 'logout'],
+            False: ['scoreboard', 'login'],
+        },
+
+        'after': {
+            False: ['scoreboard', 'challenges', 'submit'],
+        },
+    }
 
     def __init__(self, request):
         self.request = request
@@ -79,13 +95,26 @@ class BaseView(object):
         """
         Get the current menu items as a list of tuples ``(view_name, title)``.
         """
-        max_len = max([len(self._logged_in_menu), len(self._logged_out_menu)])
+        max_len = max([max(x.values())
+                       for x in self._menu_item_matrix.values()])
+        # Team logged in?
+        logged_in = bool(authenticated_userid(self.request))
         if self.archive_mode:
-            menu = list(self._archive_menu)
-        elif authenticated_userid(self.request):
-            menu = list(self._logged_in_menu)
+            # After CTF
+            ctf_state = 'after'
+            # Archive mode is after CTF and currently knows no login
+            logged_in = False
+        elif not self.request.settings.ctf_started:
+            # Before CTF
+            ctf_state = 'before'
         else:
-            menu = list(self._logged_out_menu)
+            # During CTF
+            ctf_state = 'during'
+        # Fetch the correcnt menu:
+        menu = [(k, self._menu_item_map[k])
+                for k in self._menu_item_matrix[ctf_state][logged_in]]
+        # Small hack to accomodate 2013 design, might need to be removed
+        # TODO: Check if removal makes sense
         if display_design(self.request):
             while len(menu) < max_len:
                 menu.append((None, None))
@@ -282,6 +311,14 @@ class FrontView(BaseView):
         challenges = (dbsession.query(Challenge).filter(Challenge.published))
         return {'teams': team_list,
                 'challenges': challenges.all()}
+
+    @view_config(route_name='teams', renderer='teams.mako')
+    def teams(self):
+        """
+        Only a list of teams.
+        """
+        teams = DBSession.query(Team)
+        return {'teams': teams}
 
     @logged_in_view(route_name='news', renderer='announcements.mako')
     def news(self):
