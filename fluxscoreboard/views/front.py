@@ -91,12 +91,20 @@ class BaseView(object):
         return get_team(self.request)
 
     @reify
-    def menu(self):
+    def current_state(self):
         """
-        Get the current menu items as a list of tuples ``(view_name, title)``.
+        What is the current state on the team and CTF.
+
+        The CTF can be in three states:
+
+        - Before it starts
+        - During the CTF
+        - After it is done (activated by the archive mode **NOT** by the
+          timer).
+
+        The team state can be either logged in or logged out (currently, after
+        the CTF is always logged out, logging in is not possible).
         """
-        max_len = max([max(x.values())
-                       for x in self._menu_item_matrix.values()])
         # Team logged in?
         logged_in = bool(authenticated_userid(self.request))
         if self.archive_mode:
@@ -110,6 +118,16 @@ class BaseView(object):
         else:
             # During CTF
             ctf_state = 'during'
+        return ctf_state, logged_in
+
+    @reify
+    def menu(self):
+        """
+        Get the current menu items as a list of tuples ``(view_name, title)``.
+        """
+        max_len = max([max(x.values())
+                       for x in self._menu_item_matrix.values()])
+        ctf_state, logged_in = self.current_state
         # Fetch the correcnt menu:
         menu = [(k, self._menu_item_map[k])
                 for k in self._menu_item_matrix[ctf_state][logged_in]]
@@ -216,7 +234,15 @@ class FrontView(BaseView):
         A view for the page root which just redirects to the ``scoreboard``
         view.
         """
-        return HTTPFound(location=self.request.route_url('scoreboard'))
+        target_map = {
+            ('before', True): 'teams',
+            ('before', False): 'login',
+            ('during', True): 'scoreboard',
+            ('during', False): 'login',
+            ('after', False): 'scoreboard',
+        }
+        target = target_map[self.current_state]
+        return HTTPFound(location=self.request.route_url(target))
 
     @view_config(route_name='challenges', renderer='challenges.mako',
                  permission='view_or_archive')
