@@ -151,6 +151,11 @@ def get_team(request):
     return request.team
 
 
+@subscriber(NewRequest)
+def set_team_on_new_request(event):
+    get_team(event.request)
+
+
 def register_team(form, request):
     """
     Create a new team from a form and send a confirmation email.
