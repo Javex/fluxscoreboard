@@ -26,6 +26,7 @@ requires = [
     'pyramid_mako',  # Templates
     'mako',  # Template
     'pyramid_mailer',  # Mail
+    'repoze.sendmail==4.1',  # Mail
     'webhelpers',  # Utility
     'py_bcrypt',  # Password storage
     'wtforms==1.0.5',  # Forms
