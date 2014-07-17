@@ -471,7 +471,7 @@ class UserView(BaseView):
             return HTTPFound(location=self.request.route_url('login'))
         return {'form': form}
 
-    @view_config(route_name='confirm', permission='login')
+    @view_config(route_name='confirm', permission='register')
     @not_logged_in("Erm... Your account is active since you are already "
                    "logged in. WTF?")
     def confirm_registration(self):
