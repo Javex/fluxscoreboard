@@ -102,8 +102,8 @@ class BaseView(object):
         """
         Get the current menu items as a list of tuples ``(view_name, title)``.
         """
-        max_len = max([max(x.values())
-                       for x in self._menu_item_matrix.values()])
+        max_len = max(len(i) for x in self._menu_item_matrix.values()
+                      for i in x.values())
         ctf_state, logged_in = self.current_state
         # Fetch the correcnt menu:
         menu = [(k, self._menu_item_map[k])
@@ -213,9 +213,9 @@ class FrontView(BaseView):
         target_map = {
             (CTF_BEFORE, True): 'teams',
             (CTF_BEFORE, False): 'login',
-            (CTF_DURING, True): 'scoreboard',
-            (CTF_DURING, False): 'login',
-            (CTF_AFTER, False): 'scoreboard',
+            (CTF_STARTED, True): 'scoreboard',
+            (CTF_STARTED, False): 'login',
+            (CTF_ARCHIVE, False): 'scoreboard',
         }
         target = target_map[self.current_state]
         return HTTPFound(location=self.request.route_url(target))
