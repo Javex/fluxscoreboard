@@ -42,15 +42,31 @@ for ev in ["after_begin", "after_attach", "after_flush",
 
 class RootFactory(object):
     """Skeleton for simple ACL permission protection."""
-    __acl__ = [(Allow, 'group:team', 'view'),
-               (Allow, 'group:team', 'view_or_archive'),
-               ]
 
     def __init__(self, request):
         self.request = request
-        self.settings = self.request.settings
-        if self.settings.archive_mode:
-            self.__acl__.append((Allow, Everyone, 'view_or_archive'))
+
+    def __acl__(self):
+        from .settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
+        permission_map = {
+            CTF_BEFORE: [
+                ('group:team', ['teams', 'logged_in']),
+                (Everyone, ['teams', 'login', 'register']),
+            ],
+            CTF_STARTED: [
+                ('group:team', ['scoreboard', 'challenges', 'logged_in']),
+                (Everyone, ['scoreboard', 'login']),
+            ],
+            CTF_ARCHIVE: [
+                (Everyone, ['scoreboard', 'challenges']),
+            ],
+        }
+
+        acl = []
+        ctf_state = self.request.settings.ctf_state
+        for principal, permissions in permission_map[ctf_state]:
+            acl.append((Allow, principal, permissions))
+        return acl
 
 
 from fluxscoreboard.models.challenge import Challenge, Submission, Category

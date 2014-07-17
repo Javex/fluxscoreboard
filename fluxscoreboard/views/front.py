@@ -12,6 +12,7 @@ from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     password_reminder, check_password_reset_token, get_leading_team)
 from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
     display_design)
+from fluxscoreboard.models.settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.security import remember, authenticated_userid, forget
@@ -30,7 +31,7 @@ from sqlalchemy.orm.exc import NoResultFound
 log = logging.getLogger(__name__)
 
 
-logged_in_view = functools.partial(view_config, permission='view')
+logged_in_view = functools.partial(view_config, permission='logged_in')
 """
 This decorator is to be used on all views that are only allowed for logged
 in users. It has the exact same interface as :class:`pyramid.view.view_config`
@@ -59,21 +60,21 @@ class BaseView(object):
         }
 
     # A matrix that gives a list of allowed views per possible state. The three
-    # categories are 'before', 'during' and 'after' with respect to the CTF
+    # categories are 'before', 'started' and 'archive' with respect to the CTF
     # start and end. The other states represent the login state, meaning that
     # True represents a logged in team, False the opposite.
     _menu_item_matrix = {
-        'before': {
+        CTF_BEFORE: {
             True: ['teams', 'profile', 'logout'],
             False: ['teams', 'login', 'register'],
         },
 
-        'during': {
+        CTF_STARTED: {
             True: ['scoreboard', 'challenges', 'submit', 'profile', 'logout'],
             False: ['scoreboard', 'login'],
         },
 
-        'after': {
+        CTF_ARCHIVE: {
             False: ['scoreboard', 'challenges', 'submit'],
         },
     }
@@ -93,31 +94,15 @@ class BaseView(object):
     @reify
     def current_state(self):
         """
-        What is the current state on the team and CTF.
-
-        The CTF can be in three states:
-
-        - Before it starts
-        - During the CTF
-        - After it is done (activated by the archive mode **NOT** by the
-          timer).
-
-        The team state can be either logged in or logged out (currently, after
-        the CTF is always logged out, logging in is not possible).
+        A pair of ``ctf_state, logged_in`` where ``ctf_state`` represents
+        the current state as per settings and ``logged_in`` is a boolean that
+        shows whether the user is currently logged in to a team.
         """
         # Team logged in?
         logged_in = bool(authenticated_userid(self.request))
-        if self.archive_mode:
-            # After CTF
-            ctf_state = 'after'
-            # Archive mode is after CTF and currently knows no login
+        ctf_state = self.request.settings.ctf_state
+        if ctf_state == CTF_ARCHIVE:
             logged_in = False
-        elif not self.request.settings.ctf_started:
-            # Before CTF
-            ctf_state = 'before'
-        else:
-            # During CTF
-            ctf_state = 'during'
         return ctf_state, logged_in
 
     @reify
@@ -206,9 +191,8 @@ class SpecialView(BaseView):
         A forbidden view that only returns a 403 if the user isn't logged in
         otherwise just redirect to login.
         """
-        if authenticated_userid(self.request):
-            return HTTPForbidden()
-        return HTTPFound(location=self.request.route_url('login'))
+        self.request.session.flash('Access not allowed.', 'error')
+        return HTTPFound(location=self.request.route_url('home'))
 
     @notfound_view_config(renderer='404.mako', append_slash=True)
     def notfound(self):
@@ -228,24 +212,24 @@ class FrontView(BaseView):
     :meth:`ref` view.
     """
 
-    @view_config(route_name='home', permission='view_or_archive')
+    @view_config(route_name='home')
     def home(self):
         """
         A view for the page root which just redirects to the ``scoreboard``
         view.
         """
         target_map = {
-            ('before', True): 'teams',
-            ('before', False): 'login',
-            ('during', True): 'scoreboard',
-            ('during', False): 'login',
-            ('after', False): 'scoreboard',
+            (CTF_BEFORE, True): 'teams',
+            (CTF_BEFORE, False): 'login',
+            (CTF_DURING, True): 'scoreboard',
+            (CTF_DURING, False): 'login',
+            (CTF_AFTER, False): 'scoreboard',
         }
         target = target_map[self.current_state]
         return HTTPFound(location=self.request.route_url(target))
 
     @view_config(route_name='challenges', renderer='challenges.mako',
-                 permission='view_or_archive')
+                 permission='challenges')
     def challenges(self):
         """
         A list of all challenges similar to the scoreboard view in a table.
@@ -268,7 +252,7 @@ class FrontView(BaseView):
         return {'challenges': challenges}
 
     @view_config(route_name='challenge', renderer='challenge.mako',
-                 permission='view_or_archive')
+                 permission='challenges')
     def challenge(self):
         """
         A view of a single challenge. The query is very similar to that of
@@ -310,7 +294,8 @@ class FrontView(BaseView):
                              )
         return retparams
 
-    @view_config(route_name='scoreboard', renderer='scoreboard.mako')
+    @view_config(route_name='scoreboard', renderer='scoreboard.mako',
+                 permission='scoreboard')
     def scoreboard(self):
         """
         The central most interesting view. This contains a list of all teams
@@ -338,7 +323,7 @@ class FrontView(BaseView):
         return {'teams': team_list,
                 'challenges': challenges.all()}
 
-    @view_config(route_name='teams', renderer='teams.mako')
+    @view_config(route_name='teams', renderer='teams.mako', permission='teams')
     def teams(self):
         """
         Only a list of teams.
@@ -346,7 +331,8 @@ class FrontView(BaseView):
         teams = DBSession.query(Team)
         return {'teams': teams}
 
-    @logged_in_view(route_name='news', renderer='announcements.mako')
+    @logged_in_view(route_name='news', renderer='announcements.mako',
+                    permission='scoreboard')
     def news(self):
         """
         Just a list of all announcements that are currently published, ordered
@@ -355,7 +341,7 @@ class FrontView(BaseView):
         return {'announcements': self.announcements}
 
     @view_config(route_name='submit', renderer='submit.mako',
-                 permission='view_or_archive')
+                 permission='challenges')
     def submit_solution(self):
         """
         A special form that, in addition to the form provided by
@@ -412,7 +398,7 @@ class UserView(BaseView):
             return HTTPFound(location=self.request.route_url('login'),
                              headers=headers)
 
-    @view_config(route_name='login', renderer='login.mako')
+    @view_config(route_name='login', renderer='login.mako', permission='login')
     @not_logged_in("Doh! You are already logged in.")
     def login(self):
         """
@@ -420,11 +406,6 @@ class UserView(BaseView):
         ``POST`` request, handles the login by checking whether it is valid.
         If it is, the user is logged in and redirected to the frontpage.
         """
-        if self.archive_mode:
-            self.request.session.flash("Login disabled in archive mode.",
-                                       'error')
-            return HTTPFound(location=self.request.route_url('home'))
-
         form = LoginForm(self.request.POST, csrf_context=self.request)
         retparams = {'form': form,
                      }
@@ -465,7 +446,8 @@ class UserView(BaseView):
                                  headers=headers)
         return retparams
 
-    @view_config(route_name='register', renderer='register.mako')
+    @view_config(route_name='register', renderer='register.mako',
+                 permission='register')
     @not_logged_in("You are logged in. Why register again?")
     def register(self):
         """
@@ -489,7 +471,7 @@ class UserView(BaseView):
             return HTTPFound(location=self.request.route_url('login'))
         return {'form': form}
 
-    @view_config(route_name='confirm')
+    @view_config(route_name='confirm', permission='login')
     @not_logged_in("Erm... Your account is active since you are already "
                    "logged in. WTF?")
     def confirm_registration(self):
@@ -545,7 +527,7 @@ class UserView(BaseView):
         return retparams
 
     @view_config(route_name='reset-password-start',
-                 renderer='reset_password_start.mako')
+                 renderer='reset_password_start.mako', permission='login')
     def reset_password_start(self):
         if self.archive_mode:
             self.request.session.flash(("Password reset impossible in "
@@ -566,7 +548,8 @@ class UserView(BaseView):
             )
         return retparams
 
-    @view_config(route_name='reset-password', renderer='reset_password.mako')
+    @view_config(route_name='reset-password', renderer='reset_password.mako',
+                 permission='login')
     def reset_password(self):
         if self.archive_mode:
             self.request.session.flash(("Password reset impossible in "
