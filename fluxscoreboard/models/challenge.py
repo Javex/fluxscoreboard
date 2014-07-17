@@ -24,14 +24,14 @@ def get_all_challenges():
     """
     Return a query that gets **all** challenges.
     """
-    return DBSession().query(Challenge)
+    return DBSession.query(Challenge)
 
 
 def get_online_challenges():
     """
     Return a query that gets only those challenges that are online.
     """
-    return (DBSession().query(Challenge).
+    return (DBSession.query(Challenge).
             filter(Challenge.online))
 
 
@@ -67,14 +67,14 @@ def get_submissions():
     Creates a query to **eagerly** load all submissions. That is, all teams
     and challenges that are attached to the submissions are fetched with them.
     """
-    return (DBSession().query(Submission).
+    return (DBSession.query(Submission).
             options(joinedload('challenge')).
             options(joinedload('team')))
 
 
 def get_all_categories():
     """Get a list of all available categories."""
-    return DBSession().query(Category)
+    return DBSession.query(Category)
 
 
 def check_submission(challenge, solution, team_id, settings):
@@ -96,8 +96,6 @@ def check_submission(challenge, solution, team_id, settings):
         a string with either a result (if ``result == False``) or a
         congratulations message.
     """
-    dbsession = DBSession()
-
     # Perform all checks that filter out invalid submissions
     if settings.submission_disabled:
         return False, "Submission is currently disabled"
@@ -123,7 +121,7 @@ def check_submission(challenge, solution, team_id, settings):
                       "However, since the scoreboard is in archive mode, you "
                       "will not be awarded any points.")
 
-    query = (dbsession.query(Submission.team_id).
+    query = (DBSession.query(Submission.team_id).
              filter(Submission.challenge_id == challenge.id))
     submissions = [id_ for id_, in query]
 
@@ -140,7 +138,7 @@ def check_submission(challenge, solution, team_id, settings):
     submission = Submission(bonus=bonus)
     submission.team_id = team_id
     submission.challenge = challenge
-    dbsession.add(submission)
+    DBSession.add(submission)
     return True, msg
 
 

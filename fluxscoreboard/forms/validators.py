@@ -39,8 +39,7 @@ def email_unique_validator(form, field):
     yet.
     """
     email = field.data
-    dbsession = DBSession()
-    email_exists = dbsession.query(Team).filter(Team.email == email).all()
+    email_exists = DBSession.query(Team).filter(Team.email == email).all()
     if len(email_exists) > 0:
         raise ValueError("This email is already registered.")
     else:
@@ -53,8 +52,7 @@ def name_unique_validator(form, field):
     yet.
     """
     name = field.data
-    dbsession = DBSession()
-    name_exists = dbsession.query(Team).filter(Team.name == name).all()
+    name_exists = DBSession.query(Team).filter(Team.name == name).all()
     if len(name_exists) > 0:
         raise ValueError("This name is already registered.")
     else:
@@ -215,7 +213,7 @@ def dynamic_check_multiple_allowed(form, field):
         return True
     from ..models import dynamic_challenges
     module = dynamic_challenges.registry[field.data]
-    instance_exists = (DBSession().query(Challenge).
+    instance_exists = (DBSession.query(Challenge).
                        filter(Challenge.module_name == field.data))
     if form.id.data:
         instance_exists = instance_exists.filter(Challenge.id != form.id.data)

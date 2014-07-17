@@ -130,7 +130,7 @@ class BaseView(object):
 
     @reify
     def team_count(self):
-        return DBSession().query(Team).filter(Team.active).count()
+        return DBSession.query(Team).filter(Team.active).count()
 
     @reify
     def leading_team(self):
@@ -231,11 +231,10 @@ class FrontView(BaseView):
         ``(challenge, team_solved, number_solved_total)`` is then given to the
         template and rendered.
         """
-        dbsession = DBSession()
         team_id = authenticated_userid(self.request)
         team_solved_subquery = get_team_solved_subquery(team_id)
         number_of_solved_subquery = get_number_solved_subquery()
-        challenges = (dbsession.query(Challenge,
+        challenges = (DBSession.query(Challenge,
                                            team_solved_subquery.exists(),
                                            number_of_solved_subquery).
                       filter(Challenge.published).
@@ -255,10 +254,9 @@ class FrontView(BaseView):
         """
         challenge_id = int(self.request.matchdict["id"])
         team_id = authenticated_userid(self.request)
-        dbsession = DBSession()
         team_solved_subquery = get_team_solved_subquery(team_id)
         try:
-            challenge, is_solved = (dbsession.query(Challenge,
+            challenge, is_solved = (DBSession.query(Challenge,
                                                 team_solved_subquery.exists()).
                                  filter(Challenge.id == challenge_id).
                                  filter(Challenge.published).
@@ -295,10 +293,9 @@ class FrontView(BaseView):
         complex part of the query is the query that calculates the sum of
         points right in the SQL.
         """
-        dbsession = DBSession()
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
-        teams = (dbsession.query(Team, Team.score).
+        teams = (DBSession.query(Team, Team.score).
                  filter(Team.active).
                  options(subqueryload('submissions'),
                          joinedload('submissions.challenge')).
@@ -311,7 +308,7 @@ class FrontView(BaseView):
                 rank = index
                 last_score = score
             team_list.append((team, score, rank))
-        challenges = (dbsession.query(Challenge).filter(Challenge.published))
+        challenges = (DBSession.query(Challenge).filter(Challenge.published))
         return {'teams': team_list,
                 'challenges': challenges.all()}
 

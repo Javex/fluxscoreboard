@@ -11,7 +11,7 @@ from sqlalchemy.types import Integer, UnicodeText, Boolean
 
 
 def get_published_news():
-    announcements = (DBSession().query(News).
+    announcements = (DBSession.query(News).
                      outerjoin(Challenge).
                      filter(News.published == True).
                      filter(or_(Challenge.published,

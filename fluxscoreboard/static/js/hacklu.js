@@ -9,7 +9,7 @@ $(document).ready(function(){
 var HackLu = {
 
 	init: function() {
-		HackLu.startTimer();
+		//HackLu.startTimer();
 		HackLu.bindEvents();
 	},
 	

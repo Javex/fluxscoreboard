@@ -143,5 +143,5 @@ def uninstall(settings):
     """
     Remove those parts created by install
     """
-    Base.metadata.drop_all(bind=DBSession().connection())
+    Base.metadata.drop_all(bind=DBSession.connection())
     transaction.commit()

@@ -53,14 +53,14 @@ def get_all_teams():
     """
     Get a query that returns a list of all teams.
     """
-    return DBSession().query(Team)
+    return DBSession.query(Team)
 
 
 def get_active_teams():
     """
     Get a query that returns a list of all active teams.
     """
-    return DBSession().query(Team).filter(Team.active == True)
+    return DBSession.query(Team).filter(Team.active == True)
 
 
 def get_leading_team():
@@ -84,7 +84,7 @@ def get_team_solved_subquery(team_id):
         .. code-block:: python
 
             team_solved_subquery = get_team_solved_subquery(team_id)
-            challenge_query = (dbsession.query(Challenge,
+            challenge_query = (DBSession.query(Challenge,
                                                team_solved_subquery.exists()))
 
     In this example we query for a list of all challenges and additionally
@@ -94,7 +94,7 @@ def get_team_solved_subquery(team_id):
     # solved the corresponding challenge. The correlate statement is
     # a SQLAlchemy statement that tells it to use the **outer** challenge
     # column.
-    team_solved_subquery = (DBSession().query(Submission).
+    team_solved_subquery = (DBSession.query(Submission).
                             filter(Submission.team_id == team_id).
                             filter(Challenge.id ==
                                    Submission.challenge_id).
@@ -111,7 +111,7 @@ def get_number_solved_subquery():
         .. code-block:: python
 
             number_of_solved_subquery = get_number_solved_subquery()
-            challenge_query = (dbsession.query(Challenge,
+            challenge_query = (DBSession.query(Challenge,
                                                number_of_solved_subquery)
 
     Here we query for a list of all challenges and additionally fetch the
@@ -119,7 +119,7 @@ def get_number_solved_subquery():
     challenge to correlate on, so make sure to provide one or this query
     makes no sense.
     """
-    return (DBSession().query(func.count('*')).
+    return (DBSession.query(func.count('*')).
             filter(Challenge.id == Submission.challenge_id).
             correlate(Challenge).
             as_scalar())
@@ -131,11 +131,10 @@ def get_team(request):
     only once, then stores it in the request.
     """
     if not hasattr(request, 'team'):
-        dbsession = DBSession()
         team_id = unauthenticated_userid(request)
         if not request.settings.archive_mode:
             try:
-                team = (dbsession.query(Team).
+                team = (DBSession.query(Team).
                         options(subqueryload('submissions'),
                                 joinedload('submissions.challenge'),
                                 joinedload('team_flags')).
@@ -175,8 +174,7 @@ def register_team(form, request):
                 timezone=form.timezone.data,
                 size=form.size.data,
                 )
-    dbsession = DBSession()
-    dbsession.add(team)
+    DBSession.add(team)
     mailer = get_mailer(request)
     message = Message(subject="Your hack.lu 2013 CTF Registration",
                       recipients=[team.email],
@@ -204,7 +202,7 @@ def confirm_registration(token):
     if token is None:
         return False
     try:
-        team = DBSession().query(Team).filter(Team.token == token).one()
+        team = DBSession.query(Team).filter(Team.token == token).one()
     except NoResultFound:
         return False
     team.active = True
@@ -232,7 +230,7 @@ def login(email, password):
         login failed, ``team`` is ``None``.
     """
     try:
-        team = (DBSession().
+        team = (DBSession.
                 query(Team).
                 filter(Team.email == email).
                 one())
@@ -251,9 +249,8 @@ def password_reminder(email, request):
     reset token. If no team is found send an email that no user was found for
     this address.
     """
-    dbsession = DBSession()
     mailer = get_mailer(request)
-    team = dbsession.query(Team).filter(Team.email == email).first()
+    team = DBSession.query(Team).filter(Team.email == email).first()
     if team:
         # send mail with reset token
         team.reset_token = random_token()
@@ -277,15 +274,13 @@ def check_password_reset_token(token):
     """
     Check if an entered password reset token actually exists in the database.
     """
-    dbsession = DBSession()
-    team = (dbsession.query(Team).
+    team = (DBSession.query(Team).
             filter(Team.reset_token == token).first())
     return team
 
 
 def get_team_by_ref(ref_id):
-    return (DBSession().query(Team).
-            # options(subqueryload(Team.flags)).
+    return (DBSession.query(Team).
             filter(Team.ref_token == ref_id).one())
 
 
@@ -435,18 +430,17 @@ class Team(Base):
     @reify
     def stats(self):
         _stats = {}
-        dbsession = DBSession()
-        count_query = (dbsession.query(func.count(Challenge.id)).
+        count_query = (DBSession.query(func.count(Challenge.id)).
                        filter(Challenge.category_id == Category.id).
                        filter(~Challenge.dynamic).
                        filter(Challenge.published).
                        correlate(Category))
-        submission = (dbsession.query(Submission).
+        submission = (DBSession.query(Submission).
                       filter(Submission.team_id == self.id).
                       filter(Submission.challenge_id == Challenge.id).
                       correlate(Challenge))
         team_count_query = count_query.filter(submission.exists())
-        query = dbsession.query(Category.name, count_query.as_scalar(),
+        query = DBSession.query(Category.name, count_query.as_scalar(),
                                 team_count_query.as_scalar())
         for name, total, team_count in query:
             _stats[name] = (team_count, total)
@@ -472,7 +466,6 @@ class Team(Base):
     @score.expression
     def score(cls):  # @NoSelf
         from fluxscoreboard.models import dynamic_challenges
-        dbsession = DBSession()
         # Calculate sum of all points, defalt to 0
         challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
         # Calculate sum of all bonus points, default to 0
@@ -483,7 +476,7 @@ class Team(Base):
         # Create a subquery for the sum of the above points. The filters
         # basically join the columns and the correlation is needed to reference
         # the **outer** Team query.
-        team_score_subquery = (dbsession.query(points_col).
+        team_score_subquery = (DBSession.query(points_col).
                                filter(Challenge.id == Submission.challenge_id).
                                filter(cls.id == Submission.team_id).
                                filter(~Challenge.dynamic).
@@ -498,7 +491,7 @@ class Team(Base):
 
         .. code-block:: python
 
-            DBSession().query(Team).order_by(Team.rank)
+            DBSession.query(Team).order_by(Team.rank)
             # or
             team = Team()
             team.rank
@@ -508,14 +501,14 @@ class Team(Base):
         `"1224" ranking <http://en.wikipedia.org/wiki/Ranking#Standard_competition_ranking_.28.221224.22_ranking.29>`_
         here.
         """
-        rank = (DBSession().query(Team).filter(Team.score > self.score).
+        rank = (DBSession.query(Team).filter(Team.score > self.score).
                 order_by(desc(Team.score)).count()) + 1
         return rank
 
     @rank.expression
     def rank(self):
         inner_team = aliased(Team)
-        return (DBSession().query(func.count('*') + 1).
+        return (DBSession.query(func.count('*') + 1).
                 select_from(inner_team).
                 filter(inner_team.score > Team.score).
                 order_by(desc(inner_team.score)).
@@ -545,9 +538,8 @@ def register_ip(event):
         return
     ip = unicode(event.request.client_addr)
     try:
-        dbsession = DBSession()
-        dbsession.add(TeamIP(team_id=team_id, ip=ip))
-        dbsession.flush()
+        DBSession.add(TeamIP(team_id=team_id, ip=ip))
+        DBSession.flush()
     except IntegrityError:
         t.rollback()
 

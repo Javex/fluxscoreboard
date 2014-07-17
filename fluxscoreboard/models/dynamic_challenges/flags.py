@@ -49,7 +49,7 @@ class FlagView(BaseView):
             self.request.session.flash(flash_msg, 'error')
             return HTTPFound(location=self.request.route_url('home'))
         try:
-            challenge = (DBSession().query(Challenge).
+            challenge = (DBSession.query(Challenge).
                          filter(Challenge.module_name == 'flags').one())
         except NoResultFound:
             ret = {'success': False, 'msg': ("There is no challenge for flags "
@@ -92,7 +92,7 @@ class FlagView(BaseView):
         try:
             t = transaction.savepoint()
             team.flags.append(loc)
-            DBSession().flush()
+            DBSession.flush()
         except Exception:
             ret["msg"] = "Location already registered."
             t.rollback()
@@ -211,7 +211,7 @@ def points_query(cls=None):
     if cls is None:
         from fluxscoreboard.models.team import Team
         cls = Team
-    subquery = (DBSession().query(func.count('*')).
+    subquery = (DBSession.query(func.count('*')).
                 filter(TeamFlag.team_id == cls.id).
                 correlate(cls))
     return func.coalesce(subquery.as_scalar(), 0)
@@ -222,7 +222,7 @@ def points(team):
 
 
 def get_location(ip):
-    query = (DBSession().query(GeoIP.country_code).
+    query = (DBSession.query(GeoIP.country_code).
              filter(GeoIP.ip_range_start <= GeoIP.ip_int(ip)).
              filter(GeoIP.ip_range_end >= GeoIP.ip_int(ip)))
     country_code, = query.first() or ("",)
