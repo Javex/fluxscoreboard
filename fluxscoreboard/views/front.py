@@ -31,14 +31,6 @@ from sqlalchemy.orm.exc import NoResultFound
 log = logging.getLogger(__name__)
 
 
-logged_in_view = functools.partial(view_config, permission='logged_in')
-"""
-This decorator is to be used on all views that are only allowed for logged
-in users. It has the exact same interface as :class:`pyramid.view.view_config`
-except that its permission is already set.
-"""
-
-
 class BaseView(object):
     """
     A base class for all other frontpage views. If you build a frontend view
@@ -331,8 +323,8 @@ class FrontView(BaseView):
         teams = DBSession.query(Team)
         return {'teams': teams}
 
-    @logged_in_view(route_name='news', renderer='announcements.mako',
-                    permission='scoreboard')
+    @view_config(route_name='news', renderer='announcements.mako',
+                 permission='scoreboard')
     def news(self):
         """
         Just a list of all announcements that are currently published, ordered
@@ -380,7 +372,7 @@ class UserView(BaseView):
     :class:`pyramid.view.view_config`.
     """
 
-    @logged_in_view(route_name='logout')
+    @view_config(route_name='logout', permission='logged_in')
     def logout(self):
         """
         A simple view that logs out the user and redirects to the login page.
@@ -495,7 +487,8 @@ class UserView(BaseView):
                                        "log in.")
             return HTTPFound(location=self.request.route_url('login'))
 
-    @logged_in_view(route_name='profile', renderer='profile.mako')
+    @view_config(route_name='profile', renderer='profile.mako',
+                 permission='logged_in')
     def profile(self):
         """
         Here a team can alter their profile, i.e. change their email, password,
