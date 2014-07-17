@@ -1,6 +1,6 @@
 <%
 from pyramid.security import authenticated_userid, has_permission
-from fluxscoreboard.util import display_design, tz_str, is_admin_path
+from fluxscoreboard.util import display_design, tz_str, is_admin_path, now
 import pytz
 %>
 
@@ -27,13 +27,13 @@ import pytz
         <link href="${request.static_url('fluxscoreboard:static/css/hacklu.css')}" rel="stylesheet" />
         <link href="${request.static_url('fluxscoreboard:static/css/flags16.css')}" rel="stylesheet" />
         
-        <title>Hack.lu 2013 CTF</title>
+        <title>Hack.lu ${now().year} CTF</title>
     </head>
     % if display_design(request):
     <body>
         <header>
         <div id="top">
-            <h1>hack.lu CTF v.2013</h1>
+            <h1>hack.lu CTF v.${now().year}</h1>
         </div>
         </header>
         <div id="head-wrap">

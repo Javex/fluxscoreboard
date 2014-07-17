@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Submission, Challenge, Category
-from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token
+from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token, now
 from pyramid.decorator import reify
 from pyramid.events import subscriber, NewRequest
 from pyramid.renderers import render
@@ -176,10 +176,11 @@ def register_team(form, request):
                 )
     DBSession.add(team)
     mailer = get_mailer(request)
-    message = Message(subject="Your hack.lu 2013 CTF Registration",
+    year = now().year
+    message = Message(subject="Your hack.lu %s CTF Registration" % year,
                       recipients=[team.email],
                       html=render('mail_register.mako',
-                                  {'team': team},
+                                  {'team': team, 'year': year},
                                   request=request,
                                   )
                       )
@@ -262,7 +263,8 @@ def password_reminder(email, request):
         html = render('mail_password_reset_invalid.mako', {'email': email},
                       request=request)
         recipients = [email]
-    message = Message(subject="Password Reset for Hack.lu 2013",
+    year = now().year
+    message = Message(subject="Password Reset for hack.lu CTF %s" % year,
                       recipients=recipients,
                       html=html,
                       )
