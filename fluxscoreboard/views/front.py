@@ -509,11 +509,18 @@ class UserView(BaseView):
                 return retparams
             if form.avatar.data is not None and form.avatar.data != '':
                 # Handle new avatar
-                if not self.team.avatar_filename:
-                    self.team.avatar_filename = random_token() + ".png"
+                ext = form.avatar.data.filename.rsplit('.', 1)[-1]
+                self.team.avatar_filename = random_token() + "." + ext
                 fpath = ("fluxscoreboard/static/images/avatars/%s"
                          % self.team.avatar_filename)
-                form.avatar.image.save(fpath)
+                with open(fpath, "w") as out:
+                    in_file = form.avatar.data.file
+                    in_file.seek(0)
+                    while True:
+                        data = in_file.read(2<<16)
+                        if not data:
+                            break
+                        out.write(data)
             form.populate_obj(self.team)
             self.request.session.flash('Your profile has been updated')
             return redirect

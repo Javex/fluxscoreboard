@@ -12,9 +12,11 @@
     % for team in teams:
         <tr class="${'success bold' if request.team and team.id == request.team.id else ''}">
             <td>${loop.index}</td>
-            <td>
+            <td class="avatar">
             % if team.avatar_filename:
-                <img src="${request.static_url('fluxscoreboard:static/images/avatars/%s' % team.avatar_filename)}" class="avatar" title="${team.name}"/>
+                <img src="${request.route_url('avatar', avatar=team.avatar_filename)}" class="avatar" title="${team.name}"/>
+            % else:
+                &nbsp;
             % endif
             </td>
             <td>${team.name}</td>

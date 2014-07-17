@@ -23,6 +23,11 @@ domain = localhost
 recaptcha.public_key =
 recaptcha.private_key =
 
+# The domain to use for displaying the avatars. This should be different from
+# the domain of the scoreboard for security reasons. You could for example just
+# use the static IP which will be considered a different domain.
+avatar_domain = http://127.0.0.1:6543
+
 # The CSP header values to set (inactive in dev version)
 #csp_headers = default-src 'self';
 

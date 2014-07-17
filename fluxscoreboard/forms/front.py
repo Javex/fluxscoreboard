@@ -7,8 +7,7 @@ from fluxscoreboard.forms.validators import (name_length_validator,
     password_max_length_validator, required_validator, email_equal_validator,
     email_unique_validator, password_equal_validator,
     password_required_and_valid_if_pw_change, password_min_length_if_set_validator,
-    password_max_length_if_set_validator, avatar_dimensions_validator,
-    avatar_size_validator, name_unique_validator)
+    password_max_length_if_set_validator, avatar_size_validator, name_unique_validator)
 from fluxscoreboard.models.challenge import get_solvable_challenges
 from fluxscoreboard.models.country import get_all_countries
 from pyramid.security import authenticated_userid
@@ -210,18 +209,15 @@ class ProfileForm(CSRFForm):
 
     password_repeat = PasswordField("Repeat New Password")
 
-    avatar = AvatarField("Avatar",
-                       description=("Upload an avatar image. The File must "
-                                    "not be larger than %d%s and must have "
-                                    "maximum dimensions of %dx%dpx"
-                                    % (avatar_size_validator.max_size,
-                                       avatar_size_validator.unit,
-                                       avatar_dimensions_validator.max_width,
-                                       avatar_dimensions_validator.max_height)
-                                    ),
-                         validators=[avatar_dimensions_validator,
-                                     avatar_size_validator],
-                         )
+    avatar = AvatarField(
+        "Avatar",
+        description=("Upload an avatar image. The File must not be larger "
+                     "than %d%s and must have maximum dimensions of 90x25px"
+                     % (avatar_size_validator.max_size,
+                        avatar_size_validator.unit)
+                    ),
+        validators=[avatar_size_validator],
+    )
 
     country = QuerySelectField("Country/State",
                                query_factory=get_all_countries

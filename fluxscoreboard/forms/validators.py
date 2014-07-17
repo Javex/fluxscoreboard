@@ -225,39 +225,6 @@ def dynamic_check_multiple_allowed(form, field):
         return True
 
 
-class AvatarDimensions(object):
-    """
-    A validator for image dimensions. Pass it a maximum width and height with
-    the ``max_width`` and ``max_height`` parameters and optionally a custom
-    message that has access to both parameters:
-    ``"Maximum dimensions: (%(max_width)d, %(max_height)d)"``.
-
-    .. note::
-        This validator requires access to a PIL Image, for example from the
-        :class:`fluxscoreboard.forms.fields.AvatarField`.
-    """
-
-    def __init__(self, max_width, max_height, message=None):
-        self.max_width = max_width
-        self.max_height = max_height
-        if message is None:
-            message = ('Invalid dimensions. The maximum allowed width is '
-                       '%(max_width)dpx and the maximum allowed height is '
-                       '%(max_height)dpx.')
-        self.message = message % locals()
-
-    def __call__(self, form, field):
-        if field.data == '' or field.data is None:
-            return True
-        if field.image is None:
-            raise ValueError("Invalid image.")
-        width, height = field.image.size
-        if width > self.max_width or height > self.max_height:
-            raise ValueError(self.message)
-        else:
-            return True
-
-
 class AvatarSize(object):
     """
     A validator class for the size of a file. Pass it a ``max_size`` to set
@@ -288,8 +255,7 @@ class AvatarSize(object):
             return True
 
 
-avatar_dimensions_validator = AvatarDimensions(450, 200)
-avatar_size_validator = AvatarSize(1)
+avatar_size_validator = AvatarSize(100, 'KB')
 
 
 class RecaptchaValidator(object):

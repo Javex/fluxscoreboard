@@ -56,13 +56,17 @@ th.avatar {
 img.avatar {
     width: 90px;
     vertical-align: middle;
+    max-height: 25px;
+}
+
+td.avatar {
+    height: 42px;
 }
 
 img.avatar-large {
     width: 200px;
     display:block;
 }
-
 
 .text-white {
 	color: white;
