@@ -207,7 +207,7 @@ def confirm_registration(token):
     except NoResultFound:
         return False
     team.active = True
-    team.token = random_token()
+    team.token = None
     return True
 
 
