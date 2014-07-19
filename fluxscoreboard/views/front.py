@@ -26,8 +26,6 @@ import logging
 import os
 from sqlalchemy.orm.exc import NoResultFound
 
-# TODO: Reduce requests per second on CSS and JS
-
 
 log = logging.getLogger(__name__)
 
@@ -110,7 +108,6 @@ class BaseView(object):
         menu = [(k, self._menu_item_map[k])
                 for k in self._menu_item_matrix[ctf_state][logged_in]]
         # Small hack to accomodate 2013 design, might need to be removed
-        # TODO: Check if removal makes sense
         if display_design(self.request):
             while len(menu) < max_len:
                 menu.append((None, None))
@@ -475,7 +472,6 @@ class UserView(BaseView):
             self.request.session.flash(("Registration disabled in archive "
                                         "mode."), 'error')
             return HTTPFound(location=self.request.route_url('home'))
-        # TODO: Its probably a better idea if the token contained the userid
         token = self.request.matchdict.get('token', None)
         if not confirm_registration(token):
             self.request.session.flash("Invalid token")
@@ -539,7 +535,6 @@ class UserView(BaseView):
             self.request.session.flash(("Password reset impossible in "
                                         "archive mode."), 'error')
             return HTTPFound(location=self.request.route_url('home'))
-        # TODO: The token should probably contain the userid here as well
         form = ForgotPasswordForm(self.request.POST, csrf_context=self.request)
         retparams = {'form': form}
         if self.request.method == 'POST':

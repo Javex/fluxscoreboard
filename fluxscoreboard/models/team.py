@@ -354,7 +354,6 @@ class Team(Base):
     ref_token = Column(Unicode(15), nullable=False, default=ref_token,
                        unique=True)
     active = Column(Boolean, default=False)
-    # TODO: Timezone as seperate type
     _timezone = Column('timezone', Unicode(30),
                        default=lambda: unicode(utc.zone),
                        nullable=False)

@@ -63,7 +63,6 @@ class AdminView(object):
                     break
             else:
                 self.request.session.flash(message)
-        # TODO: Make the choice a bit nicer.
         items_per_page = self.request.GET.get('items', None)
         if items_per_page:
             self.request.session["items_per_page"] = int(items_per_page)
@@ -575,16 +574,6 @@ class AdminView(object):
         But in the end it is basically the same functionality as with the other
         list views.
         """
-        # TODO: Possibly we need a way to distinguish between someone selecting
-        # an existing Challenge/Team combo and clicking the "Edit" button.
-        # Currently the former is somewhat buggy...
-        # TODO: Additionally, we need a way to exclude already existing
-        # combinations in the list selection. This can likely only be done
-        # with JS or needs a complete restructuring of the view thingy to
-        # go like this: "Select Challenge" -> "Add Team Submission" or
-        # "Select Team" -> "Add Challenge Submission"... Decide what's best
-        # here...
-
         # Prepare parameters
         submissions = get_submissions()
         page = self.page(submissions)
@@ -685,17 +674,12 @@ class AdminView(object):
         mail and its recipients in the database to keep a permanent record of
         sent messages.
         """
-        # TODO: CSRF for massmail
         form = MassMailForm(self.request.POST, csrf_context=self.request)
         if not form.from_.data:
             settings = self.request.registry.settings
             form.from_.data = settings["mail.default_sender"]
         mail_query = DBSession.query(MassMail)
         page = self.page(mail_query)
-        """current_page = self.request.GET.get('page', 1)
-        page_url = PageURL_WebOb(self.request)
-        page = Page(mail_query, page=current_page, url=page_url,
-                    items_per_page=5, item_count=mail_query.count())"""
         retparams = {'form': form,
                      'items': page.items,
                      'page': page}

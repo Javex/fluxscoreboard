@@ -360,8 +360,3 @@ class Submission(Base):
         r = ("<Submission challenge=%s, team=%s, bonus=%d, timestamp=%s>"
              % (self.challenge, self.team, self.bonus, self.timestamp))
         return r.encode("utf-8")
-
-    @property
-    def points(self):
-        # TODO: remove
-        return self.challenge.points + self.bonus
