@@ -28,6 +28,9 @@ recaptcha.private_key =
 # use the static IP which will be considered a different domain.
 avatar_domain = http://127.0.0.1:6543
 
+# external URL with the rules
+rules_url = http://2014.hack.lu/index.php/CaptureTheFlag
+
 # The CSP header values to set (inactive in dev version)
 #csp_headers = default-src 'self';
 
