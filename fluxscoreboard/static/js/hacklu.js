@@ -1,5 +1,5 @@
 $(document).ready(function(){
-	HackLu.init();
+    HackLu.init();
 });
 
 /**
@@ -8,32 +8,13 @@ $(document).ready(function(){
  */
 var HackLu = {
 
-	init: function() {
-		//HackLu.startTimer();
-		HackLu.bindEvents();
-	},
-	
-	bindEvents: function() {
-		/*$("div#content>h2").click(HackLu.slideMenu);*/
+    init: function() {
+        HackLu.bindEvents();
+    },
+
+    bindEvents: function() {
         $("#delete-avatar").click(HackLu.confirmAvatarDelete);
-	},
-	
-	startTimer: function() {
-		var timer = document.getElementById('timer-seconds');
-		var interval = null;
-		interval = setInterval(function() {
-		    var s = parseInt(timer.textContent);
-		    if (s) {
-		        timer.textContent = parseInt(timer.textContent) - 1;
-		    } else {
-		        clearInterval(interval);
-		    }
-		}, 1000);
-	},
-	
-	slideMenu: function() {
-		$("div#head-wrap").slideToggle();
-	},
+    },
 
     confirmAvatarDelete: function() {
         return confirm("Are you sure you want to delete your avatar?");
