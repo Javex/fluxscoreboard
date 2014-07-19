@@ -81,7 +81,7 @@ class Settings(Base):
     @property
     def ctf_state(self):
         if self.archive_mode:
-            return CTF_AFTER
+            return CTF_ARCHIVE
         elif self.ctf_started:
             return CTF_STARTED
         else:
