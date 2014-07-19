@@ -31,6 +31,9 @@ class AvatarWidget(FileInput):
             fpath = request.static_url("fluxscoreboard:static/images/avatars/%s"
                                        % filename)
             out.append('<img class="avatar-large" src="%s" />' % fpath)
+            out.append('<input id="delete-avatar" type="submit" '
+                       'class="btn btn-danger btn-small" value="Delete Avatar"'
+                       ' name="delete-avatar" />')
         out.append(FileInput.__call__(self, field, **kwargs))
         return HTMLString(''.join(out))
 
@@ -40,6 +43,13 @@ class AvatarField(FileField):
     An avatar upload field with a display of an existing avatar.
     """
     widget = AvatarWidget()
+
+    def process(self, formdata, *args, **kw):
+        if formdata.getlist("delete-avatar"):
+            self.delete = True
+        else:
+            self.delete = False
+        return FileField.process(self, formdata, *args, **kw)
 
 
 class ButtonWidget(object):

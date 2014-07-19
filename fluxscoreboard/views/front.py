@@ -23,6 +23,7 @@ from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.sql.expression import desc
 import functools
 import logging
+import os
 from sqlalchemy.orm.exc import NoResultFound
 
 # TODO: Reduce requests per second on CSS and JS
@@ -504,7 +505,15 @@ class UserView(BaseView):
                 return redirect
             if not form.validate():
                 return retparams
-            if form.avatar.data is not None and form.avatar.data != '':
+            if form.avatar.delete:
+                try:
+                    os.remove(self.team.avatar_filename)
+                except OSError as e:
+                    log.warning("Exception while deleting avatar for team "
+                                "'%s' under filename '%s': %s" %
+                                (self.team.name, self.team.avatar_filename, e))
+                self.team.avatar_filename = None
+            elif form.avatar.data is not None and form.avatar.data != '':
                 # Handle new avatar
                 ext = form.avatar.data.filename.rsplit('.', 1)[-1]
                 self.team.avatar_filename = random_token() + "." + ext

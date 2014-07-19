@@ -15,6 +15,7 @@ var HackLu = {
 	
 	bindEvents: function() {
 		/*$("div#content>h2").click(HackLu.slideMenu);*/
+        $("#delete-avatar").click(HackLu.confirmAvatarDelete);
 	},
 	
 	startTimer: function() {
@@ -33,4 +34,8 @@ var HackLu = {
 	slideMenu: function() {
 		$("div#head-wrap").slideToggle();
 	},
+
+    confirmAvatarDelete: function() {
+        return confirm("Are you sure you want to delete your avatar?");
+    },
 };

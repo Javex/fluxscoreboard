@@ -68,6 +68,11 @@ img.avatar-large {
     display:block;
 }
 
+#delete-avatar {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
 .text-white {
 	color: white;
 }
