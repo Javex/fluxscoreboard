@@ -17,8 +17,9 @@ Documentation for Users
 .. toctree::
    :maxdepth: 2
 
-   install
-   features
+   user/install
+   user/features
+
 
 Documentation for Develpers
 ---------------------------

@@ -139,6 +139,13 @@ class ChallengeForm(CSRFForm):
         description=("An unpublished challenge will not be displayed in the "
                      "frontend."))
 
+    has_token = BooleanField(
+        "Has Token",
+        description=("If this is active, the teams token will be displayed "
+                     "below the challenge so they can provide it to the "
+                     "challenge. A challenge can use it to identify teams. "
+                     "Check docs for move info."))
+
     id = HiddenField()
 
     submit = SubmitField("Save")

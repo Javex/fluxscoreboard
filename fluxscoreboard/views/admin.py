@@ -18,6 +18,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.sql.expression import not_, desc, asc
 from webhelpers.paginate import Page, PageURL_WebOb
 import logging
+import uuid
 
 
 log = logging.getLogger(__name__)
@@ -524,6 +525,24 @@ class AdminView(object):
             status_messages={False: 'Set team as a remote team',
                              True: 'Set team as a local team'}
             )
+
+    @view_config(route_name='admin_teams_regenerate_token', request_method='POST')
+    def team_regenerate_token(self):
+        """Manually regenerate the teams challenge token"""
+        current_page = int(self.request.GET.get('page', 1))
+        redirect = self.redirect('admin_teams', current_page)
+        button_form = ButtonForm(self.request.POST, csrf_context=self.request)
+        if not button_form.validate():
+            self.request.session.flash("Regenerate failed.")
+            return redirect
+
+        team = DBSession.query(Team).filter(Team.id == button_form.id.data).one()
+        log.info("Generating new token for team %s, old token: %s"
+                 % (team.name, team.challenge_token))
+        team.challenge_token = str(uuid.uuid4()).decode("ascii")
+
+        self.request.session.flash("New token created for team %s" % team.name)
+        return redirect
 
     @view_config(route_name='admin_teams_cleanup', request_method='POST')
     def team_cleanup(self):

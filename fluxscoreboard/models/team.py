@@ -26,6 +26,7 @@ import logging
 import random
 import string
 import transaction
+import uuid
 
 
 log = logging.getLogger(__name__)
@@ -320,6 +321,10 @@ class Team(Base):
 
         ``ref_token``: When using the ``ref`` feature, this token is used.
 
+        ``challenge_token``: Unique token for each team they can provide to
+            a challenge so this challenge can do rate-limiting or banning or
+            whatever it wants to do.
+
         ``active``: Whether the team's mail address has been verified and the
         team can actively log in.
 
@@ -353,6 +358,8 @@ class Team(Base):
     reset_token = Column(Unicode(64), unique=True)
     ref_token = Column(Unicode(15), nullable=False, default=ref_token,
                        unique=True)
+    challenge_token = Column(Unicode(36), unique=True, default=uuid.uuid4,
+                             nullable=False)
     active = Column(Boolean, default=False)
     _timezone = Column('timezone', Unicode(30),
                        default=lambda: unicode(utc.zone),

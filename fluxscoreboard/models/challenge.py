@@ -211,6 +211,7 @@ class Challenge(Base):
     dynamic = Column(Boolean, default=False, nullable=False)
     module_name = Column(Unicode(255))
     published = Column(Boolean, default=False, nullable=False)
+    has_token = Column(Boolean, default=False, nullable=False)
 
     category = relationship("Category", backref="challenges", lazy="joined")
 

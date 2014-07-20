@@ -2,6 +2,7 @@
 <%namespace name="announcements" file="announcements.mako"/>
 <%
 from fluxscoreboard.util import now, nl2br
+import uuid
 %>
 <div class="panel panel-primary">
     <div class="panel-heading">
@@ -21,6 +22,28 @@ from fluxscoreboard.util import now, nl2br
             ${challenge.text | n}
         </div>
         <div class="row">&nbsp;</div>
+        % if challenge.has_token:
+        <div class="row">
+            <p class="text-warning">
+                    % if view.archive_mode:
+                    This challenge requires a token. However, in archive mode
+                    tokens are irrelevant. You can use this default token:
+                    <br />
+                    <code>
+                        00000000-0000-0000-0000-000000000000
+                    </code>
+                    % else:
+                    You need to provide a token for this challenge. This is your
+                    team's token:
+                    <br />
+                    <code>
+                        ${view.team.challenge_token}
+                    </code>
+                    % endif
+            </p>
+            <br />
+        </div>
+        % endif
         <div class="row">
         % if view.archive_mode:
             <p class="text-warning text-center">Scoreboard is in archive mode. You can submit solutions, but you will only receive feedback and are not entered into the scoreboard</p>

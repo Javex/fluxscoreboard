@@ -18,6 +18,7 @@ from pyramid.httpexceptions import HTTPFound, HTTPForbidden
 from pyramid.security import remember, authenticated_userid, forget
 from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
+from pyramid.response import Response
 from pytz import utc
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.sql.expression import desc
@@ -357,6 +358,22 @@ class FrontView(BaseView):
                     ),
             )
         return retparams
+
+    @view_config(route_name='verify_token')
+    def verify_token(self):
+        token = self.request.matchdict['token']
+        if self.archive_mode:
+            result = '1'
+        elif self.request.settings.ctf_state == CTF_BEFORE:
+            result = '0'
+        else:
+            try:
+                DBSession.query(Team).filter(Team.challenge_token == token).one()
+            except NoResultFound:
+                result = '0'
+            else:
+                result = '1'
+        return Response(result)
 
 
 class UserView(BaseView):
