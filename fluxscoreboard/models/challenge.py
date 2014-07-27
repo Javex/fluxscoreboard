@@ -43,7 +43,7 @@ def get_unsolved_challenges(team_id):
     from fluxscoreboard.models.team import get_team_solved_subquery
     team_solved_subquery = get_team_solved_subquery(team_id)
     online = get_online_challenges()
-    return (online.filter(not_(team_solved_subquery.exists())))
+    return (online.filter(not_(team_solved_subquery)))
 
 
 def get_solvable_challenges(team_id):
@@ -213,7 +213,7 @@ class Challenge(Base):
     published = Column(Boolean, default=False, nullable=False)
     has_token = Column(Boolean, default=False, nullable=False)
 
-    category = relationship("Category", backref="challenges", lazy="joined")
+    category = relationship("Category", backref="challenges")
 
     def __init__(self, *args, **kwargs):
         if kwargs.get("manual", False) and kwargs.get("points", 0):

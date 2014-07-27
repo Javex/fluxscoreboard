@@ -20,7 +20,7 @@ from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func, desc
+from sqlalchemy.sql.expression import func, desc, bindparam
 from sqlalchemy.types import Integer, Unicode, Boolean
 import logging
 import random
@@ -86,7 +86,7 @@ def get_team_solved_subquery(team_id):
 
             team_solved_subquery = get_team_solved_subquery(team_id)
             challenge_query = (DBSession.query(Challenge,
-                                               team_solved_subquery.exists()))
+                                               team_solved_subquery))
 
     In this example we query for a list of all challenges and additionally
     fetch whether the currenttly logged in team has solved it.
@@ -95,11 +95,16 @@ def get_team_solved_subquery(team_id):
     # solved the corresponding challenge. The correlate statement is
     # a SQLAlchemy statement that tells it to use the **outer** challenge
     # column.
-    team_solved_subquery = (DBSession.query(Submission).
-                            filter(Submission.team_id == team_id).
-                            filter(Challenge.id ==
-                                   Submission.challenge_id).
-                            correlate(Challenge))
+    if team_id:
+        team_solved_subquery = (DBSession.query(Submission).
+                                filter(Submission.team_id == team_id).
+                                filter(Challenge.id ==
+                                       Submission.challenge_id).
+                                correlate(Challenge).
+                                exists().
+                                label("has_solved"))
+    else:
+        team_solved_subquery = bindparam("has_solved", 0)
     return team_solved_subquery
 
 
@@ -137,9 +142,6 @@ def get_team(request):
     if not request.settings.archive_mode:
         try:
             team = (DBSession.query(Team).
-                    options(subqueryload('submissions'),
-                            joinedload('submissions.challenge'),
-                            joinedload('team_flags')).
                     filter(Team.id == team_id).
                     filter(Team.active == True).one())
             return team
@@ -149,11 +151,6 @@ def get_team(request):
         if team_id:
             request.session.invalidate()
         return None
-
-
-@subscriber(NewRequest)
-def set_team_on_new_request(event):
-    get_team(event.request)
 
 
 def register_team(form, request):
@@ -373,6 +370,8 @@ class Team(Base):
 
     country = relationship("Country", lazy='joined')
 
+    _score = None
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("token", random_token())
         Base.__init__(self, *args, **kwargs)
@@ -461,15 +460,17 @@ class Team(Base):
 
     @hybrid_property
     def score(self):
-        from fluxscoreboard.models import dynamic_challenges
-        challenge_sum = sum(s.challenge.points or 0 for s in self.submissions
+        if self._score is None:
+            from fluxscoreboard.models import dynamic_challenges
+            challenge_sum = sum(s.challenge.points or 0 for s in self.submissions
+                                if s.challenge.published)
+            bonus_sum = sum(s.bonus or 0 for s in self.submissions
                             if s.challenge.published)
-        bonus_sum = sum(s.bonus or 0 for s in self.submissions
-                        if s.challenge.published)
-        dynamic_points = 0
-        for module in dynamic_challenges.registry.values():
-            dynamic_points += module.points(self)
-        return challenge_sum + bonus_sum + dynamic_points
+            dynamic_points = 0
+            for module in dynamic_challenges.registry.values():
+                dynamic_points += module.points(self)
+            self._score = challenge_sum + bonus_sum + dynamic_points
+        return self._score
 
     @score.expression
     def score(cls):  # @NoSelf

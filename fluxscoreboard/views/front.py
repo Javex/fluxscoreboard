@@ -5,7 +5,7 @@ from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
     ResetPasswordForm)
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import (Challenge, Submission,
-    check_submission)
+    check_submission, Category)
 from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
@@ -20,8 +20,9 @@ from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
 from pyramid.response import Response
 from pytz import utc
-from sqlalchemy.orm import subqueryload, joinedload
-from sqlalchemy.sql.expression import desc
+from sqlalchemy import Integer
+from sqlalchemy.orm import subqueryload, joinedload, lazyload
+from sqlalchemy.sql.expression import desc, bindparam
 import functools
 import logging
 import os
@@ -226,11 +227,10 @@ class FrontView(BaseView):
         team_solved_subquery = get_team_solved_subquery(team_id)
         number_of_solved_subquery = get_number_solved_subquery()
         challenges = (DBSession.query(Challenge,
-                                           team_solved_subquery.exists(),
+                                           team_solved_subquery,
                                            number_of_solved_subquery).
-                      filter(Challenge.published).
-                      outerjoin(Submission).
-                      group_by(Challenge.id))
+                      options(joinedload("category")).
+                      filter(Challenge.published))
         return {'challenges': challenges}
 
     @view_config(route_name='challenge', renderer='challenge.mako',
@@ -248,10 +248,9 @@ class FrontView(BaseView):
         team_solved_subquery = get_team_solved_subquery(team_id)
         try:
             challenge, is_solved = (DBSession.query(Challenge,
-                                                team_solved_subquery.exists()).
+                                                team_solved_subquery).
                                  filter(Challenge.id == challenge_id).
-                                 filter(Challenge.published).
-                                 options(subqueryload('announcements')).one())
+                                 filter(Challenge.published).one())
         except NoResultFound:
             self.request.session.flash("Challenge not found or published.")
             return HTTPFound(location=self.request.route_url('challenges'))
@@ -299,7 +298,8 @@ class FrontView(BaseView):
                 rank = index
                 last_score = score
             team_list.append((team, score, rank))
-        challenges = (DBSession.query(Challenge).filter(Challenge.published))
+        challenges = (DBSession.query(Challenge).filter(Challenge.published).
+                      options(joinedload("category")))
         return {'teams': team_list,
                 'challenges': challenges.all()}
 

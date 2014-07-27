@@ -16,7 +16,7 @@ v.close()
 
 requires = [
     'pyramid',  # WSGI framework
-    'SQLAlchemy==0.8.6',  # Database
+    'SQLAlchemy',  # Database
     'mysql-python',  # Database
     'zope.sqlalchemy',  # Database
     'transaction',  # Transactions

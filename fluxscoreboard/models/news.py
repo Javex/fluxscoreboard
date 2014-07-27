@@ -4,18 +4,19 @@ from datetime import datetime
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.types import TZDateTime, JSONList
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, lazyload, contains_eager
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.sql.expression import desc, or_
 from sqlalchemy.types import Integer, UnicodeText, Boolean
 
 
 def get_published_news():
-    announcements = (DBSession.query(News).
-                     outerjoin(Challenge).
+    announcements = (DBSession.query(News).outerjoin(News.challenge).
                      filter(News.published == True).
                      filter(or_(Challenge.published,
-                                Challenge.published == None)).
+                                News.challenge == None)).
+                     options(contains_eager(News.challenge).load_only("title"),
+                             lazyload('challenge.category')).
                      order_by(desc(News.timestamp)))
     return announcements
 
@@ -47,14 +48,13 @@ class News(Base):
                         default=datetime.utcnow
                         )
     message = Column(UnicodeText)
-    published = Column(Boolean, default=False)
+    published = Column(Boolean, default=False, nullable=False)
     challenge_id = Column(Integer, ForeignKey('challenge.id'))
 
     challenge = relationship("Challenge",
                              backref=backref("announcements",
                                              cascade="all",
-                                             order_by="desc(News.timestamp)"),
-                             lazy='joined')
+                                             order_by=desc(timestamp)))
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("timestamp", datetime.utcnow())
