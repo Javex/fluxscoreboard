@@ -37,7 +37,7 @@ import uuid
                     team's token:
                     <br />
                     <code>
-                        ${view.team.challenge_token}
+                        ${request.team.challenge_token}
                     </code>
                     % endif
             </p>

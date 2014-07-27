@@ -4,7 +4,8 @@ from fluxscoreboard import routes
 from fluxscoreboard.forms.fields import RecaptchaField
 from fluxscoreboard.forms.front import RegisterForm
 from fluxscoreboard.models import DBSession, RootFactory
-from fluxscoreboard.models.team import groupfinder
+from fluxscoreboard.models.team import groupfinder, get_team
+from fluxscoreboard.models.settings import load_settings
 from pyramid.authentication import SessionAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
@@ -46,6 +47,10 @@ def main(global_config, **settings):
                           authorization_policy=authz_policy,
                           root_factory=RootFactory,
                           )
+
+    # Add request properties
+    config.add_request_method(load_settings, b'settings', reify=True)
+    config.add_request_method(get_team, b'team', reify=True)
 
     # Routes & Views
     static_dir = 'static'

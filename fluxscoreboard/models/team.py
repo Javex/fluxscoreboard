@@ -46,7 +46,7 @@ def groupfinder(userid, request):
     Check if there is a team logged in, and if it is, return the default
     :data:`TEAM_GROUPS`.
     """
-    if get_team(request):
+    if request.team:
         return TEAM_GROUPS
 
 
@@ -128,27 +128,27 @@ def get_number_solved_subquery():
 
 def get_team(request):
     """
-    Get the currently logged in team. Fetches the team from the database
-    only once, then stores it in the request.
+    Get the currently logged in team. Returns None if the team is invalid (e.g.
+    inactive) or noone is logged in or if the scoreboard is in archive mode.
     """
-    if not hasattr(request, 'team'):
-        team_id = unauthenticated_userid(request)
-        if not request.settings.archive_mode:
-            try:
-                team = (DBSession.query(Team).
-                        options(subqueryload('submissions'),
-                                joinedload('submissions.challenge'),
-                                joinedload('team_flags')).
-                        filter(Team.id == team_id).
-                        filter(Team.active == True).one())
-                request.team = team
-            except NoResultFound:
-                request.team = None
-        else:
-            request.team = None
-            if team_id:
-                request.session.invalidate()
-    return request.team
+    team_id = unauthenticated_userid(request)
+    if team_id is None:
+        return None
+    if not request.settings.archive_mode:
+        try:
+            team = (DBSession.query(Team).
+                    options(subqueryload('submissions'),
+                            joinedload('submissions.challenge'),
+                            joinedload('team_flags')).
+                    filter(Team.id == team_id).
+                    filter(Team.active == True).one())
+            return team
+        except NoResultFound:
+            return None
+    else:
+        if team_id:
+            request.session.invalidate()
+        return None
 
 
 @subscriber(NewRequest)

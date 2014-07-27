@@ -76,14 +76,6 @@ class BaseView(object):
         self.orb_count = None
 
     @reify
-    def team(self):
-        """
-        Retrieve the current team. Can be called multiple teams without
-        overhead.
-        """
-        return get_team(self.request)
-
-    @reify
     def current_state(self):
         """
         A pair of ``ctf_state, logged_in`` where ``ctf_state`` represents
@@ -506,10 +498,10 @@ class UserView(BaseView):
         location or timezone. The team name is fixed and can only be changed
         by administrators.
         """
-        form = ProfileForm(self.request.POST, self.team,
+        form = ProfileForm(self.request.POST, self.request.team,
                            csrf_context=self.request)
         retparams = {'form': form,
-                     'team': self.team,
+                     'team': self.request.team,
                      }
         redirect = HTTPFound(location=self.request.route_url('profile'))
         if self.request.method == 'POST':
@@ -520,18 +512,18 @@ class UserView(BaseView):
                 return retparams
             if form.avatar.delete:
                 try:
-                    os.remove(self.team.avatar_filename)
+                    os.remove(self.request.team.avatar_filename)
                 except OSError as e:
                     log.warning("Exception while deleting avatar for team "
                                 "'%s' under filename '%s': %s" %
-                                (self.team.name, self.team.avatar_filename, e))
-                self.team.avatar_filename = None
+                                (self.request.team.name, self.request.team.avatar_filename, e))
+                self.request.team.avatar_filename = None
             elif form.avatar.data is not None and form.avatar.data != '':
                 # Handle new avatar
                 ext = form.avatar.data.filename.rsplit('.', 1)[-1]
-                self.team.avatar_filename = random_token() + "." + ext
+                self.request.team.avatar_filename = random_token() + "." + ext
                 fpath = ("fluxscoreboard/static/images/avatars/%s"
-                         % self.team.avatar_filename)
+                         % self.request.team.avatar_filename)
                 with open(fpath, "w") as out:
                     in_file = form.avatar.data.file
                     in_file.seek(0)
@@ -540,7 +532,7 @@ class UserView(BaseView):
                         if not data:
                             break
                         out.write(data)
-            form.populate_obj(self.team)
+            form.populate_obj(self.request.team)
             self.request.session.flash('Your profile has been updated')
             return redirect
         return retparams
