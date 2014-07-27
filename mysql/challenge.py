@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
-from fluxscoreboard.models import Base, DBSession
+from . import Base, DBSession
 from fluxscoreboard.models.types import TZDateTime
 from fluxscoreboard.util import now
 from sqlalchemy import event
@@ -200,16 +200,16 @@ class Challenge(Base):
         frontend at all.
     """
     id = Column(Integer, primary_key=True)
-    title = Column(Unicode, nullable=False)
+    title = Column(Unicode(255), nullable=False)
     text = Column(UnicodeText)
-    solution = Column(Unicode)
+    solution = Column(Unicode(255))
     _points = Column('points', Integer, default=0)
     online = Column(Boolean, default=False, nullable=False)
     manual = Column(Boolean, default=False, nullable=False)
     category_id = Column(Integer, ForeignKey('category.id'))
-    author = Column(Unicode)
+    author = Column(Unicode(255))
     dynamic = Column(Boolean, default=False, nullable=False)
-    module_name = Column(Unicode)
+    module_name = Column(Unicode(255))
     published = Column(Boolean, default=False, nullable=False)
     has_token = Column(Boolean, default=False, nullable=False)
 
@@ -299,7 +299,7 @@ class Category(Base):
         ``challenges``: List of challenges in that category.
     """
     id = Column(Integer, primary_key=True)
-    name = Column(Unicode, nullable=False)
+    name = Column(Unicode(255), nullable=False)
 
     def __str__(self):
         return unicode(self).encode("utf-8")

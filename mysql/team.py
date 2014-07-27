@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.models import Base, DBSession
-from fluxscoreboard.models.challenge import Submission, Challenge, Category
+from . import Base, DBSession
+from .challenge import Submission, Challenge, Category
 from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token, now
 from pyramid.decorator import reify
 from pyramid.events import subscriber, NewRequest
@@ -22,7 +22,6 @@ from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
 from sqlalchemy.sql.expression import func, desc
 from sqlalchemy.types import Integer, Unicode, Boolean
-from sqlalchemy.dialects.postgresql import INET
 import logging
 import random
 import string
@@ -349,22 +348,23 @@ class Team(Base):
         :class:`fluxscoreboard.models.country.Country` attribute.
     """
     id = Column(Integer, primary_key=True)
-    name = Column(Unicode, nullable=False, unique=True)
-    _password = Column('password', Unicode, nullable=False)
-    email = Column(Unicode, nullable=False, unique=True)
+    name = Column(Unicode(TEAM_NAME_MAX_LENGTH), nullable=False, unique=True)
+    _password = Column('password', Unicode(TEAM_PASSWORD_MAX_LENGTH),
+                       nullable=False)
+    email = Column(Unicode(TEAM_MAIL_MAX_LENGTH), nullable=False, unique=True)
     country_id = Column(Integer, ForeignKey('country.id'), nullable=False)
     local = Column(Boolean, default=False)
-    token = Column(Unicode, nullable=False, unique=True)
-    reset_token = Column(Unicode, unique=True)
-    ref_token = Column(Unicode, nullable=False, default=ref_token,
+    token = Column(Unicode(64), nullable=False, unique=True)
+    reset_token = Column(Unicode(64), unique=True)
+    ref_token = Column(Unicode(15), nullable=False, default=ref_token,
                        unique=True)
-    challenge_token = Column(Unicode, unique=True, default=uuid.uuid4,
+    challenge_token = Column(Unicode(36), unique=True, default=uuid.uuid4,
                              nullable=False)
     active = Column(Boolean, default=False)
-    _timezone = Column('timezone', Unicode,
+    _timezone = Column('timezone', Unicode(30),
                        default=lambda: unicode(utc.zone),
                        nullable=False)
-    avatar_filename = Column(Unicode, unique=True)
+    avatar_filename = Column(Unicode(68), unique=True)
     size = Column(Integer)
 
     # TODO: Make it a set (and update TeamFlags docs)
@@ -555,7 +555,7 @@ def register_ip(event):
 class TeamIP(Base):
     __tablename__ = 'team_ip'
     team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
-    ip = Column(INET, primary_key=True)
+    ip = Column(Unicode(15), primary_key=True)
 
     team = relationship("Team", backref=backref("team_ips",
                                                 cascade="all, delete-orphan"))

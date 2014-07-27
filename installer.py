@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from fluxscoreboard.install import uninstall, install
+from fluxscoreboard.install import uninstall, install, migrate
 from fluxscoreboard.models import DBSession
 from paste.deploy.loadwsgi import appconfig
 from pyramid.paster import setup_logging
@@ -78,6 +78,10 @@ if __name__ == '__main__':
         for dir_ in EXISTING_SUBDIRS:
             shutil.rmtree(os.path.abspath(os.path.join(ROOT_PATH, dir_)))
         print("[*] Application uninstalled")
+    elif task == "migrate":
+        engine = engine_from_config(settings, 'sqlalchemy.')
+        DBSession.configure(bind=engine)
+        migrate(settings)
     else:
         raise ValueError("First argument must be either 'install' or "
                          "'uninstall', not '%s'" % task)

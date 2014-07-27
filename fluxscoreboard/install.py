@@ -145,3 +145,54 @@ def uninstall(settings):
     """
     Base.metadata.drop_all(bind=DBSession.connection())
     transaction.commit()
+
+
+def migrate(settings):
+    """
+    Migrate data from mysql to pg
+    """
+    from importlib import import_module
+    from fluxscoreboard.models import mysql as mymodels
+    import sqlalchemy as sa
+    import sys
+    mysql = sa.create_engine('mysql://hacklu:hacklu@localhost:3306/scoreboard')
+    mymodels.DBSession.configure(bind=mysql)
+    Base.metadata.create_all(bind=DBSession.connection())
+    classes = ['challenge.Challenge',
+               'challenge.Category',
+               'challenge.Submission',
+               'country.Country',
+               'news.News',
+               'news.MassMail',
+               'settings.Settings',
+               'team.Team',
+               'team.TeamIP']
+    table_map = {}
+    for s in classes:
+        mod, cls = s.split(".")
+
+        mymod = import_module('.models.mysql.%s' % mod, 'fluxscoreboard')
+        mycls = getattr(mymod, cls)
+
+        pmod = import_module('.models.%s' % mod, 'fluxscoreboard')
+        pcls = getattr(pmod, cls)
+
+        table_map[mycls] = pcls
+
+    exc_map = {
+        'points': '_points',
+        'password': '_password',
+    }
+
+    for mycls, pcls in table_map.items():
+        query = mymodels.DBSession.query(mycls)
+        cols = [exc_map.get(col.name, col.name) for col in mycls.__table__.c]
+        for item in query:
+            values = dict((name, getattr(item, name)) for name in cols)
+            new_item = pcls(**values)
+            DBSession.add(new_item)
+    transaction.commit()
+
+    from pprint import pprint
+    #pprint(mysql_tables)
+    #pprint(psql_tables)
