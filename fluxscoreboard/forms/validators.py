@@ -214,7 +214,7 @@ def dynamic_check_multiple_allowed(form, field):
     from ..models import dynamic_challenges
     module = dynamic_challenges.registry[field.data]
     instance_exists = (DBSession.query(Challenge).
-                       filter(Challenge.module_name == field.data))
+                       filter(Challenge.module == field.data))
     if form.id.data:
         instance_exists = instance_exists.filter(Challenge.id != form.id.data)
     if not module.allow_multiple and instance_exists.first():
