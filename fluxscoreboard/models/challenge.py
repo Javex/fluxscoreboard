@@ -35,33 +35,6 @@ def get_online_challenges():
             filter(Challenge.online))
 
 
-def get_unsolved_challenges(team_id):
-    """
-    Return a query that produces a list of all unsolved challenges for a given
-    team.
-    """
-    from fluxscoreboard.models.team import get_team_solved_subquery
-    team_solved_subquery = get_team_solved_subquery(team_id)
-    online = get_online_challenges()
-    return (online.filter(not_(team_solved_subquery.exists())))
-
-
-def get_solvable_challenges(team_id):
-    """
-    Return a list of challenges that the current team can solve right now. It
-    returns a list of challenges that are
-
-    - online
-    - unsolved by the current team
-    - not manual (i.e. solvable by entering a solution)
-    """
-    unsolved = get_unsolved_challenges(team_id)
-    return (unsolved.
-            filter(~Challenge.manual).
-            filter(~Challenge.dynamic).
-            filter(Challenge.published))
-
-
 def get_submissions():
     """
     Creates a query to **eagerly** load all submissions. That is, all teams
@@ -213,15 +186,12 @@ class Challenge(Base):
     published = Column(Boolean, default=False, nullable=False)
     has_token = Column(Boolean, default=False, nullable=False)
 
-    category = relationship("Category", backref="challenges", lazy="joined")
+    category = relationship("Category", backref="challenges")
 
     def __init__(self, *args, **kwargs):
         if kwargs.get("manual", False) and kwargs.get("points", 0):
             raise ValueError("A manual challenge cannot have points!")
         Base.__init__(self, *args, **kwargs)
-
-    def __str__(self):
-        return unicode(self).encode("utf-8")
 
     def __unicode__(self):
         return self.title
@@ -301,9 +271,6 @@ class Category(Base):
     id = Column(Integer, primary_key=True)
     name = Column(Unicode, nullable=False)
 
-    def __str__(self):
-        return unicode(self).encode("utf-8")
-
     def __unicode__(self):
         return self.name
 
@@ -351,11 +318,6 @@ class Submission(Base):
                              backref=backref("submissions",
                                              cascade="all, delete-orphan")
                              )
-
-    def __init__(self, *args, **kwargs):
-        if "timestamp" not in kwargs:
-            self.timestamp = datetime.utcnow()
-        Base.__init__(self, *args, **kwargs)
 
     def __repr__(self):
         r = ("<Submission challenge=%s, team=%s, bonus=%d, timestamp=%s>"

@@ -5,11 +5,11 @@ from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
     ResetPasswordForm)
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import (Challenge, Submission,
-    check_submission)
+    check_submission, Category)
 from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
-    password_reminder, check_password_reset_token, get_leading_team)
+    password_reminder, check_password_reset_token)
 from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
     display_design)
 from fluxscoreboard.models.settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
@@ -20,8 +20,9 @@ from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
 from pyramid.response import Response
 from pytz import utc
-from sqlalchemy.orm import subqueryload, joinedload
-from sqlalchemy.sql.expression import desc
+from sqlalchemy import Integer
+from sqlalchemy.orm import subqueryload, joinedload, lazyload
+from sqlalchemy.sql.expression import desc, bindparam
 import functools
 import logging
 import os
@@ -76,14 +77,6 @@ class BaseView(object):
         self.orb_count = None
 
     @reify
-    def team(self):
-        """
-        Retrieve the current team. Can be called multiple teams without
-        overhead.
-        """
-        return get_team(self.request)
-
-    @reify
     def current_state(self):
         """
         A pair of ``ctf_state, logged_in`` where ``ctf_state`` represents
@@ -130,10 +123,6 @@ class BaseView(object):
     @reify
     def team_count(self):
         return DBSession.query(Team).filter(Team.active).count()
-
-    @reify
-    def leading_team(self):
-        return get_leading_team()
 
     @reify
     def announcements(self):
@@ -234,11 +223,10 @@ class FrontView(BaseView):
         team_solved_subquery = get_team_solved_subquery(team_id)
         number_of_solved_subquery = get_number_solved_subquery()
         challenges = (DBSession.query(Challenge,
-                                           team_solved_subquery.exists(),
+                                           team_solved_subquery,
                                            number_of_solved_subquery).
-                      filter(Challenge.published).
-                      outerjoin(Submission).
-                      group_by(Challenge.id))
+                      options(joinedload("category")).
+                      filter(Challenge.published))
         return {'challenges': challenges}
 
     @view_config(route_name='challenge', renderer='challenge.mako',
@@ -256,10 +244,9 @@ class FrontView(BaseView):
         team_solved_subquery = get_team_solved_subquery(team_id)
         try:
             challenge, is_solved = (DBSession.query(Challenge,
-                                                team_solved_subquery.exists()).
+                                                team_solved_subquery).
                                  filter(Challenge.id == challenge_id).
-                                 filter(Challenge.published).
-                                 options(subqueryload('announcements')).one())
+                                 filter(Challenge.published).one())
         except NoResultFound:
             self.request.session.flash("Challenge not found or published.")
             return HTTPFound(location=self.request.route_url('challenges'))
@@ -307,7 +294,8 @@ class FrontView(BaseView):
                 rank = index
                 last_score = score
             team_list.append((team, score, rank))
-        challenges = (DBSession.query(Challenge).filter(Challenge.published))
+        challenges = (DBSession.query(Challenge).filter(Challenge.published).
+                      options(joinedload("category")))
         return {'teams': team_list,
                 'challenges': challenges.all()}
 
@@ -506,10 +494,10 @@ class UserView(BaseView):
         location or timezone. The team name is fixed and can only be changed
         by administrators.
         """
-        form = ProfileForm(self.request.POST, self.team,
+        form = ProfileForm(self.request.POST, self.request.team,
                            csrf_context=self.request)
         retparams = {'form': form,
-                     'team': self.team,
+                     'team': self.request.team,
                      }
         redirect = HTTPFound(location=self.request.route_url('profile'))
         if self.request.method == 'POST':
@@ -520,18 +508,18 @@ class UserView(BaseView):
                 return retparams
             if form.avatar.delete:
                 try:
-                    os.remove(self.team.avatar_filename)
+                    os.remove(self.request.team.avatar_filename)
                 except OSError as e:
                     log.warning("Exception while deleting avatar for team "
                                 "'%s' under filename '%s': %s" %
-                                (self.team.name, self.team.avatar_filename, e))
-                self.team.avatar_filename = None
+                                (self.request.team.name, self.request.team.avatar_filename, e))
+                self.request.team.avatar_filename = None
             elif form.avatar.data is not None and form.avatar.data != '':
                 # Handle new avatar
                 ext = form.avatar.data.filename.rsplit('.', 1)[-1]
-                self.team.avatar_filename = random_token() + "." + ext
+                self.request.team.avatar_filename = random_token() + "." + ext
                 fpath = ("fluxscoreboard/static/images/avatars/%s"
-                         % self.team.avatar_filename)
+                         % self.request.team.avatar_filename)
                 with open(fpath, "w") as out:
                     in_file = form.avatar.data.file
                     in_file.seek(0)
@@ -540,7 +528,7 @@ class UserView(BaseView):
                         if not data:
                             break
                         out.write(data)
-            form.populate_obj(self.team)
+            form.populate_obj(self.request.team)
             self.request.session.flash('Your profile has been updated')
             return redirect
         return retparams

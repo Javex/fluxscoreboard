@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from pytz import utc
-from sqlalchemy.types import TypeDecorator, DateTime, UnicodeText
+from pytz import utc, timezone, all_timezones
+from sqlalchemy.types import TypeDecorator, DateTime, UnicodeText, Unicode
 import json
 
 
@@ -27,6 +27,30 @@ class TZDateTime(TypeDecorator):
         if hasattr(value, 'tzinfo') and value.tzinfo is None:
             value = utc.localize(value)
         return value
+
+
+class Timezone(TypeDecorator):
+    """
+    Represent a timezone, storing it as a unicode string but giving back a
+    :class:`datetime.tzinfo` instance.
+    """
+
+    impl = Unicode(30)
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            if not isinstance(value, unicode):
+                value = unicode(value)
+            if value not in all_timezones:
+                raise ValueError("Invalid Timezone")
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            return timezone(value)
+        else:
+            return None
+
 
 
 class JSONList(TypeDecorator):

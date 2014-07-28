@@ -27,7 +27,7 @@ ${render_announcements(announcements)}
                     General Announcement
                 % endif
             % endif
-                <small>(Published on ${tz_str(news.timestamp, view.team.timezone if view.team else None)})</small>
+                <small>(Published on ${tz_str(news.timestamp, request.team.timezone if request.team else None)})</small>
             </h4>
         <p>${news.message | n}</p>
         </div>

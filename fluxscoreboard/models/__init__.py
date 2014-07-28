@@ -25,6 +25,9 @@ class BaseCFG(object):
         return cls.__name__.lower()
 
 
+    def __str__(self):
+        return unicode(self).encode("utf-8")
+
 Base = declarative_base(cls=BaseCFG)
 """Base class for all ORM classes. Uses :class:`BaseCFG` configuration."""
 
