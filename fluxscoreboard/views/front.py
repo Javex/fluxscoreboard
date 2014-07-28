@@ -15,7 +15,7 @@ from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
 from fluxscoreboard.models.settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound, HTTPForbidden
-from pyramid.security import remember, authenticated_userid, forget
+from pyramid.security import remember, forget
 from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
 from pyramid.response import Response
@@ -84,7 +84,7 @@ class BaseView(object):
         shows whether the user is currently logged in to a team.
         """
         # Team logged in?
-        logged_in = bool(authenticated_userid(self.request))
+        logged_in = bool(self.request.authenticated_userid)
         ctf_state = self.request.settings.ctf_state
         if ctf_state == CTF_ARCHIVE:
             logged_in = False
@@ -219,7 +219,7 @@ class FrontView(BaseView):
         ``(challenge, team_solved, number_solved_total)`` is then given to the
         template and rendered.
         """
-        team_id = authenticated_userid(self.request)
+        team_id = self.request.authenticated_userid
         team_solved_subquery = get_team_solved_subquery(team_id)
         number_of_solved_subquery = get_number_solved_subquery()
         challenges = (DBSession.query(Challenge,
@@ -240,7 +240,7 @@ class FrontView(BaseView):
         challenge.
         """
         challenge_id = int(self.request.matchdict["id"])
-        team_id = authenticated_userid(self.request)
+        team_id = self.request.authenticated_userid
         team_solved_subquery = get_team_solved_subquery(team_id)
         try:
             challenge, is_solved = (DBSession.query(Challenge,
@@ -327,7 +327,7 @@ class FrontView(BaseView):
         """
         form = SolutionSubmitListForm(self.request.params,
                                       csrf_context=self.request)
-        team_id = authenticated_userid(self.request)
+        team_id = self.request.authenticated_userid
         retparams = {'form': form}
         if self.request.method == 'POST':
             if not form.validate():

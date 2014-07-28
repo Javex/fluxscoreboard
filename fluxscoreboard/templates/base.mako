@@ -1,5 +1,4 @@
 <%
-from pyramid.security import authenticated_userid, has_permission
 from fluxscoreboard.util import display_design, tz_str, is_admin_path, now
 import pytz
 %>

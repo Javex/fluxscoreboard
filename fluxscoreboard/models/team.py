@@ -7,7 +7,6 @@ from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token, now
 from pyramid.decorator import reify
 from pyramid.events import subscriber, NewRequest
 from pyramid.renderers import render
-from pyramid.security import unauthenticated_userid, authenticated_userid
 from pyramid.threadlocal import get_current_request
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
@@ -125,7 +124,7 @@ def get_team(request):
     Get the currently logged in team. Returns None if the team is invalid (e.g.
     inactive) or noone is logged in or if the scoreboard is in archive mode.
     """
-    team_id = unauthenticated_userid(request)
+    team_id = request.unauthenticated_userid
     if team_id is None:
         return None
     if not request.settings.archive_mode:
@@ -537,7 +536,7 @@ def register_ip(event):
             event.request.session["test-login"] or
             event.request.path.startswith('/static')):
         return None
-    team_id = authenticated_userid(event.request)
+    team_id = event.request.authenticated_userid
     t = transaction.savepoint()
     if not team_id:
         return
