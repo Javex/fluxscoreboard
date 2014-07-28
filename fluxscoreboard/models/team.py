@@ -2,6 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Submission, Challenge, Category
+from fluxscoreboard.models.types import Timezone
 from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token, now
 from pyramid.decorator import reify
 from pyramid.events import subscriber, NewRequest
@@ -10,7 +11,7 @@ from pyramid.security import unauthenticated_userid, authenticated_userid
 from pyramid.threadlocal import get_current_request
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
-from pytz import utc, timezone, all_timezones
+from pytz import utc
 from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -116,7 +117,7 @@ def get_number_solved_subquery():
     return (DBSession.query(func.count('*')).
             filter(Challenge.id == Submission.challenge_id).
             correlate(Challenge).
-            as_scalar())
+            label("solved_count"))
 
 
 def get_team(request):
@@ -346,9 +347,8 @@ class Team(Base):
     challenge_token = Column(Unicode(36), unique=True, default=uuid.uuid4,
                              nullable=False)
     active = Column(Boolean, default=False)
-    _timezone = Column('timezone', Unicode(30),
-                       default=lambda: unicode(utc.zone),
-                       nullable=False)
+    timezone = Column(Timezone, default=lambda: unicode(utc.zone),
+                      nullable=False)
     avatar_filename = Column(Unicode(68), unique=True)
     size = Column(Integer)
 
@@ -391,19 +391,6 @@ class Team(Base):
     @password.setter
     def password(self, pw):
         self._password = encrypt_pw(pw)
-
-    @property
-    def timezone(self):
-        if self._timezone is None:
-            return None
-        else:
-            return timezone(self._timezone)
-
-    @timezone.setter
-    def timezone(self, tz):
-        timezone = unicode(tz)
-        assert timezone in all_timezones
-        self._timezone = timezone
 
     def get_category_solved(self, category):
         cat_solved, total = self.stats.get(category, (0, 0))
