@@ -81,7 +81,7 @@ if __name__ == '__main__':
     elif task == "migrate":
         engine = engine_from_config(settings, 'sqlalchemy.')
         DBSession.configure(bind=engine)
-        migrate(settings)
+        migrate(settings, config_file)
     else:
         raise ValueError("First argument must be either 'install' or "
                          "'uninstall', not '%s'" % task)

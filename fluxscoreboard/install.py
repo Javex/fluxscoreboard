@@ -147,12 +147,12 @@ def uninstall(settings):
     transaction.commit()
 
 
-def migrate(settings):
+def migrate(settings, cfg_file):
     """
     Migrate data from mysql to pg
     """
     from importlib import import_module
-    from fluxscoreboard.models import mysql as mymodels
+    import mysql as mymodels
     import sqlalchemy as sa
     import sys
     mysql = sa.create_engine('mysql://hacklu:hacklu@localhost:3306/scoreboard')
@@ -167,11 +167,12 @@ def migrate(settings):
                'settings.Settings',
                'team.Team',
                'team.TeamIP']
+    install_alembic_table(cfg_file)
     table_map = {}
     for s in classes:
         mod, cls = s.split(".")
 
-        mymod = import_module('.models.mysql.%s' % mod, 'fluxscoreboard')
+        mymod = import_module(mod, 'mysql')
         mycls = getattr(mymod, cls)
 
         pmod = import_module('.models.%s' % mod, 'fluxscoreboard')
@@ -192,7 +193,3 @@ def migrate(settings):
             new_item = pcls(**values)
             DBSession.add(new_item)
     transaction.commit()
-
-    from pprint import pprint
-    #pprint(mysql_tables)
-    #pprint(psql_tables)

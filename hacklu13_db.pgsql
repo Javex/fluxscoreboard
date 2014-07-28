@@ -29,6 +29,27 @@ SET default_tablespace = '';
 
 SET default_with_oids = false;
 
+
+--
+-- Name: alembic_version; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+--
+
+CREATE TABLE alembic_version (
+    version_num character varying(32) NOT NULL
+);
+
+
+ALTER TABLE public.alembic_version OWNER TO javex;
+
+--
+-- Data for Name: alembic_version; Type: TABLE DATA; Schema: public; Owner: javex
+--
+
+COPY alembic_version (version_num) FROM stdin;
+a36e99747e8
+\.
+
+
 --
 -- Name: category; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
 --
