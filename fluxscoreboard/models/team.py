@@ -64,18 +64,6 @@ def get_active_teams():
     return DBSession.query(Team).filter(Team.active == True)
 
 
-def get_leading_team():
-    """
-    Get the leading team with the highest rank.
-    """
-    actives = get_active_teams()
-    score = desc(Team.score)
-    try:
-        return actives.order_by(score)[0]
-    except IndexError:
-        return None
-
-
 def get_team_solved_subquery(team_id):
     """
     Get a query that searches for a submission from a team for a given

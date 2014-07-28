@@ -9,7 +9,7 @@ from fluxscoreboard.models.challenge import (Challenge, Submission,
 from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
-    password_reminder, check_password_reset_token, get_leading_team)
+    password_reminder, check_password_reset_token)
 from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
     display_design)
 from fluxscoreboard.models.settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
@@ -123,10 +123,6 @@ class BaseView(object):
     @reify
     def team_count(self):
         return DBSession.query(Team).filter(Team.active).count()
-
-    @reify
-    def leading_team(self):
-        return get_leading_team()
 
     @reify
     def announcements(self):
