@@ -16,7 +16,7 @@ v.close()
 
 requires = [
     'pyramid>=1.5',  # WSGI framework
-    'SQLAlchemy',  # Database
+    'SQLAlchemy>=0.9',  # Database
     'mysql-python',  # Database
     'zope.sqlalchemy',  # Database
     'transaction',  # Transactions
@@ -35,6 +35,7 @@ requires = [
     'waitress',  # Dev Server
     'pytest',  # Testing
     'webtest',  # Testing
+    'mock',  # Testing
     'Pillow',  # Avatars
     'requests',  # Download data (GeoIP)
     'alembic',  # Database migration

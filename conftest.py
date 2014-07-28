@@ -6,7 +6,7 @@ from fluxscoreboard.models import DBSession, Base, dynamic_challenges
 from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.country import Country
 from fluxscoreboard.models.dynamic_challenges.flags import TeamFlag
-from fluxscoreboard.models.news import MassMail
+from fluxscoreboard.models.news import MassMail, News
 from fluxscoreboard.models.settings import Settings
 from fluxscoreboard.models.team import Team
 from fluxscoreboard.views.front import BaseView
@@ -228,6 +228,17 @@ def make_teamflag():
         if "flag" not in kw:
             kw["flag"] = avail_flags.pop()
         return TeamFlag(team=team, **kw)
+    return _make
+
+
+@pytest.fixture
+def make_news():
+    count = [0]
+
+    def _make(**kwargs):
+        kwargs.setdefault("message", "Bla<br>foo")
+        count[0] += 1
+        return News(**kwargs)
     return _make
 
 

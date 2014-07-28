@@ -86,4 +86,4 @@ class Module(TypeDecorator):
         if value is None:
             return None
         from . import dynamic_challenges
-        return dynamic_challenges.registry.get(value, None)
+        return dynamic_challenges.registry[value]
