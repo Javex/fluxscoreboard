@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
 from fluxscoreboard.models import Base, DBSession
-from fluxscoreboard.models.types import TZDateTime
+from fluxscoreboard.models.types import TZDateTime, Module
 from fluxscoreboard.util import now
 from sqlalchemy import event
 from sqlalchemy.orm import relationship, backref, joinedload
@@ -162,10 +162,11 @@ class Challenge(Base):
         default of ``False`` this is just a normal challenge, otherwise, the
         attribute ``module`` must be set.
 
-        ``module_name``: If this challenge is dynamic, it must provide a valid
+        ``module``: If this challenge is dynamic, it must provide a valid
         dotted python name for a module that provides the interface for
         validation and display. The dotted python name given here will be
-        prefixed with ``fluxscoreboard.dynamic_challenges.``
+        prefixed with ``fluxscoreboard.dynamic_challenges.`` from which the
+        module will be loaded and made available on using it.
 
         ``module``: Loads the module from the module name and returns it.
 
@@ -182,7 +183,7 @@ class Challenge(Base):
     category_id = Column(Integer, ForeignKey('category.id'))
     author = Column(Unicode(255))
     dynamic = Column(Boolean, default=False, nullable=False)
-    module_name = Column(Unicode(255))
+    module = Column(Module)
     published = Column(Boolean, default=False, nullable=False)
     has_token = Column(Boolean, default=False, nullable=False)
 
@@ -208,8 +209,10 @@ class Challenge(Base):
             additional_info.append("category=%s" % self.category)
         if self.author:
             additional_info.append("author(s)=%s" % self.author)
-        if self.module_name:
-            additional_info.append("module=%s" % self.module_name)
+        if self.module:
+            _, name = re.split(r'^.*models\.dynamic_challenges\.',
+                               self.module.__name__)
+            additional_info.append("module=%s" % name)
         if additional_info:
             additional_info = ", " + ", ".join(additional_info)
         else:
@@ -237,11 +240,6 @@ class Challenge(Base):
     @points.setter
     def points(self, points):
         self._points = points
-
-    @property
-    def module(self):
-        from . import dynamic_challenges
-        return dynamic_challenges.registry.get(self.module_name, None)
 
 
 @event.listens_for(Challenge, 'before_update')

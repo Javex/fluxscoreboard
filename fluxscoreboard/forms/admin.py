@@ -125,7 +125,7 @@ class ChallengeForm(CSRFForm):
                      "below. Also, you may NOT make it a manual challenge as "
                      "well!"))
 
-    module_name = SelectField(
+    module = SelectField(
         "Dynamic Module",
         description=("Which module should be used for this dynamic challenge "
                      "(only relevant if dynamic is checked above), see above "
