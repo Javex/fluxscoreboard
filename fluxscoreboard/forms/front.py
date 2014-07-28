@@ -9,7 +9,6 @@ from fluxscoreboard.forms.validators import (name_length_validator,
     password_required_and_valid_if_pw_change, password_min_length_if_set_validator,
     password_max_length_if_set_validator, avatar_size_validator, name_unique_validator)
 from fluxscoreboard.models.country import get_all_countries
-from pyramid.security import authenticated_userid
 from pyramid.threadlocal import get_current_request
 from pytz import common_timezones, utc
 from wtforms.ext.sqlalchemy.fields import QuerySelectField

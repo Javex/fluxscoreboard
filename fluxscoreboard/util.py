@@ -4,7 +4,6 @@ from datetime import datetime
 from functools import wraps
 from pyramid.events import NewResponse, subscriber
 from pyramid.httpexceptions import HTTPFound
-from pyramid.security import authenticated_userid
 from pytz import utc
 import bcrypt
 import binascii
@@ -175,7 +174,7 @@ class not_logged_in(object):
     def __call__(self, func):
         @wraps(func)
         def _redirect_if_logged_in(self_wrap, *args, **kwargs):
-            if authenticated_userid(self_wrap.request):
+            if self_wrap.request.authenticated_userid:
                 self_wrap.request.session.flash(self.msg)
                 return HTTPFound(location=self_wrap.request.route_url('home'))
             return func(self_wrap, *args, **kwargs)
