@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
-from fluxscoreboard.models.challenge import Submission, Challenge, Category
+from fluxscoreboard.models.challenge import (Submission, Challenge, Category,
+    get_online_challenges)
 from fluxscoreboard.models.types import Timezone
 from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token, now
 from pyramid.decorator import reify
@@ -20,7 +21,7 @@ from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func, desc, bindparam
+from sqlalchemy.sql.expression import func, desc, bindparam, not_
 from sqlalchemy.types import Integer, Unicode, Boolean
 import logging
 import random
@@ -339,14 +340,15 @@ class Team(Base):
     email = Column(Unicode(TEAM_MAIL_MAX_LENGTH), nullable=False, unique=True)
     country_id = Column(Integer, ForeignKey('country.id'), nullable=False)
     local = Column(Boolean, default=False)
-    token = Column(Unicode(64), nullable=False, unique=True)
+    token = Column(Unicode(64), unique=True, default=random_token)
     reset_token = Column(Unicode(64), unique=True)
     ref_token = Column(Unicode(15), nullable=False, default=ref_token,
                        unique=True)
-    challenge_token = Column(Unicode(36), unique=True, default=uuid.uuid4,
+    challenge_token = Column(Unicode(36), unique=True,
+                             default=lambda: unicode(uuid.uuid4()),
                              nullable=False)
     active = Column(Boolean, default=False)
-    timezone = Column(Timezone, default=lambda: unicode(utc.zone),
+    timezone = Column(Timezone, default=lambda: utc,
                       nullable=False)
     avatar_filename = Column(Unicode(68), unique=True)
     size = Column(Integer)
@@ -358,10 +360,6 @@ class Team(Base):
     country = relationship("Country", lazy='joined')
 
     _score = None
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("token", random_token())
-        Base.__init__(self, *args, **kwargs)
 
     def __unicode__(self):
         return self.name
@@ -511,7 +509,7 @@ class Team(Base):
 
         - online
         - unsolved by the current team
-        - not manual (i.e. solvable by entering a solution)
+        - not manual or dynamic (i.e. solvable by entering a solution)
         """
         unsolved = self.get_unsolved_challenges()
         return (unsolved.
