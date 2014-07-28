@@ -16,10 +16,9 @@ CTF_STARTED = 2
 CTF_ARCHIVE = 3
 
 
-@subscriber(NewRequest)
-def load_settings(event):
+def load_settings(request):
     settings = DBSession.query(Settings).one()
-    event.request.settings = settings
+    return settings 
 
 
 class Settings(Base):

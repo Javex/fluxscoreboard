@@ -50,7 +50,7 @@ class FlagView(BaseView):
             return HTTPFound(location=self.request.route_url('home'))
         try:
             challenge = (DBSession.query(Challenge).
-                         filter(Challenge.module_name == 'flags').one())
+                         filter(Challenge.module == 'flags').one())
         except NoResultFound:
             ret = {'success': False, 'msg': ("There is no challenge for flags "
                                              "right now")}

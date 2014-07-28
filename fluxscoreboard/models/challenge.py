@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
 from fluxscoreboard.models import Base, DBSession
-from fluxscoreboard.models.types import TZDateTime
+from fluxscoreboard.models.types import TZDateTime, Module
 from fluxscoreboard.util import now
 from sqlalchemy import event
 from sqlalchemy.orm import relationship, backref, joinedload
@@ -33,33 +33,6 @@ def get_online_challenges():
     """
     return (DBSession.query(Challenge).
             filter(Challenge.online))
-
-
-def get_unsolved_challenges(team_id):
-    """
-    Return a query that produces a list of all unsolved challenges for a given
-    team.
-    """
-    from fluxscoreboard.models.team import get_team_solved_subquery
-    team_solved_subquery = get_team_solved_subquery(team_id)
-    online = get_online_challenges()
-    return (online.filter(not_(team_solved_subquery.exists())))
-
-
-def get_solvable_challenges(team_id):
-    """
-    Return a list of challenges that the current team can solve right now. It
-    returns a list of challenges that are
-
-    - online
-    - unsolved by the current team
-    - not manual (i.e. solvable by entering a solution)
-    """
-    unsolved = get_unsolved_challenges(team_id)
-    return (unsolved.
-            filter(~Challenge.manual).
-            filter(~Challenge.dynamic).
-            filter(Challenge.published))
 
 
 def get_submissions():
@@ -189,10 +162,11 @@ class Challenge(Base):
         default of ``False`` this is just a normal challenge, otherwise, the
         attribute ``module`` must be set.
 
-        ``module_name``: If this challenge is dynamic, it must provide a valid
+        ``module``: If this challenge is dynamic, it must provide a valid
         dotted python name for a module that provides the interface for
         validation and display. The dotted python name given here will be
-        prefixed with ``fluxscoreboard.dynamic_challenges.``
+        prefixed with ``fluxscoreboard.dynamic_challenges.`` from which the
+        module will be loaded and made available on using it.
 
         ``module``: Loads the module from the module name and returns it.
 
@@ -209,19 +183,16 @@ class Challenge(Base):
     category_id = Column(Integer, ForeignKey('category.id'))
     author = Column(Unicode(255))
     dynamic = Column(Boolean, default=False, nullable=False)
-    module_name = Column(Unicode(255))
+    module = Column(Module)
     published = Column(Boolean, default=False, nullable=False)
     has_token = Column(Boolean, default=False, nullable=False)
 
-    category = relationship("Category", backref="challenges", lazy="joined")
+    category = relationship("Category", backref="challenges")
 
     def __init__(self, *args, **kwargs):
         if kwargs.get("manual", False) and kwargs.get("points", 0):
             raise ValueError("A manual challenge cannot have points!")
         Base.__init__(self, *args, **kwargs)
-
-    def __str__(self):
-        return unicode(self).encode("utf-8")
 
     def __unicode__(self):
         return self.title
@@ -238,8 +209,10 @@ class Challenge(Base):
             additional_info.append("category=%s" % self.category)
         if self.author:
             additional_info.append("author(s)=%s" % self.author)
-        if self.module_name:
-            additional_info.append("module=%s" % self.module_name)
+        if self.module:
+            _, name = re.split(r'^.*models\.dynamic_challenges\.',
+                               self.module.__name__)
+            additional_info.append("module=%s" % name)
         if additional_info:
             additional_info = ", " + ", ".join(additional_info)
         else:
@@ -268,11 +241,6 @@ class Challenge(Base):
     def points(self, points):
         self._points = points
 
-    @property
-    def module(self):
-        from . import dynamic_challenges
-        return dynamic_challenges.registry.get(self.module_name, None)
-
 
 @event.listens_for(Challenge, 'before_update')
 @event.listens_for(Challenge, 'before_insert')
@@ -300,9 +268,6 @@ class Category(Base):
     """
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(255), nullable=False)
-
-    def __str__(self):
-        return unicode(self).encode("utf-8")
 
     def __unicode__(self):
         return self.name
@@ -351,11 +316,6 @@ class Submission(Base):
                              backref=backref("submissions",
                                              cascade="all, delete-orphan")
                              )
-
-    def __init__(self, *args, **kwargs):
-        if "timestamp" not in kwargs:
-            self.timestamp = datetime.utcnow()
-        Base.__init__(self, *args, **kwargs)
 
     def __repr__(self):
         r = ("<Submission challenge=%s, team=%s, bonus=%d, timestamp=%s>"

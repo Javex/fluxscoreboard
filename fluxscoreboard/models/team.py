@@ -2,6 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Submission, Challenge, Category
+from fluxscoreboard.models.types import Timezone
 from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token, now
 from pyramid.decorator import reify
 from pyramid.events import subscriber, NewRequest
@@ -10,7 +11,7 @@ from pyramid.security import unauthenticated_userid, authenticated_userid
 from pyramid.threadlocal import get_current_request
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
-from pytz import utc, timezone, all_timezones
+from pytz import utc
 from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -20,7 +21,7 @@ from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func, desc
+from sqlalchemy.sql.expression import func, desc, bindparam
 from sqlalchemy.types import Integer, Unicode, Boolean
 import logging
 import random
@@ -46,7 +47,7 @@ def groupfinder(userid, request):
     Check if there is a team logged in, and if it is, return the default
     :data:`TEAM_GROUPS`.
     """
-    if get_team(request):
+    if request.team:
         return TEAM_GROUPS
 
 
@@ -64,18 +65,6 @@ def get_active_teams():
     return DBSession.query(Team).filter(Team.active == True)
 
 
-def get_leading_team():
-    """
-    Get the leading team with the highest rank.
-    """
-    actives = get_active_teams()
-    score = desc(Team.score)
-    try:
-        return actives.order_by(score)[0]
-    except IndexError:
-        return None
-
-
 def get_team_solved_subquery(team_id):
     """
     Get a query that searches for a submission from a team for a given
@@ -86,7 +75,7 @@ def get_team_solved_subquery(team_id):
 
             team_solved_subquery = get_team_solved_subquery(team_id)
             challenge_query = (DBSession.query(Challenge,
-                                               team_solved_subquery.exists()))
+                                               team_solved_subquery))
 
     In this example we query for a list of all challenges and additionally
     fetch whether the currenttly logged in team has solved it.
@@ -95,11 +84,16 @@ def get_team_solved_subquery(team_id):
     # solved the corresponding challenge. The correlate statement is
     # a SQLAlchemy statement that tells it to use the **outer** challenge
     # column.
-    team_solved_subquery = (DBSession.query(Submission).
-                            filter(Submission.team_id == team_id).
-                            filter(Challenge.id ==
-                                   Submission.challenge_id).
-                            correlate(Challenge))
+    if team_id:
+        team_solved_subquery = (DBSession.query(Submission).
+                                filter(Submission.team_id == team_id).
+                                filter(Challenge.id ==
+                                       Submission.challenge_id).
+                                correlate(Challenge).
+                                exists().
+                                label("has_solved"))
+    else:
+        team_solved_subquery = bindparam("has_solved", 0)
     return team_solved_subquery
 
 
@@ -123,37 +117,29 @@ def get_number_solved_subquery():
     return (DBSession.query(func.count('*')).
             filter(Challenge.id == Submission.challenge_id).
             correlate(Challenge).
-            as_scalar())
+            label("solved_count"))
 
 
 def get_team(request):
     """
-    Get the currently logged in team. Fetches the team from the database
-    only once, then stores it in the request.
+    Get the currently logged in team. Returns None if the team is invalid (e.g.
+    inactive) or noone is logged in or if the scoreboard is in archive mode.
     """
-    if not hasattr(request, 'team'):
-        team_id = unauthenticated_userid(request)
-        if not request.settings.archive_mode:
-            try:
-                team = (DBSession.query(Team).
-                        options(subqueryload('submissions'),
-                                joinedload('submissions.challenge'),
-                                joinedload('team_flags')).
-                        filter(Team.id == team_id).
-                        filter(Team.active == True).one())
-                request.team = team
-            except NoResultFound:
-                request.team = None
-        else:
-            request.team = None
-            if team_id:
-                request.session.invalidate()
-    return request.team
-
-
-@subscriber(NewRequest)
-def set_team_on_new_request(event):
-    get_team(event.request)
+    team_id = unauthenticated_userid(request)
+    if team_id is None:
+        return None
+    if not request.settings.archive_mode:
+        try:
+            team = (DBSession.query(Team).
+                    filter(Team.id == team_id).
+                    filter(Team.active == True).one())
+            return team
+        except NoResultFound:
+            return None
+    else:
+        if team_id:
+            request.session.invalidate()
+        return None
 
 
 def register_team(form, request):
@@ -361,9 +347,8 @@ class Team(Base):
     challenge_token = Column(Unicode(36), unique=True, default=uuid.uuid4,
                              nullable=False)
     active = Column(Boolean, default=False)
-    _timezone = Column('timezone', Unicode(30),
-                       default=lambda: unicode(utc.zone),
-                       nullable=False)
+    timezone = Column(Timezone, default=lambda: unicode(utc.zone),
+                      nullable=False)
     avatar_filename = Column(Unicode(68), unique=True)
     size = Column(Integer)
 
@@ -373,12 +358,11 @@ class Team(Base):
 
     country = relationship("Country", lazy='joined')
 
+    _score = None
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("token", random_token())
         Base.__init__(self, *args, **kwargs)
-
-    def __str__(self):
-        return unicode(self).encode("utf-8")
 
     def __unicode__(self):
         return self.name
@@ -407,19 +391,6 @@ class Team(Base):
     @password.setter
     def password(self, pw):
         self._password = encrypt_pw(pw)
-
-    @property
-    def timezone(self):
-        if self._timezone is None:
-            return None
-        else:
-            return timezone(self._timezone)
-
-    @timezone.setter
-    def timezone(self, tz):
-        timezone = unicode(tz)
-        assert timezone in all_timezones
-        self._timezone = timezone
 
     def get_category_solved(self, category):
         cat_solved, total = self.stats.get(category, (0, 0))
@@ -461,15 +432,17 @@ class Team(Base):
 
     @hybrid_property
     def score(self):
-        from fluxscoreboard.models import dynamic_challenges
-        challenge_sum = sum(s.challenge.points or 0 for s in self.submissions
+        if self._score is None:
+            from fluxscoreboard.models import dynamic_challenges
+            challenge_sum = sum(s.challenge.points or 0 for s in self.submissions
+                                if s.challenge.published)
+            bonus_sum = sum(s.bonus or 0 for s in self.submissions
                             if s.challenge.published)
-        bonus_sum = sum(s.bonus or 0 for s in self.submissions
-                        if s.challenge.published)
-        dynamic_points = 0
-        for module in dynamic_challenges.registry.values():
-            dynamic_points += module.points(self)
-        return challenge_sum + bonus_sum + dynamic_points
+            dynamic_points = 0
+            for module in dynamic_challenges.registry.values():
+                dynamic_points += module.points(self)
+            self._score = challenge_sum + bonus_sum + dynamic_points
+        return self._score
 
     @score.expression
     def score(cls):  # @NoSelf
@@ -522,6 +495,30 @@ class Team(Base):
                 order_by(desc(inner_team.score)).
                 correlate(Team).
                 label('rank'))
+
+    def get_unsolved_challenges(self):
+        """
+        Return a query that produces a list of all unsolved challenges for a given
+        team.
+        """
+        team_solved_subquery = get_team_solved_subquery(self.id)
+        online = get_online_challenges()
+        return online.filter(not_(team_solved_subquery))
+
+    def get_solvable_challenges(self):
+        """
+        Return a list of challenges that the team can solve right now. It
+        returns a list of challenges that are
+
+        - online
+        - unsolved by the current team
+        - not manual (i.e. solvable by entering a solution)
+        """
+        unsolved = self.get_unsolved_challenges()
+        return (unsolved.
+                filter(~Challenge.manual).
+                filter(~Challenge.dynamic).
+                filter(Challenge.published))
 
 
 @event.listens_for(Team._password, 'set')
