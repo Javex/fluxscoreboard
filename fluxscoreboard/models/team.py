@@ -376,9 +376,6 @@ class Team(Base):
         kwargs.setdefault("token", random_token())
         Base.__init__(self, *args, **kwargs)
 
-    def __str__(self):
-        return unicode(self).encode("utf-8")
-
     def __unicode__(self):
         return self.name
 
@@ -523,6 +520,30 @@ class Team(Base):
                 order_by(desc(inner_team.score)).
                 correlate(Team).
                 label('rank'))
+
+    def get_unsolved_challenges(self):
+        """
+        Return a query that produces a list of all unsolved challenges for a given
+        team.
+        """
+        team_solved_subquery = get_team_solved_subquery(self.id)
+        online = get_online_challenges()
+        return online.filter(not_(team_solved_subquery))
+
+    def get_solvable_challenges(self):
+        """
+        Return a list of challenges that the team can solve right now. It
+        returns a list of challenges that are
+
+        - online
+        - unsolved by the current team
+        - not manual (i.e. solvable by entering a solution)
+        """
+        unsolved = self.get_unsolved_challenges()
+        return (unsolved.
+                filter(~Challenge.manual).
+                filter(~Challenge.dynamic).
+                filter(Challenge.published))
 
 
 @event.listens_for(Team._password, 'set')

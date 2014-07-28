@@ -28,6 +28,9 @@ class BaseCFG(object):
     __table_args__ = {'mysql_engine': 'InnoDB',
                       'mysql_charset': 'utf8'}
 
+    def __str__(self):
+        return unicode(self).encode("utf-8")
+
 Base = declarative_base(cls=BaseCFG)
 """Base class for all ORM classes. Uses :class:`BaseCFG` configuration."""
 
