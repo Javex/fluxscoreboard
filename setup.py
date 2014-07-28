@@ -15,7 +15,7 @@ VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(v.read()).group(1)
 v.close()
 
 requires = [
-    'pyramid',  # WSGI framework
+    'pyramid>=1.5',  # WSGI framework
     'SQLAlchemy',  # Database
     'mysql-python',  # Database
     'zope.sqlalchemy',  # Database
