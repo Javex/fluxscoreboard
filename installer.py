@@ -78,10 +78,6 @@ if __name__ == '__main__':
         for dir_ in EXISTING_SUBDIRS:
             shutil.rmtree(os.path.abspath(os.path.join(ROOT_PATH, dir_)))
         print("[*] Application uninstalled")
-    elif task == "migrate":
-        engine = engine_from_config(settings, 'sqlalchemy.')
-        DBSession.configure(bind=engine)
-        migrate(settings, config_file)
     else:
         raise ValueError("First argument must be either 'install' or "
                          "'uninstall', not '%s'" % task)
