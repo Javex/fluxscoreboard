@@ -24,7 +24,6 @@ class BaseCFG(object):
     def __tablename__(cls):  # @NoSelf
         return cls.__name__.lower()
 
-
     def __str__(self):
         return unicode(self).encode("utf-8")
 
