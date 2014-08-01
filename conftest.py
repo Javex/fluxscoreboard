@@ -3,7 +3,7 @@ from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard import init_routes, main
 from fluxscoreboard.install import create_country_list
 from fluxscoreboard.models import DBSession, Base, dynamic_challenges
-from fluxscoreboard.models.challenge import Challenge
+from fluxscoreboard.models.challenge import Challenge, Category
 from fluxscoreboard.models.country import Country
 from fluxscoreboard.models.dynamic_challenges.flags import TeamFlag
 from fluxscoreboard.models.news import MassMail, News
@@ -239,6 +239,17 @@ def make_news():
         kwargs.setdefault("message", "Bla<br>foo")
         count[0] += 1
         return News(**kwargs)
+    return _make
+
+
+@pytest.fixture
+def make_category():
+    count = [0]
+
+    def _make(**kwargs):
+        kwargs.setdefault("name", "Category%d" % count[0])
+        count[0] += 1
+        return Category(**kwargs)
     return _make
 
 
