@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import AvatarField, team_size_field
+from fluxscoreboard.forms._fields import AvatarField, team_size_field
 from fluxscoreboard.forms._validators import (name_length_validator,
     email_length_validator, password_min_length_validator,
     password_max_length_validator, required_validator, email_equal_validator,

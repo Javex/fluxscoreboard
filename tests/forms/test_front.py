@@ -2,7 +2,7 @@ import pytest
 from fluxscoreboard.forms.front import (RegisterForm, ProfileForm, 
     ResetPasswordForm, SolutionSubmitListForm, SolutionSubmitForm, LoginForm,
     ForgotPasswordForm)
-from fluxscoreboard.forms.fields import RecaptchaField
+from fluxscoreboard.forms._fields import RecaptchaField
 from mock import MagicMock
 from conftest import GeneralCSRFTest
 from webob.multidict import MultiDict
