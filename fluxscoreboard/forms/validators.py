@@ -65,7 +65,7 @@ password_min_length_validator = validators.Length(
     min=8, message=("Oh boy, shorter than %(min)d characters. You should be "
                     "ashamed!"))
 password_max_length_validator = validators.Length(
-    max=TEAM_PASSWORD_MAX_LENGTH,
+    max=1024,
     message=("Wow! I am proud of you. But don't you think %(max)d characters "
              "should be secure enough?"))
 name_length_validator = validators.Length(min=1, max=TEAM_NAME_MAX_LENGTH,
