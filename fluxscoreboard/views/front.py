@@ -95,13 +95,13 @@ class BaseView(object):
         """
         Get the current menu items as a list of tuples ``(view_name, title)``.
         """
-        max_len = max(len(i) for x in self._menu_item_matrix.values()
-                      for i in x.values())
         ctf_state, logged_in = self.current_state
         # Fetch the correcnt menu:
         menu = [(k, self._menu_item_map[k])
                 for k in self._menu_item_matrix[ctf_state][logged_in]]
         # Small hack to accomodate 2013 design, might need to be removed
+        max_len = max(len(i) for x in self._menu_item_matrix.values()
+                      for i in x.values())
         if display_design(self.request):
             while len(menu) < max_len:
                 menu.append((None, None))
