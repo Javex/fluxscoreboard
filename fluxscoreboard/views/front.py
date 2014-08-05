@@ -9,7 +9,7 @@ from fluxscoreboard.models.challenge import (Challenge, Submission,
 from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
-    password_reminder, check_password_reset_token)
+    password_reminder, check_password_reset_token, get_active_teams)
 from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
     display_design)
 from fluxscoreboard.models.settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
@@ -300,8 +300,7 @@ class FrontView(BaseView):
         """
         Only a list of teams.
         """
-        teams = DBSession.query(Team)
-        return {'teams': teams}
+        return {'teams': get_active_teams()}
 
     @view_config(route_name='news', renderer='announcements.mako',
                  permission='scoreboard')
@@ -321,7 +320,7 @@ class FrontView(BaseView):
         The difference here is that the challenge is chosen from a select list.
         Otherwise it is basically the same and boils down to the same logic.
         """
-        form = SolutionSubmitListForm(self.request.params,
+        form = SolutionSubmitListForm(self.request.POST,
                                       csrf_context=self.request)
         team_id = self.request.authenticated_userid
         retparams = {'form': form}
@@ -352,7 +351,7 @@ class FrontView(BaseView):
             result = '0'
         else:
             try:
-                DBSession.query(Team).filter(Team.challenge_token == token).one()
+                get_active_teams().filter(Team.challenge_token == token).one()
             except NoResultFound:
                 result = '0'
             else:
