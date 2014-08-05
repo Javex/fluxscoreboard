@@ -42,4 +42,7 @@ class GeneralCSRFTest(GeneralFormTest):
         assert not form.validate()
 
 
-
+    @pytest.fixture(autouse=True)
+    def _init_csrf_token(self, pyramid_request):
+        token = pyramid_request.session.get_csrf_token()
+        self.data['csrf_token'] = token

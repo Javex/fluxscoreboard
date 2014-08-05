@@ -7,9 +7,12 @@ from fluxscoreboard.models.challenge import Challenge, Category
 from fluxscoreboard.models.country import Country
 from fluxscoreboard.models.dynamic_challenges.flags import TeamFlag
 from fluxscoreboard.models.news import MassMail, News
-from fluxscoreboard.models.settings import Settings
+from fluxscoreboard.models.settings import (CTF_BEFORE, CTF_STARTED,
+    CTF_ARCHIVE, Settings)
 from fluxscoreboard.models.team import Team
 from fluxscoreboard.views.front import BaseView
+from fluxscoreboard.util import now
+from datetime import timedelta
 from paste.deploy.loadwsgi import appconfig  # @UnresolvedImport
 from pyramid import testing
 from pyramid.authentication import SessionAuthenticationPolicy
@@ -256,6 +259,33 @@ def make_category():
 @pytest.fixture
 def view(pyramid_request):
     return BaseView(pyramid_request)
+
+
+@pytest.fixture(params=[(CTF_BEFORE, True),
+                        (CTF_BEFORE, False),
+                        (CTF_STARTED, True),
+                        (CTF_STARTED, False),
+                        (CTF_ARCHIVE, False)])
+def ctf_state(request, dbsettings, login_team, make_team, dbsession):
+    ctf_state, login_state = request.param
+    if ctf_state == CTF_BEFORE:
+        dbsettings.ctf_start_date = now() + timedelta(1)
+        dbsettings.ctf_end_date = now() + timedelta(2)
+    elif ctf_state == CTF_STARTED:
+        dbsettings.ctf_start_date = now() - timedelta(1)
+        dbsettings.ctf_end_date = now() + timedelta(1)
+    else:
+        dbsettings.ctf_start_date = now() - timedelta(2)
+        dbsettings.ctf_end_date = now() - timedelta(1)
+        dbsettings.archive_mode = True
+
+    t = make_team()
+    dbsession.add(t)
+    dbsession.flush()
+    if login_state:
+        login_team(t.id)
+    return ctf_state, login_state, t
+
 
 
 def _registerAuthenticationPolicy(reg):

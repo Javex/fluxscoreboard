@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import (IntegerOrEvaluatedField, ButtonWidget,
+from fluxscoreboard.forms._fields import (IntegerOrEvaluatedField, ButtonWidget,
     team_size_field, TZDateTimeField)
-from fluxscoreboard.forms.validators import (email_length_validator,
+from fluxscoreboard.forms._validators import (email_length_validator,
     password_length_validator_conditional, password_required_if_new,
     required_validator, name_length_validator, not_dynamic, only_if_dynamic,
     required_except, required_or_not_allowed, dynamic_check_multiple_allowed)

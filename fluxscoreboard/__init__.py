@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard import routes
-from fluxscoreboard.forms.fields import RecaptchaField
+from fluxscoreboard.forms._fields import RecaptchaField
 from fluxscoreboard.forms.front import RegisterForm
 from fluxscoreboard.models import DBSession, RootFactory
 from fluxscoreboard.models.team import groupfinder, get_team

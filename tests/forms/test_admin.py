@@ -1,5 +1,5 @@
 import pytest
-from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, get_dynamic_module_choices
+from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, CategoryForm, TeamForm, get_dynamic_module_choices
 from fluxscoreboard.models import dynamic_challenges
 from webob.multidict import MultiDict
 from mock import MagicMock
@@ -78,8 +78,8 @@ class TestChallengeForm(GeneralCSRFTest):
     @pytest.fixture
     def module(self):
         module = MagicMock()
-        dynamic_challenges.registry["testmodule"] = module
-        return "testmodule"
+        dynamic_challenges.registry[u"testmodule"] = module
+        return u"testmodule"
 
     def _make_dynamic(self, module):
         self.data["dynamic"] = '1'
@@ -169,5 +169,107 @@ class TestChallengeForm(GeneralCSRFTest):
 
     def test_module(self, module):
         self._make_dynamic(module)
+        form = self.make(self.data)
+        assert form.validate()
+
+    def test_module_multiple_allowed(self, module):
+        mod_obj = dynamic_challenges.registry[module]
+        mod_obj.allow_multiple = True
+        self._make_dynamic(module)
+        form = self.make(self.data)
+        assert form.validate()
+
+    def test_module_multiple_allowed_has_multiple(self, module, make_challenge):
+        c = make_challenge(module=module)
+        self.dbsession.add(c)
+        self._make_dynamic(module)
+        mod_obj = dynamic_challenges.registry[module]
+        mod_obj.allow_multiple = True
+        form = self.make(self.data)
+        assert form.validate()
+
+    def test_module_multiple_not_allowed_has_multiple(self, module, make_challenge):
+        c = make_challenge(module=module)
+        self.dbsession.add(c)
+        self._make_dynamic(module)
+        mod_obj = dynamic_challenges.registry[module]
+        mod_obj.allow_multiple = False
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "module" in form.errors
+
+
+class TestCategoryForm(GeneralCSRFTest):
+
+    _form = CategoryForm
+
+    def _make_data(self):
+        data =  [
+            ('name', 'foo'),
+            ('id', ''),
+            ('submit', 'Save'),
+            ('csrf_token', self.request.session.get_csrf_token()),
+        ]
+        return data
+
+    def test_name_missing(self):
+        self.data["name"] = ''
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "name" in form.errors
+
+    def test_name_too_long(self):
+        self.data["name"] = 'A' * 256
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "name" in form.errors
+
+class TestTeamForm(GeneralCSRFTest):
+
+    _form = TeamForm
+
+    def _make_data(self):
+        data =  [
+            ('name', 'foo'),
+            ('password', 'foo2foo2foo2'),
+            ('email', 'foo@example.com'),
+            ('size', ''),
+            ('active', ''),
+            ('local', ''),
+            ('id', ''),
+            ('submit', 'Save'),
+            ('csrf_token', self.request.session.get_csrf_token()),
+        ]
+        return data
+
+    @pytest.fixture(autouse=True)
+    def _countries(self, countries):
+        self.countries = countries
+        self.data['country'] = str(countries[0].id)
+
+    def test_name_missing(self):
+        self.data["name"] = ''
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "name" in form.errors
+
+    def test_name_too_long(self):
+        self.data["name"] = 'A' * 256
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "name" in form.errors
+
+    def test_password_empty_new(self):
+        self.data["password"] = ''
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "password" in form.errors
+
+    def test_password_empty_existing(self, make_team):
+        t = make_team()
+        self.dbsession.add(t)
+        self.dbsession.flush()
+        self.data["password"] = ''
+        self.data["id"] = str(t.id)
         form = self.make(self.data)
         assert form.validate()

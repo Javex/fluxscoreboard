@@ -25,7 +25,7 @@ import uuid
         % if challenge.has_token:
         <div class="row">
             <p class="text-warning">
-                    % if view.archive_mode:
+                    % if request.settings.archive_mode:
                     This challenge requires a token. However, in archive mode
                     tokens are irrelevant. You can use this default token:
                     <br />
@@ -45,12 +45,12 @@ import uuid
         </div>
         % endif
         <div class="row">
-        % if view.archive_mode:
+        % if request.settings.archive_mode:
             <p class="text-warning text-center">Scoreboard is in archive mode. You can submit solutions, but you will only receive feedback and are not entered into the scoreboard</p>
         % endif
         </div>
         <div class="row">
-        % if (not is_solved and challenge.online and not challenge.manual and not request.settings.submission_disabled and not now() > request.settings.ctf_end_date) or view.archive_mode:
+        % if (not is_solved and challenge.online and not challenge.manual and not request.settings.submission_disabled and not now() > request.settings.ctf_end_date) or request.settings.archive_mode:
             <form method="POST" action="${request.route_url('challenge', id=challenge.id)}" class="form-horizontal">
                 <legend>Enter solution for challenge</legend>
                 ${form.solution.label(class_='control-label col-2')}

@@ -83,7 +83,7 @@ class Module(TypeDecorator):
         return value
 
     def process_result_value(self, value, dialect):
-        if value is None:
+        if not value:
             return None
         from . import dynamic_challenges
         return dynamic_challenges.registry[value]

@@ -111,6 +111,11 @@ class TestModule(TestType):
         self.add(item)
         assert item.col is None
 
+    def test_Module_empty(self):
+        item = self.Table(col='')
+        self.add(item)
+        assert not item.col
+
     def test_Module_invalid(self):
         item = self.Table(col="does_not_exist")
         self.add(item)

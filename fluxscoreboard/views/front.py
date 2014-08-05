@@ -9,7 +9,7 @@ from fluxscoreboard.models.challenge import (Challenge, Submission,
 from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
-    password_reminder, check_password_reset_token)
+    password_reminder, check_password_reset_token, get_active_teams)
 from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
     display_design)
 from fluxscoreboard.models.settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
@@ -95,13 +95,13 @@ class BaseView(object):
         """
         Get the current menu items as a list of tuples ``(view_name, title)``.
         """
-        max_len = max(len(i) for x in self._menu_item_matrix.values()
-                      for i in x.values())
         ctf_state, logged_in = self.current_state
         # Fetch the correcnt menu:
         menu = [(k, self._menu_item_map[k])
                 for k in self._menu_item_matrix[ctf_state][logged_in]]
         # Small hack to accomodate 2013 design, might need to be removed
+        max_len = max(len(i) for x in self._menu_item_matrix.values()
+                      for i in x.values())
         if display_design(self.request):
             while len(menu) < max_len:
                 menu.append((None, None))
@@ -130,7 +130,7 @@ class BaseView(object):
 
     @reify
     def seconds_until_end(self):
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             raise ValueError("CTF is in archive mode. Cannot yield remaining "
                              "seconds")
         end = self.request.settings.ctf_end_date
@@ -142,7 +142,7 @@ class BaseView(object):
 
     @reify
     def ctf_progress(self):
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             return 1
         end = self.request.settings.ctf_end_date
         start = self.request.settings.ctf_start_date
@@ -155,10 +155,6 @@ class BaseView(object):
             return 0
         else:
             return progress
-
-    @property
-    def archive_mode(self):
-        return self.request.settings.archive_mode
 
 
 class SpecialView(BaseView):
@@ -304,8 +300,7 @@ class FrontView(BaseView):
         """
         Only a list of teams.
         """
-        teams = DBSession.query(Team)
-        return {'teams': teams}
+        return {'teams': get_active_teams()}
 
     @view_config(route_name='news', renderer='announcements.mako',
                  permission='scoreboard')
@@ -325,7 +320,7 @@ class FrontView(BaseView):
         The difference here is that the challenge is chosen from a select list.
         Otherwise it is basically the same and boils down to the same logic.
         """
-        form = SolutionSubmitListForm(self.request.params,
+        form = SolutionSubmitListForm(self.request.POST,
                                       csrf_context=self.request)
         team_id = self.request.authenticated_userid
         retparams = {'form': form}
@@ -350,13 +345,13 @@ class FrontView(BaseView):
     @view_config(route_name='verify_token')
     def verify_token(self):
         token = self.request.matchdict['token']
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             result = '1'
         elif self.request.settings.ctf_state == CTF_BEFORE:
             result = '0'
         else:
             try:
-                DBSession.query(Team).filter(Team.challenge_token == token).one()
+                get_active_teams().filter(Team.challenge_token == token).one()
             except NoResultFound:
                 result = '0'
             else:
@@ -445,7 +440,7 @@ class UserView(BaseView):
         """
         Display and handle registration of new teams.
         """
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             self.request.session.flash(("Registration disabled in archive "
                                         "mode."), 'error')
             return HTTPFound(location=self.request.route_url('home'))
@@ -473,7 +468,7 @@ class UserView(BaseView):
         visitng this view. It fetches the team corresponding to the token and
         activates it.
         """
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             self.request.session.flash(("Registration disabled in archive "
                                         "mode."), 'error')
             return HTTPFound(location=self.request.route_url('home'))
@@ -536,7 +531,7 @@ class UserView(BaseView):
     @view_config(route_name='reset-password-start',
                  renderer='reset_password_start.mako', permission='login')
     def reset_password_start(self):
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             self.request.session.flash(("Password reset impossible in "
                                         "archive mode."), 'error')
             return HTTPFound(location=self.request.route_url('home'))
@@ -557,7 +552,7 @@ class UserView(BaseView):
     @view_config(route_name='reset-password', renderer='reset_password.mako',
                  permission='login')
     def reset_password(self):
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             self.request.session.flash(("Password reset impossible in "
                                         "archive mode."), 'error')
             return HTTPFound(location=self.request.route_url('home'))
