@@ -2,6 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard import init_routes, main
 from fluxscoreboard.install import create_country_list
+from fluxscoreboard.forms.front import RegisterForm
 from fluxscoreboard.models import DBSession, Base, dynamic_challenges
 from fluxscoreboard.models.challenge import Challenge, Category
 from fluxscoreboard.models.country import Country
@@ -286,6 +287,16 @@ def ctf_state(request, dbsettings, login_team, make_team, dbsession):
         login_team(t.id)
     return ctf_state, login_state, t
 
+
+@pytest.fixture
+def remove_captcha(request):
+    if hasattr(RegisterForm, 'captcha'):
+        old_field = RegisterForm.captcha
+        del RegisterForm.captcha
+
+        def readd_captcha():
+            RegisterForm.captcha = old_field
+        request.addfinalizer(readd_captcha)
 
 
 def _registerAuthenticationPolicy(reg):

@@ -104,7 +104,7 @@ def password_required_if_new(form, field):
     A validator that only requires a password if the team is newly created,
     i.e. its id is ``None``.
     """
-    if form.id.data is None:
+    if not form.id.data:
         return required_validator(form, field)
     else:
         return True

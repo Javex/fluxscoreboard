@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from .test_models_team import team
 from fluxscoreboard.forms.front import LoginForm
 from fluxscoreboard.views.front import UserView
 from tests import skip

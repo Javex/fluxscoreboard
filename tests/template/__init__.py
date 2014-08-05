@@ -14,6 +14,7 @@ class TemplateTestBase(object):
         self.template_lookup = template_lookup
         self.get = get_template
         self.request = pyramid_request
+        self.request.team = None
         self.view = view
         self.load_template()
         self.settings = dbsettings

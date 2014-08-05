@@ -37,7 +37,7 @@ class TestDisplayDesign(object):
 
     def test_else(self):
         assert not self.request.settings.ctf_started
-        assert display_design(self.request)
+        assert not display_design(self.request)
 
     def test_admin(self):
         self.request.path = "/admin/something"

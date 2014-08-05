@@ -1,5 +1,8 @@
 import pytest
-from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, CategoryForm, TeamForm, get_dynamic_module_choices
+from fluxscoreboard.forms.admin import (NewsForm, ChallengeForm, CategoryForm,
+    TeamForm, IPSearchForm, SubmissionForm, MassMailForm, ButtonForm,
+    SubmissionButtonForm, TeamCleanupForm, SettingsForm,
+    get_dynamic_module_choices)
 from fluxscoreboard.models import dynamic_challenges
 from webob.multidict import MultiDict
 from mock import MagicMock
@@ -76,9 +79,13 @@ class TestChallengeForm(GeneralCSRFTest):
         self.data["category"] = str(self.cat.id)
 
     @pytest.fixture
-    def module(self):
+    def module(self, request):
         module = MagicMock()
         dynamic_challenges.registry[u"testmodule"] = module
+
+        def remove_module():
+            del dynamic_challenges.registry[u"testmodule"]
+        request.addfinalizer(remove_module)
         return u"testmodule"
 
     def _make_dynamic(self, module):
@@ -265,11 +272,186 @@ class TestTeamForm(GeneralCSRFTest):
         assert not form.validate()
         assert "password" in form.errors
 
-    def test_password_empty_existing(self, make_team):
+    def test_password_empty_existing(self, make_team, dbsession):
         t = make_team()
-        self.dbsession.add(t)
-        self.dbsession.flush()
+        dbsession.add(t)
+        dbsession.flush()
         self.data["password"] = ''
         self.data["id"] = str(t.id)
         form = self.make(self.data)
         assert form.validate()
+
+    def test_password_too_long(self):
+        self.data["password"] = 'A' * 1025
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "password" in form.errors
+
+    def test_password_too_short(self):
+        self.data["password"] = 'A' * 7
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "password" in form.errors
+
+    def test_email_missing(self):
+        self.data["email"] = ''
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "email" in form.errors
+
+    def test_email_too_long(self):
+        self.data["email"] = 'A@b.com' * 256
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "email" in form.errors
+
+    def test_invalid_country(self):
+        self.data["country"] = '1234'
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "country" in form.errors
+
+
+class TestIPSearchForm(GeneralCSRFTest):
+
+    _form = IPSearchForm
+
+    def _make_data(self):
+        data =  [
+            ('term', ''),
+            ('submit', 'Search'),
+        ]
+        return data
+
+
+class TestSubmissionForm(GeneralCSRFTest):
+
+    _form = SubmissionForm
+
+    def _make_data(self):
+        data = [
+            ('bonus', '0'),
+            ('submit', 'Save'),
+        ]
+        return data
+
+    @pytest.fixture(autouse=True)
+    def _add_challenge_and_team(self, make_team, make_challenge, dbsession):
+        self.team = make_team()
+        self.challenge = make_challenge()
+        dbsession.add_all([self.team, self.challenge])
+        dbsession.flush()
+        self.data["challenge"] = str(self.challenge.id)
+        self.data["team"] = str(self.team.id)
+
+    def test_invalid_challenge(self):
+        self.data["challenge"] = "1234"
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "challenge" in form.errors
+
+    def test_invalid_team(self):
+        self.data["team"] = "1234"
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "team" in form.errors
+
+
+class TestMassMailForm(GeneralCSRFTest):
+
+    _form = MassMailForm
+
+    def _make_data(self):
+        data = [
+            ('from_', 'foo@example.com'),
+            ('subject', 'Bla'),
+            ('message', 'Lol\nWhatever'),
+            ('submit', 'Send'),
+        ]
+        return data
+
+    def test_subject_missing(self):
+        self.data["subject"] = ''
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "subject" in form.errors
+
+    def test_message_missing(self):
+        self.data["message"] = ''
+        form = self.make(self.data)
+        assert not form.validate()
+        assert "message" in form.errors
+
+
+class TestButtonForm(GeneralCSRFTest):
+
+    _form = ButtonForm
+
+    def _make_data(self):
+        data = [
+            ('button', 'Something'),
+            ('id', '1'),
+        ]
+        return data
+
+    def test_id_missing(self):
+        self.data['id'] = ''
+        form = self.make(self.data)
+        assert not form.validate()
+        assert 'id' in form.errors
+
+
+class TestSubmissionButtonForm(GeneralCSRFTest):
+
+    _form = SubmissionButtonForm
+
+    def _make_data(self):
+        data = [
+            ('button', 'Something'),
+            ('challenge_id', '1'),
+            ('team_id', '1'),
+        ]
+        return data
+
+    def test_challenge_id_missing(self):
+        self.data['challenge_id'] = ''
+        form = self.make(self.data)
+        assert not form.validate()
+        assert 'challenge_id' in form.errors
+
+    def test_team_id_missing(self):
+        self.data['team_id'] = ''
+        form = self.make(self.data)
+        assert not form.validate()
+        assert 'team_id' in form.errors
+
+
+class TestTeamCleanupForm(GeneralCSRFTest):
+
+    _form = TeamCleanupForm
+
+    def _make_data(self):
+        return [('team_cleanup', 'Whatever')]
+
+
+class TestSettingsForm(GeneralCSRFTest):
+
+    _form = SettingsForm
+
+    def _make_data(self):
+        data = [
+            ('submission_disabled', ''),
+            ('ctf_start_date', '2014-08-05 19:28:00'),
+            ('ctf_end_date', '2014-08-05 19:29:00'),
+            ('archive_mode', ''),
+            ('submit', 'Send'),
+        ]
+        return data
+
+    @pytest.mark.parametrize("field", ['ctf_start_date',
+                                       'ctf_end_date'])
+    def test_invalid_tzdatetime(self, field):
+        self.data[field] = 'something'
+        form = self.make(self.data)
+        assert not form.validate()
+        assert field in form.errors

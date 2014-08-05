@@ -96,9 +96,13 @@ class TestModule(TestType):
     type_ = Module
 
     @pytest.fixture(autouse=True)
-    def _create_dynamic_challenge(self):
+    def _create_dynamic_challenge(self, request):
         from fluxscoreboard.models import dynamic_challenges
         self.module = MagicMock()
+
+        def remove_module():
+            del dynamic_challenges.registry["test_module"]
+        request.addfinalizer(remove_module)
         dynamic_challenges.registry["test_module"] = self.module
 
     def test_Module(self):

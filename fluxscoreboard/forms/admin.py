@@ -300,11 +300,11 @@ class MassMailForm(CSRFForm):
         ``cancel``: Don't send.
 
     """
-    from_ = TextField("From")
+    from_ = EmailField("From")
 
-    subject = TextField("Subject")
+    subject = TextField("Subject", validators=[required_validator])
 
-    message = TextAreaField("Message")
+    message = TextAreaField("Message", validators=[required_validator])
 
     submit = SubmitField("Send")
 

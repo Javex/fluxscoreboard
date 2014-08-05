@@ -7,6 +7,8 @@ from mock import MagicMock
 from conftest import GeneralCSRFTest
 from webob.multidict import MultiDict
 
+
+@pytest.mark.usefixtures("remove_captcha")
 class TestRegisterForm(GeneralCSRFTest):
 
     _form = RegisterForm
@@ -31,11 +33,6 @@ class TestRegisterForm(GeneralCSRFTest):
     def _countries(self, countries):
         self.countries = countries
         self.data['country'] = str(countries[0].id)
-
-    @pytest.fixture(autouse=True)
-    def _recaptcha(self, settings):
-        if hasattr(self._form, 'captcha'):
-            del self._form.captcha
 
     def test_name_missing(self):
         self.data['name'] = ''
