@@ -130,7 +130,7 @@ class BaseView(object):
 
     @reify
     def seconds_until_end(self):
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             raise ValueError("CTF is in archive mode. Cannot yield remaining "
                              "seconds")
         end = self.request.settings.ctf_end_date
@@ -142,7 +142,7 @@ class BaseView(object):
 
     @reify
     def ctf_progress(self):
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             return 1
         end = self.request.settings.ctf_end_date
         start = self.request.settings.ctf_start_date
@@ -155,10 +155,6 @@ class BaseView(object):
             return 0
         else:
             return progress
-
-    @property
-    def archive_mode(self):
-        return self.request.settings.archive_mode
 
 
 class SpecialView(BaseView):
@@ -350,7 +346,7 @@ class FrontView(BaseView):
     @view_config(route_name='verify_token')
     def verify_token(self):
         token = self.request.matchdict['token']
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             result = '1'
         elif self.request.settings.ctf_state == CTF_BEFORE:
             result = '0'
@@ -445,7 +441,7 @@ class UserView(BaseView):
         """
         Display and handle registration of new teams.
         """
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             self.request.session.flash(("Registration disabled in archive "
                                         "mode."), 'error')
             return HTTPFound(location=self.request.route_url('home'))
@@ -473,7 +469,7 @@ class UserView(BaseView):
         visitng this view. It fetches the team corresponding to the token and
         activates it.
         """
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             self.request.session.flash(("Registration disabled in archive "
                                         "mode."), 'error')
             return HTTPFound(location=self.request.route_url('home'))
@@ -536,7 +532,7 @@ class UserView(BaseView):
     @view_config(route_name='reset-password-start',
                  renderer='reset_password_start.mako', permission='login')
     def reset_password_start(self):
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             self.request.session.flash(("Password reset impossible in "
                                         "archive mode."), 'error')
             return HTTPFound(location=self.request.route_url('home'))
@@ -557,7 +553,7 @@ class UserView(BaseView):
     @view_config(route_name='reset-password', renderer='reset_password.mako',
                  permission='login')
     def reset_password(self):
-        if self.archive_mode:
+        if self.request.settings.archive_mode:
             self.request.session.flash(("Password reset impossible in "
                                         "archive mode."), 'error')
             return HTTPFound(location=self.request.route_url('home'))

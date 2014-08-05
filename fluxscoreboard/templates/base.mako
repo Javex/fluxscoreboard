@@ -47,7 +47,7 @@ import pytz
                             <img src="${request.static_url('fluxscoreboard:static/images/lgraph_%s.png' % (int(view.ctf_progress * 10) * 10))}">
                         </div>
                         <div id="timer">
-                        % if not view.archive_mode:
+                        % if not request.settings.archive_mode:
                             <div>seconds until end</div>
                             <span id="timer-seconds">${view.seconds_until_end}</span>
                         % else:
