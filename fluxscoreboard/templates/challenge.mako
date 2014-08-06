@@ -72,7 +72,7 @@ import uuid
         % elif challenge.manual:
             <p class="text-warning text-center">This challenge is evaluated manually, you cannot submit a solution for it.</p>
         % elif request.settings.submission_disabled:
-            <p class="text-info text-center">Submission of solution is currently disabled, sorry.</p>
+            <p class="text-info text-center">Submission of solutions is currently disabled, sorry.</p>
         % elif not challenge.online:
             <p class="text-warning text-center">This challenge is currently offline, check back later.</p>
         % else:

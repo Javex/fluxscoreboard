@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
+from fluxscoreboard.util import now
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.types import TZDateTime, JSONList
@@ -47,7 +48,7 @@ class News(Base):
     id = Column(Integer, primary_key=True)
     timestamp = Column(TZDateTime,
                         nullable=False,
-                        default=datetime.utcnow
+                        default=now
                         )
     message = Column(UnicodeText)
     published = Column(Boolean, default=False, nullable=False)

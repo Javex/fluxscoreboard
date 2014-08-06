@@ -115,7 +115,7 @@ def config(settings, pyramid_request, request):
     cfg = testing.setUp(request=pyramid_request, settings=settings)
     cfg.add_static_view('static', 'fluxscoreboard:static',
                            cache_max_age=3600)
-    init_routes(cfg)
+    init_routes(cfg, settings)
     cfg.scan('fluxscoreboard.views')
     cfg.include('pyramid_mako')
 
@@ -205,6 +205,7 @@ def make_challenge():
 
     def _make(**kwargs):
         kwargs.setdefault("title", "Challenge%d" % count[0])
+        kwargs.setdefault("text", "ChallengeText%d" % count[0])
         count[0] += 1
         return Challenge(**kwargs)
     return _make

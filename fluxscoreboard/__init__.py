@@ -58,16 +58,16 @@ def main(global_config, **settings):
     if subdirectory:
         static_dir = subdirectory + "/" + static_dir
     config.add_static_view(static_dir, 'static', cache_max_age=3600)
-    avatar_domain = settings["avatar_domain"]
-    avatar_base_url = '%s/static/images/avatars/' % avatar_domain
-    config.add_route('avatar', avatar_base_url + '{avatar}')
-    config.add_route('rules', settings["rules_url"])
-    init_routes(config, subdirectory)
+    init_routes(config, settings, subdirectory)
     config.scan()
     return config.make_wsgi_app()
 
 
-def init_routes(config, subdirectory=""):
+def init_routes(config, settings, subdirectory=""):
+    avatar_domain = settings["avatar_domain"]
+    avatar_base_url = '%s/static/images/avatars/' % avatar_domain
+    config.add_route('avatar', avatar_base_url + '{avatar}')
+    config.add_route('rules', settings["rules_url"])
     for name, path in routes.routes:
         if subdirectory:
             path = "/" + subdirectory + path
