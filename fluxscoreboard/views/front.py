@@ -474,7 +474,7 @@ class UserView(BaseView):
             return HTTPFound(location=self.request.route_url('home'))
         token = self.request.matchdict.get('token', None)
         if not confirm_registration(token):
-            self.request.session.flash("Invalid token")
+            self.request.session.flash("Invalid token", 'error')
             raise HTTPFound(location=self.request.route_url('login'))
         else:
             self.request.session.flash("Your account is active, you may now "
@@ -523,6 +523,7 @@ class UserView(BaseView):
                         if not data:
                             break
                         out.write(data)
+                    in_file.seek(0)
             form.populate_obj(self.request.team)
             self.request.session.flash('Your profile has been updated')
             return redirect
@@ -562,7 +563,7 @@ class UserView(BaseView):
         retparams = {'form': form, 'token': token}
         team = check_password_reset_token(token)
         if not team:
-            self.request.session.flash("Reset failed.")
+            self.request.session.flash("Reset failed.", 'error')
             raise redirect
         if self.request.method == 'POST':
             if not form.validate():

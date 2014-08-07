@@ -13,3 +13,4 @@ class BaseViewTest(object):
         self.settings = dbsettings
         self.view = self.view_class(pyramid_request)
         self.request = pyramid_request
+        self.request.POST['csrf_token'] = self.request.session.get_csrf_token()
