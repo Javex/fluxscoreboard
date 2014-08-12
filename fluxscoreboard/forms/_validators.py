@@ -3,13 +3,14 @@ from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.team import (TEAM_MAIL_MAX_LENGTH, Team,
     TEAM_PASSWORD_MAX_LENGTH, TEAM_NAME_MAX_LENGTH)
+from fluxscoreboard.models.challenge import Challenge
 from pyramid.threadlocal import get_current_request
 from urllib import urlencode
 from wtforms import validators
 from wtforms.validators import ValidationError
 import logging
 import urllib2
-from fluxscoreboard.models.challenge import Challenge
+import os
 
 
 log = logging.getLogger(__name__)
@@ -245,7 +246,7 @@ class AvatarSize(object):
     def __call__(self, form, field):
         if field.data == '' or field.data is None:
             return True
-        byte_size = len(field.data.value)
+        byte_size = os.fstat(field.data.file.fileno()).st_size
         unit_size = byte_size / self.unit_mult[self.unit]
         if unit_size > self.max_size:
             raise ValueError(self.message)
