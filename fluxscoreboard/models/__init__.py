@@ -5,11 +5,12 @@ from sqlalchemy import event
 from sqlalchemy.ext.declarative.api import declarative_base, declared_attr
 from sqlalchemy.orm.scoping import scoped_session
 from sqlalchemy.orm.session import sessionmaker
-from zope.sqlalchemy import ZopeTransactionExtension  # @UnresolvedImport
+from zope.sqlalchemy import register as zope_sa_register
 
 
 DBSession = scoped_session(sessionmaker())
 """Database session factory. Returns the current threadlocal session."""
+zope_sa_register(DBSession)
 
 
 class BaseCFG(object):
@@ -33,14 +34,6 @@ class BaseCFG(object):
 
 Base = declarative_base(cls=BaseCFG)
 """Base class for all ORM classes. Uses :class:`BaseCFG` configuration."""
-
-
-# Set the database session events
-ext = ZopeTransactionExtension()
-for ev in ["after_begin", "after_attach", "after_flush",
-           "after_bulk_update", "after_bulk_delete", "before_commit"]:
-    func = getattr(ext, ev)
-    event.listen(DBSession, ev, func)
 
 
 class RootFactory(object):
