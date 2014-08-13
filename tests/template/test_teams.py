@@ -47,7 +47,7 @@ class TestTeams(TemplateTestBase):
     def test_no_teams(self):
         self.teams = []
         out = self.render()
-        assert not re.search(r'<tbody>.*<tr', out, re.DOTALL)
+        assert "No teams have registered" in out
 
     def test_avatar(self):
         self.team.avatar_filename = 'foo.jpg'

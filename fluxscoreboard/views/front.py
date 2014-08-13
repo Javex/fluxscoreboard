@@ -300,7 +300,7 @@ class FrontView(BaseView):
         """
         Only a list of teams.
         """
-        return {'teams': get_active_teams()}
+        return {'teams': list(get_active_teams())}
 
     @view_config(route_name='news', renderer='announcements.mako',
                  permission='scoreboard')

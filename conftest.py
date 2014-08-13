@@ -26,6 +26,7 @@ from pyramid_mailer import get_mailer
 from sqlalchemy.orm.session import make_transient
 from webob.multidict import MultiDict
 from webtest.app import TestApp
+from mock import MagicMock
 import Queue
 import logging
 import os
@@ -40,7 +41,10 @@ log = logging.getLogger(__name__)
 
 @pytest.fixture(scope="session")
 def testapp(settings):
-    return TestApp(main(None, **settings))
+    environ = {
+        'REMOTE_ADDR': b'127.0.0.1'
+    }
+    return TestApp(main(None, **settings), environ)
 
 
 @pytest.fixture(scope="session")
@@ -293,7 +297,7 @@ def ctf_state(request, dbsettings, login_team, make_team, dbsession):
 def remove_captcha(request):
     if hasattr(RegisterForm, 'captcha'):
         old_field = RegisterForm.captcha
-        del RegisterForm.captcha
+        RegisterForm.captcha = MagicMock()
 
         def readd_captcha():
             RegisterForm.captcha = old_field

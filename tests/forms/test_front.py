@@ -3,7 +3,7 @@ from fluxscoreboard.forms.front import (RegisterForm, ProfileForm,
     ResetPasswordForm, SolutionSubmitListForm, SolutionSubmitForm, LoginForm,
     ForgotPasswordForm)
 from fluxscoreboard.forms._fields import RecaptchaField
-from mock import MagicMock
+from mock import MagicMock, patch
 from conftest import GeneralCSRFTest
 from webob.multidict import MultiDict
 
@@ -316,9 +316,10 @@ class TestProfileForm(GeneralCSRFTest):
 
     def test_avatar_too_large(self):
         self.data['avatar'] = MagicMock()
-        self.data['avatar'].value.__len__.return_value = 200 * 1024
         form = self.make(self.data)
-        assert not form.validate()
+        with patch('fluxscoreboard.forms._validators.os') as m:
+            m.fstat.return_value = MagicMock(st_size=200*1024)
+            assert not form.validate()
         assert 'avatar' in form.errors
 
     def test_country_invalid_choice(self):

@@ -11,7 +11,7 @@ import pytest
 
 
 @pytest.fixture(params=['login', 'register', 'reset-password-start',
-                        'reset-password', 'confirm'])
+                        'reset-password', 'confirm', 'teams'])
 def public_route(request):
     return request.param
 
@@ -42,6 +42,10 @@ class TestDisplayDesign(object):
     def test_admin(self):
         self.request.path = "/admin/something"
         assert not display_design(self.request)
+
+    def test_test_login(self):
+        self.request.session["test-login"] = True
+        assert display_design(self.request)
 
     def test_ctf_started(self):
         self.settings.ctf_start_date = datetime(2012, 1, 1, tzinfo=utc)
