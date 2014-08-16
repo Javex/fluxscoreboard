@@ -36,7 +36,6 @@ requires = [
     'pytest',  # Testing
     'webtest',  # Testing
     'mock',  # Testing
-    'Pillow',  # Avatars
     'requests',  # Download data (GeoIP)
     'alembic',  # Database migration
     ]

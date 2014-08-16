@@ -107,11 +107,8 @@ def _countries(request, database):
 
 @pytest.fixture
 def countries(_countries, dbsession):
-    if _countries:
-        dbsession.add_all(_countries)
-        return _countries
-    else:
-        return dbsession.query(Country).all()
+    dbsession.add_all(_countries)
+    return _countries
 
 
 @pytest.fixture
@@ -188,14 +185,14 @@ def dummy_login(pyramid_request):
 
 
 @pytest.fixture
-def make_team():
+def make_team(countries):
     count = [0]
 
     def _make(**kwargs):
         kwargs.setdefault("name", "Team%d" % count[0])
         kwargs.setdefault("password", "Password%d" % count[0])
         kwargs.setdefault("email", "team%d@example.com" % count[0])
-        kwargs.setdefault("country_id", 1)
+        kwargs.setdefault("country_id", countries[0].id)
         t = Team(**kwargs)
         t._real_password = "Password%d" % count[0]
         count[0] += 1

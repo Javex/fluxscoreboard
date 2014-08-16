@@ -108,7 +108,6 @@ pyramid.debug_routematch = false
 pyramid.default_locale_name = en
 pyramid.includes =
     pyramid_debugtoolbar
-    pyramid_tm
     pyramid_beaker
     pyramid_mako
     pyramid_mailer.testing
