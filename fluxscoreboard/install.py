@@ -129,14 +129,15 @@ def install_test_data(dbsession, settings):
 
 
 def create_country_list(dbsession):
-    if not dbsession.query(Country).all():
+    countries = dbsession.query(Country).all()
+    if not countries:
         with open("states.json") as f:
             country_names = [item["name"] for item in json.load(f)]
         for name in country_names:
             assert isinstance(name, unicode)
         countries = [Country(name=name) for name in country_names]
         dbsession.add_all(countries)
-        return countries
+    return countries
 
 
 def uninstall(settings):

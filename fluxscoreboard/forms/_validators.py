@@ -3,13 +3,14 @@ from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.team import (TEAM_MAIL_MAX_LENGTH, Team,
     TEAM_PASSWORD_MAX_LENGTH, TEAM_NAME_MAX_LENGTH)
+from fluxscoreboard.models.challenge import Challenge
 from pyramid.threadlocal import get_current_request
 from urllib import urlencode
 from wtforms import validators
 from wtforms.validators import ValidationError
 import logging
 import urllib2
-from fluxscoreboard.models.challenge import Challenge
+import os
 
 
 log = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ password_min_length_validator = validators.Length(
     min=8, message=("Oh boy, shorter than %(min)d characters. You should be "
                     "ashamed!"))
 password_max_length_validator = validators.Length(
-    max=TEAM_PASSWORD_MAX_LENGTH,
+    max=1024,
     message=("Wow! I am proud of you. But don't you think %(max)d characters "
              "should be secure enough?"))
 name_length_validator = validators.Length(min=1, max=TEAM_NAME_MAX_LENGTH,
@@ -104,7 +105,7 @@ def password_required_if_new(form, field):
     A validator that only requires a password if the team is newly created,
     i.e. its id is ``None``.
     """
-    if form.id.data is None:
+    if not form.id.data:
         return required_validator(form, field)
     else:
         return True
@@ -214,7 +215,7 @@ def dynamic_check_multiple_allowed(form, field):
     from ..models import dynamic_challenges
     module = dynamic_challenges.registry[field.data]
     instance_exists = (DBSession.query(Challenge).
-                       filter(Challenge.module_name == field.data))
+                       filter(Challenge.module == field.data))
     if form.id.data:
         instance_exists = instance_exists.filter(Challenge.id != form.id.data)
     if not module.allow_multiple and instance_exists.first():
@@ -245,7 +246,7 @@ class AvatarSize(object):
     def __call__(self, form, field):
         if field.data == '' or field.data is None:
             return True
-        byte_size = len(field.data.value)
+        byte_size = os.fstat(field.data.file.fileno()).st_size
         unit_size = byte_size / self.unit_mult[self.unit]
         if unit_size > self.max_size:
             raise ValueError(self.message)

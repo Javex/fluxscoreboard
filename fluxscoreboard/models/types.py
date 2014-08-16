@@ -67,3 +67,32 @@ class JSONList(TypeDecorator):
 
     def process_result_value(self, value, dialect):
         return json.loads(value) if value is not None else None
+
+
+class Module(TypeDecorator):
+    """
+    Represent a python module from the ``dynamic_challenges`` submodule. Input
+    is a string but the return value will always be a real python module.
+    """
+
+    impl = Unicode(255)
+
+    def process_bind_param(self, value, dialect):
+        if not value:
+            value = None
+        elif not isinstance(value, unicode):
+            from . import dynamic_challenges
+            for k, v in dynamic_challenges.registry.items():
+                if v == value:
+                    value = k
+                    break
+            else:
+                raise ValueError("Invalid module %s" % value)
+        assert (isinstance(value, unicode) or value is None)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if not value:
+            return None
+        from . import dynamic_challenges
+        return dynamic_challenges.registry[value]

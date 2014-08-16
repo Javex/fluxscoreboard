@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import (IntegerOrEvaluatedField, ButtonWidget,
+from fluxscoreboard.forms._fields import (IntegerOrEvaluatedField, ButtonWidget,
     team_size_field, TZDateTimeField)
-from fluxscoreboard.forms.validators import (email_length_validator,
+from fluxscoreboard.forms._validators import (email_length_validator,
     password_length_validator_conditional, password_required_if_new,
     required_validator, name_length_validator, not_dynamic, only_if_dynamic,
     required_except, required_or_not_allowed, dynamic_check_multiple_allowed)
@@ -125,7 +125,7 @@ class ChallengeForm(CSRFForm):
                      "below. Also, you may NOT make it a manual challenge as "
                      "well!"))
 
-    module_name = SelectField(
+    module = SelectField(
         "Dynamic Module",
         description=("Which module should be used for this dynamic challenge "
                      "(only relevant if dynamic is checked above), see above "
@@ -300,11 +300,11 @@ class MassMailForm(CSRFForm):
         ``cancel``: Don't send.
 
     """
-    from_ = TextField("From")
+    from_ = EmailField("From")
 
-    subject = TextField("Subject")
+    subject = TextField("Subject", validators=[required_validator])
 
-    message = TextAreaField("Message")
+    message = TextAreaField("Message", validators=[required_validator])
 
     submit = SubmitField("Send")
 

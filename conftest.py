@@ -2,14 +2,18 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard import init_routes, main
 from fluxscoreboard.install import create_country_list
+from fluxscoreboard.forms.front import RegisterForm
 from fluxscoreboard.models import DBSession, Base, dynamic_challenges
-from fluxscoreboard.models.challenge import Challenge
+from fluxscoreboard.models.challenge import Challenge, Category
 from fluxscoreboard.models.country import Country
 from fluxscoreboard.models.dynamic_challenges.flags import TeamFlag
-from fluxscoreboard.models.news import MassMail
-from fluxscoreboard.models.settings import Settings
+from fluxscoreboard.models.news import MassMail, News
+from fluxscoreboard.models.settings import (CTF_BEFORE, CTF_STARTED,
+    CTF_ARCHIVE, Settings)
 from fluxscoreboard.models.team import Team
 from fluxscoreboard.views.front import BaseView
+from fluxscoreboard.util import now
+from datetime import timedelta
 from paste.deploy.loadwsgi import appconfig  # @UnresolvedImport
 from pyramid import testing
 from pyramid.authentication import SessionAuthenticationPolicy
@@ -22,6 +26,7 @@ from pyramid_mailer import get_mailer
 from sqlalchemy.orm.session import make_transient
 from webob.multidict import MultiDict
 from webtest.app import TestApp
+from mock import MagicMock
 import Queue
 import logging
 import os
@@ -36,7 +41,10 @@ log = logging.getLogger(__name__)
 
 @pytest.fixture(scope="session")
 def testapp(settings):
-    return TestApp(main(None, **settings))
+    environ = {
+        'REMOTE_ADDR': b'127.0.0.1'
+    }
+    return TestApp(main(None, **settings), environ)
 
 
 @pytest.fixture(scope="session")
@@ -99,11 +107,8 @@ def _countries(request, database):
 
 @pytest.fixture
 def countries(_countries, dbsession):
-    if _countries:
-        dbsession.add_all(_countries)
-        return _countries
-    else:
-        return dbsession.query(Country).all()
+    dbsession.add_all(_countries)
+    return _countries
 
 
 @pytest.fixture
@@ -111,7 +116,7 @@ def config(settings, pyramid_request, request):
     cfg = testing.setUp(request=pyramid_request, settings=settings)
     cfg.add_static_view('static', 'fluxscoreboard:static',
                            cache_max_age=3600)
-    init_routes(cfg)
+    init_routes(cfg, settings)
     cfg.scan('fluxscoreboard.views')
     cfg.include('pyramid_mako')
 
@@ -180,14 +185,14 @@ def dummy_login(pyramid_request):
 
 
 @pytest.fixture
-def make_team():
+def make_team(countries):
     count = [0]
 
     def _make(**kwargs):
         kwargs.setdefault("name", "Team%d" % count[0])
         kwargs.setdefault("password", "Password%d" % count[0])
         kwargs.setdefault("email", "team%d@example.com" % count[0])
-        kwargs.setdefault("country_id", 1)
+        kwargs.setdefault("country_id", countries[0].id)
         t = Team(**kwargs)
         t._real_password = "Password%d" % count[0]
         count[0] += 1
@@ -201,6 +206,7 @@ def make_challenge():
 
     def _make(**kwargs):
         kwargs.setdefault("title", "Challenge%d" % count[0])
+        kwargs.setdefault("text", "ChallengeText%d" % count[0])
         count[0] += 1
         return Challenge(**kwargs)
     return _make
@@ -232,8 +238,67 @@ def make_teamflag():
 
 
 @pytest.fixture
+def make_news():
+    count = [0]
+
+    def _make(**kwargs):
+        kwargs.setdefault("message", "Bla<br>foo")
+        count[0] += 1
+        return News(**kwargs)
+    return _make
+
+
+@pytest.fixture
+def make_category():
+    count = [0]
+
+    def _make(**kwargs):
+        kwargs.setdefault("name", "Category%d" % count[0])
+        count[0] += 1
+        return Category(**kwargs)
+    return _make
+
+
+@pytest.fixture
 def view(pyramid_request):
     return BaseView(pyramid_request)
+
+
+@pytest.fixture(params=[(CTF_BEFORE, True),
+                        (CTF_BEFORE, False),
+                        (CTF_STARTED, True),
+                        (CTF_STARTED, False),
+                        (CTF_ARCHIVE, False)])
+def ctf_state(request, dbsettings, login_team, make_team, dbsession):
+    ctf_state, login_state = request.param
+    if ctf_state == CTF_BEFORE:
+        dbsettings.ctf_start_date = now() + timedelta(1)
+        dbsettings.ctf_end_date = now() + timedelta(2)
+    elif ctf_state == CTF_STARTED:
+        dbsettings.ctf_start_date = now() - timedelta(1)
+        dbsettings.ctf_end_date = now() + timedelta(1)
+    else:
+        dbsettings.ctf_start_date = now() - timedelta(2)
+        dbsettings.ctf_end_date = now() - timedelta(1)
+        dbsettings.archive_mode = True
+
+    t = make_team()
+    dbsession.add(t)
+    dbsession.flush()
+    if login_state:
+        login_team(t.id)
+    return ctf_state, login_state, t
+
+
+@pytest.fixture
+def remove_captcha(request):
+    if hasattr(RegisterForm, 'captcha'):
+        old_field = RegisterForm.captcha
+        RegisterForm.captcha = MagicMock()
+
+        def readd_captcha():
+            RegisterForm.captcha = old_field
+        request.addfinalizer(readd_captcha)
 
 
 def _registerAuthenticationPolicy(reg):

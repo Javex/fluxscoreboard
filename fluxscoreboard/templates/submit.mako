@@ -2,10 +2,10 @@
 <%
 from fluxscoreboard.util import now
 %>
-% if view.archive_mode:
+% if request.settings.archive_mode:
     <p class="text-warning text-center">Scoreboard is in archive mode. You can submit solutions, but you will only receive feedback and are not entered into the scoreboard</p>
 % endif
-% if (not request.settings.submission_disabled and list(form.challenge) and not now() > request.settings.ctf_end_date) or view.archive_mode:
+% if (not request.settings.submission_disabled and list(form.challenge) and not now() > request.settings.ctf_end_date) or request.settings.archive_mode:
 <form class="form-horizontal" method="POST" action="${request.route_url('submit')}">
     <legend>Enter solution for challenge</legend>
     <div class="form-group">

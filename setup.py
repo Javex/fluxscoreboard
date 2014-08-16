@@ -15,8 +15,8 @@ VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(v.read()).group(1)
 v.close()
 
 requires = [
-    'pyramid',  # WSGI framework
-    'SQLAlchemy',  # Database
+    'pyramid>=1.5',  # WSGI framework
+    'SQLAlchemy>=0.9',  # Database
     'psycopg2',  # Database
     'zope.sqlalchemy',  # Database
     'transaction',  # Transactions
@@ -35,7 +35,7 @@ requires = [
     'waitress',  # Dev Server
     'pytest',  # Testing
     'webtest',  # Testing
-    'Pillow',  # Avatars
+    'mock',  # Testing
     'requests',  # Download data (GeoIP)
     'alembic',  # Database migration
     ]

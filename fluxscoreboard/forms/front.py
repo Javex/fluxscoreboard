@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import AvatarField, team_size_field
-from fluxscoreboard.forms.validators import (name_length_validator,
+from fluxscoreboard.forms._fields import AvatarField, team_size_field
+from fluxscoreboard.forms._validators import (name_length_validator,
     email_length_validator, password_min_length_validator,
     password_max_length_validator, required_validator, email_equal_validator,
     email_unique_validator, password_equal_validator,
     password_required_and_valid_if_pw_change, password_min_length_if_set_validator,
     password_max_length_if_set_validator, avatar_size_validator, name_unique_validator)
 from fluxscoreboard.models.country import get_all_countries
-from pyramid.security import authenticated_userid
 from pyramid.threadlocal import get_current_request
 from pytz import common_timezones, utc
 from wtforms.ext.sqlalchemy.fields import QuerySelectField

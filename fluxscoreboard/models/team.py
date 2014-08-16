@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
-from fluxscoreboard.models.challenge import Submission, Challenge, Category
+from fluxscoreboard.models.challenge import (Submission, Challenge, Category,
+    get_online_challenges)
 from fluxscoreboard.models.types import Timezone
 from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token, now
 from pyramid.decorator import reify
 from pyramid.events import subscriber, NewRequest
 from pyramid.renderers import render
-from pyramid.security import unauthenticated_userid, authenticated_userid
 from pyramid.threadlocal import get_current_request
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
@@ -21,7 +21,7 @@ from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func, desc, bindparam
+from sqlalchemy.sql.expression import func, desc, bindparam, not_
 from sqlalchemy.types import Integer, Unicode, Boolean
 from sqlalchemy.dialects.postgresql import INET
 import logging
@@ -126,7 +126,7 @@ def get_team(request):
     Get the currently logged in team. Returns None if the team is invalid (e.g.
     inactive) or noone is logged in or if the scoreboard is in archive mode.
     """
-    team_id = unauthenticated_userid(request)
+    team_id = request.unauthenticated_userid
     if team_id is None:
         return None
     if not request.settings.archive_mode:
@@ -347,7 +347,7 @@ class Team(Base):
     challenge_token = Column(Unicode, unique=True, default=uuid.uuid4,
                              nullable=False)
     active = Column(Boolean, default=False)
-    timezone = Column(Timezone, default=lambda: unicode(utc.zone),
+    timezone = Column(Timezone, default=lambda: utc,
                       nullable=False)
     avatar_filename = Column(Unicode, unique=True)
     size = Column(Integer)
@@ -359,10 +359,6 @@ class Team(Base):
     country = relationship("Country", lazy='joined')
 
     _score = None
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("token", random_token())
-        Base.__init__(self, *args, **kwargs)
 
     def __unicode__(self):
         return self.name
@@ -512,7 +508,7 @@ class Team(Base):
 
         - online
         - unsolved by the current team
-        - not manual (i.e. solvable by entering a solution)
+        - not manual or dynamic (i.e. solvable by entering a solution)
         """
         unsolved = self.get_unsolved_challenges()
         return (unsolved.
@@ -537,7 +533,7 @@ def register_ip(event):
             event.request.session["test-login"] or
             event.request.path.startswith('/static')):
         return None
-    team_id = authenticated_userid(event.request)
+    team_id = event.request.authenticated_userid
     t = transaction.savepoint()
     if not team_id:
         return

@@ -65,7 +65,7 @@ class Settings(Base):
             permissions etc.
     """
     id = Column(Integer, primary_key=True)
-    submission_disabled = Column(Boolean, default=False)
+    submission_disabled = Column(Boolean, default=False, nullable=False)
     ctf_start_date = Column(TZDateTime)
     ctf_end_date = Column(TZDateTime)
     archive_mode = Column(Boolean, default=False, nullable=False)

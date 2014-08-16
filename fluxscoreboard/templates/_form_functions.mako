@@ -1,6 +1,6 @@
 <%def name="render_form(action, form, legend, display_cancel=True, enctype='application/x-www-form-urlencoded')">
-<% from fluxscoreboard.forms.validators import required_validator %>
-<% from fluxscoreboard.forms.fields import IntegerOrEvaluatedField %>
+<% from fluxscoreboard.forms._validators import required_validator %>
+<% from fluxscoreboard.forms._fields import IntegerOrEvaluatedField %>
 <% from wtforms.fields.core import IntegerField %>
 <% from wtforms.fields.simple import TextAreaField, TextField, FileField %>
 <% from wtforms.fields.html5 import EmailField, IntegerField as IntegerFieldHtml5 %>

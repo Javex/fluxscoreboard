@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
+from fluxscoreboard.util import now
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Challenge
 from fluxscoreboard.models.types import TZDateTime, JSONList
-from sqlalchemy.orm import relationship, backref, lazyload, contains_eager
+from sqlalchemy.orm import relationship, backref, lazyload, contains_eager, Load
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.sql.expression import desc, or_
 from sqlalchemy.types import Integer, UnicodeText, Boolean, Unicode
@@ -16,7 +17,9 @@ def get_published_news():
                      filter(News.published == True).
                      filter(or_(Challenge.published,
                                 News.challenge == None)).
-                     options(contains_eager(News.challenge).load_only("title"),
+                     filter(News.timestamp <=datetime.utcnow()).
+                     options(contains_eager(News.challenge),
+                             Load(Challenge).load_only("title"),
                              lazyload('challenge.category')).
                      order_by(desc(News.timestamp)))
     return announcements
@@ -46,7 +49,7 @@ class News(Base):
     id = Column(Integer, primary_key=True)
     timestamp = Column(TZDateTime,
                         nullable=False,
-                        default=datetime.utcnow
+                        default=now
                         )
     message = Column(UnicodeText)
     published = Column(Boolean, default=False, nullable=False)
@@ -56,10 +59,6 @@ class News(Base):
                              backref=backref("announcements",
                                              cascade="all",
                                              order_by=desc(timestamp)))
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("timestamp", datetime.utcnow())
-        Base.__init__(self, *args, **kwargs)
 
     def __repr__(self):
         r = ("<News id=%s, from=%s, message=%s, challenge=%s>"

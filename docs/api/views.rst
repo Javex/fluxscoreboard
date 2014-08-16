@@ -20,12 +20,6 @@
 .. autoclass:: UserView
     :members:
 
-Utility
-#######
-
-.. autodata:: logged_in_view
-
-
 :mod:`fluxscoreboard.views.admin`
 ---------------------------------
 
