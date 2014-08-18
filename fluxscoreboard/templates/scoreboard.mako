@@ -34,7 +34,7 @@
                     % if challenge in [s.challenge for s in team.submissions]:
                         ${challenge.points + [s for s in team.submissions if s.challenge == challenge][0].bonus}
                     % elif challenge.dynamic:
-                        ${challenge.module.points(team)}
+                        ${challenge.module.get_points(team)}
                     % else:
                         -
                     % endif

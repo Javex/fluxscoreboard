@@ -93,9 +93,15 @@ class TestChallenge(TemplateTestBase):
         assert "currently offline" in out
         assert "Enter solution" not in out
 
-    def test_dynamic(self, module):
+    def test_dynamic_mock(self, module):
         self.challenge.dynamic = True
         self.challenge.module = module
-        module.display.return_value = "Dynamic<br>Out"
+        module.render.return_value = "Dynamic<br>Out"
         out = self.render()
         assert "Dynamic<br>Out" in out
+
+    def test_dynamic(self, dynamic_module):
+        _, module = dynamic_module
+        self.challenge.dynamic = True
+        self.challenge.module = module
+        assert isinstance(self.render(), (unicode, str))

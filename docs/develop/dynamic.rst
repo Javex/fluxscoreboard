@@ -22,7 +22,7 @@ The following functions can be defined to implement the dynamic behavior. They
 are all mandatory.
 
 ``activate``: Called during application startup and receives to parameters:
-``config``and ``settings``, the first being the pyramid configurator instance
+``config`` and ``settings``, the first being the pyramid configurator instance
 and the second being the settings dictionary. You should register your routes
 here.
 

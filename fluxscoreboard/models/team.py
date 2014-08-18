@@ -21,7 +21,7 @@ from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func, desc, bindparam, not_
+from sqlalchemy.sql.expression import func, desc, bindparam, not_, cast
 from sqlalchemy.types import Integer, Unicode, Boolean
 import logging
 import random
@@ -445,7 +445,7 @@ class Team(Base):
         # Create a subquery for the sum of the above points. The filters
         # basically join the columns and the correlation is needed to reference
         # the **outer** Team query.
-        team_score_subquery = (DBSession.query(points_col).
+        team_score_subquery = (DBSession.query(cast(points_col, Integer)).
                                filter(Challenge.id == Submission.challenge_id).
                                filter(cls.id == Submission.team_id).
                                filter(~Challenge.dynamic).

@@ -65,12 +65,19 @@ class TestScoreboard(TemplateTestBase):
         out = self.render()
         assert re.search(r'<td class="text-success">\s+Yes\s+</td>', out)
 
-    def test_challenge_dynamic(self, module):
+    def test_challenge_dynamic_mock(self, module):
         self.challenge.dynamic = True
         self.challenge.module = module
-        module.points.return_value = 1337
+        module.get_points.return_value = 1337
         out = self.render()
         assert "1337" in out
+
+    def test_challenge_dynamic(self, dynamic_module):
+        _, module = dynamic_module
+        self.challenge.dynamic = True
+        self.challenge.module = module
+        out = self.render()
+        assert isinstance(out, unicode)
 
     def test_challenge_bonus(self):
         Submission(challenge=self.challenge, team=self.team, bonus=321)

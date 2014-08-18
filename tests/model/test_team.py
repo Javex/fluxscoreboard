@@ -391,7 +391,7 @@ class TestTeam(object):
         assert t_ref is t
         assert score == 3
 
-    def test_score_dynamic(self, module):
+    def test_score_dynamic_mock(self, module):
         modname, module = module
         t = self.make_team()
         c = self.make_challenge(dynamic=True, module=modname)
@@ -407,6 +407,22 @@ class TestTeam(object):
         t_ref, score = self.dbsession.query(Team, Team.score).first()
         assert t_ref is t
         assert score == 1234
+        t._score = None
+
+    def test_score_dynamic(self, dynamic_module):
+        modname, module = dynamic_module
+        t = self.make_team()
+        c = self.make_challenge(dynamic=True, module=modname)
+        self.dbsession.add_all([t, c])
+        c = self.dbsession.query(Challenge).one()
+        t = self.dbsession.query(Team).one()
+        assert isinstance(module.get_points(t), (int, long))
+
+        self.dbsession.flush()
+        self.dbsession.expire(c)
+        t_ref, score = self.dbsession.query(Team, Team.score).first()
+        assert t_ref is t
+        assert isinstance(score, (int, long))
         t._score = None
 
     def test_rank(self):
@@ -439,7 +455,7 @@ class TestTeam(object):
         assert t3_rank == 2
         assert t4_rank == 4
 
-    def test_rank_dynamic(self, module):
+    def test_rank_dynamic_mock(self, module):
         modname, module = module
         t1 = self.make_team()
         t2 = self.make_team()
@@ -469,6 +485,24 @@ class TestTeam(object):
         assert t2_ref is t2
         assert t1_rank == 1
         assert t2_rank == 2
+
+    def test_rank_dynamic(self, dynamic_module):
+        modname, module = dynamic_module
+        t1 = self.make_team()
+        t2 = self.make_team()
+        c = self.make_challenge(dynamic=True, module=modname)
+        self.dbsession.add_all([t1, t2, c])
+        self.dbsession.flush()
+        assert isinstance(t1.rank, (int, long))
+        assert isinstance(t2.rank, (int, long))
+
+        team_list = self.dbsession.query(Team, Team.rank).order_by(Team.id).all()
+        t1_ref, t1_rank = team_list[0]
+        t2_ref, t2_rank = team_list[1]
+        assert t1_ref is t1
+        assert t2_ref is t2
+        assert isinstance(t1_rank, (int, long))
+        assert isinstance(t2_rank, (int, long))
 
     def test_get_unsolved_challenges(self):
         t1 = self.make_team()

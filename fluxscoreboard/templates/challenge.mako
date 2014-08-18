@@ -80,7 +80,7 @@ import uuid
         % endif
         </div>
     % else:
-        ${challenge.module.display(challenge, request) | n}
+        ${challenge.module.render(challenge, request) | n}
     % endif
     </div>
     <div class="clearfix"></div>
