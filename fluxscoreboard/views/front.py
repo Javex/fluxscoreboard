@@ -281,7 +281,6 @@ class FrontView(BaseView):
                  filter(Team.active).
                  options(subqueryload('submissions'),
                          joinedload('submissions.challenge')).
-                 options(subqueryload('team_flags')).
                  order_by(desc("score")))
         team_list = []
         last_score = None

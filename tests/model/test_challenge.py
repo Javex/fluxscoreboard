@@ -10,6 +10,7 @@ from fluxscoreboard.models.news import News
 from fluxscoreboard.models.settings import Settings
 from fluxscoreboard.util import now
 from sqlalchemy.exc import IntegrityError, DatabaseError
+from mock import MagicMock
 import pytest
 
 
@@ -152,6 +153,17 @@ class TestChallenge(object):
         self.make_challenge = make_challenge
         self.make_team = make_team
 
+    @pytest.fixture
+    def module(self, request):
+        module = MagicMock()
+        module.__name__ = u"testmodule"
+        dynamic_challenges.registry[u"testmodule"] = module
+
+        def remove_module():
+            del dynamic_challenges.registry[u"testmodule"]
+        request.addfinalizer(remove_module)
+        return u"testmodule"
+
     def test_defaults(self):
         c = self.make_challenge()
         self.dbsession.add(c)
@@ -191,7 +203,7 @@ class TestChallenge(object):
                 self.dbsession.flush()
             t.rollback()
 
-    def test_printables(self):
+    def test_printables(self, module):
         c = self.make_challenge()
         self.dbsession.add(c)
         self.dbsession.flush()
@@ -212,13 +224,23 @@ class TestChallenge(object):
         assert r == ("<Challenge (manual) title=Challenge1, online=True, "
                      "category=Test, author(s)=test1, test2>")
 
-        c = self.make_challenge(dynamic=True, module="flags")
+        c = self.make_challenge(dynamic=True, module=module)
         self.dbsession.add(c)
         self.dbsession.flush()
         self.dbsession.expire(c)
         r = repr(c)
         assert r == ("<Challenge (dynamic) title=Challenge2, online=False, "
-                     "module=flags>")
+                     "module=%s>" % module)
+
+    def test_printables_module(self, dynamic_module):
+        modname, _ = dynamic_module
+        c = self.make_challenge(dynamic=True, module=modname)
+        self.dbsession.add(c)
+        self.dbsession.flush()
+        self.dbsession.expire(c)
+        r = repr(c)
+        assert r == ("<Challenge (dynamic) title=Challenge0, online=False, "
+                     "module=%s>" % modname)
 
     def test_points(self):
         c = self.make_challenge(points=123)
@@ -233,14 +255,25 @@ class TestChallenge(object):
         c.points = 321
         assert c.points is manual_challenge_points
 
-    def test_module(self):
+    def test_module_mock(self, module):
         c = self.make_challenge()
         assert c.module is None
-        c.module= "flags"
+        c.module = module
+        module_inst = dynamic_challenges.registry[module]
         self.dbsession.add(c)
         self.dbsession.flush()
         self.dbsession.expire(c)
-        assert c.module is dynamic_challenges.flags
+        assert c.module is module_inst
+
+    def test_module(self, dynamic_module):
+        modname, module = dynamic_module
+        c = self.make_challenge()
+        assert c.module is None
+        c.module = modname
+        self.dbsession.add(c)
+        self.dbsession.flush()
+        self.dbsession.expire(c)
+        assert c.module is module
 
     def test_announcements(self):
         c = self.make_challenge()

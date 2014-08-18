@@ -227,17 +227,6 @@ def make_massmail():
 
 
 @pytest.fixture
-def make_teamflag():
-    avail_flags = list(dynamic_challenges.flags.flag_list)
-
-    def _make(team=None, **kw):
-        if "flag" not in kw:
-            kw["flag"] = avail_flags.pop()
-        return TeamFlag(team=team, **kw)
-    return _make
-
-
-@pytest.fixture
 def make_news():
     count = [0]
 
@@ -262,6 +251,29 @@ def make_category():
 @pytest.fixture
 def view(pyramid_request):
     return BaseView(pyramid_request)
+
+
+dummy_module = MagicMock(spec_set=['configuration', 'activate', 'render',
+                                   'get_points_query', 'get_points', 'title',
+                                   'install'])
+dummy_module.configuration = {'allow_multiple': False}
+dummy_module.activate.return_value = None
+dummy_module.render.return_value = u"Foo<br>Bar"
+dummy_module.get_points.return_value = 1
+dummy_module.get_points_query.return_value = "1234"
+dummy_module.title.return_value = "Some title"
+dummy_module.install.return_value = None
+
+@pytest.fixture(params=dynamic_challenges.registry.items() + [(u"testmodule", dummy_module)])
+def dynamic_module(request):
+    modname, module = request.param
+    if modname == u"testmodule":
+        dynamic_challenges.registry[modname] = module
+
+        def remove():
+            del dynamic_challenges.registry[modname]
+        request.addfinalizer(remove)
+    return modname, module
 
 
 @pytest.fixture(params=[(CTF_BEFORE, True),
