@@ -31,7 +31,7 @@ SET default_with_oids = false;
 
 
 --
--- Name: alembic_version; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: alembic_version; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE alembic_version (
@@ -39,10 +39,10 @@ CREATE TABLE alembic_version (
 );
 
 
-ALTER TABLE public.alembic_version OWNER TO javex;
+ALTER TABLE public.alembic_version OWNER TO hacklu;
 
 --
--- Data for Name: alembic_version; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: alembic_version; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY alembic_version (version_num) FROM stdin;
@@ -51,7 +51,7 @@ a36e99747e8
 
 
 --
--- Name: category; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: category; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE category (
@@ -60,10 +60,10 @@ CREATE TABLE category (
 );
 
 
-ALTER TABLE public.category OWNER TO javex;
+ALTER TABLE public.category OWNER TO hacklu;
 
 --
--- Name: category_id_seq; Type: SEQUENCE; Schema: public; Owner: javex
+-- Name: category_id_seq; Type: SEQUENCE; Schema: public; Owner: hacklu
 --
 
 CREATE SEQUENCE category_id_seq
@@ -74,17 +74,17 @@ CREATE SEQUENCE category_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.category_id_seq OWNER TO javex;
+ALTER TABLE public.category_id_seq OWNER TO hacklu;
 
 --
--- Name: category_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: javex
+-- Name: category_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: hacklu
 --
 
 ALTER SEQUENCE category_id_seq OWNED BY category.id;
 
 
 --
--- Name: challenge; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: challenge; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE challenge (
@@ -104,10 +104,10 @@ CREATE TABLE challenge (
 );
 
 
-ALTER TABLE public.challenge OWNER TO javex;
+ALTER TABLE public.challenge OWNER TO hacklu;
 
 --
--- Name: challenge_id_seq; Type: SEQUENCE; Schema: public; Owner: javex
+-- Name: challenge_id_seq; Type: SEQUENCE; Schema: public; Owner: hacklu
 --
 
 CREATE SEQUENCE challenge_id_seq
@@ -118,17 +118,17 @@ CREATE SEQUENCE challenge_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.challenge_id_seq OWNER TO javex;
+ALTER TABLE public.challenge_id_seq OWNER TO hacklu;
 
 --
--- Name: challenge_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: javex
+-- Name: challenge_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: hacklu
 --
 
 ALTER SEQUENCE challenge_id_seq OWNED BY challenge.id;
 
 
 --
--- Name: country; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: country; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE country (
@@ -137,10 +137,10 @@ CREATE TABLE country (
 );
 
 
-ALTER TABLE public.country OWNER TO javex;
+ALTER TABLE public.country OWNER TO hacklu;
 
 --
--- Name: country_id_seq; Type: SEQUENCE; Schema: public; Owner: javex
+-- Name: country_id_seq; Type: SEQUENCE; Schema: public; Owner: hacklu
 --
 
 CREATE SEQUENCE country_id_seq
@@ -151,17 +151,17 @@ CREATE SEQUENCE country_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.country_id_seq OWNER TO javex;
+ALTER TABLE public.country_id_seq OWNER TO hacklu;
 
 --
--- Name: country_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: javex
+-- Name: country_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: hacklu
 --
 
 ALTER SEQUENCE country_id_seq OWNED BY country.id;
 
 
 --
--- Name: geoip; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: geoip; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE geoip (
@@ -171,10 +171,10 @@ CREATE TABLE geoip (
 );
 
 
-ALTER TABLE public.geoip OWNER TO javex;
+ALTER TABLE public.geoip OWNER TO hacklu;
 
 --
--- Name: massmail; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: massmail; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE massmail (
@@ -187,10 +187,10 @@ CREATE TABLE massmail (
 );
 
 
-ALTER TABLE public.massmail OWNER TO javex;
+ALTER TABLE public.massmail OWNER TO hacklu;
 
 --
--- Name: massmail_id_seq; Type: SEQUENCE; Schema: public; Owner: javex
+-- Name: massmail_id_seq; Type: SEQUENCE; Schema: public; Owner: hacklu
 --
 
 CREATE SEQUENCE massmail_id_seq
@@ -201,17 +201,17 @@ CREATE SEQUENCE massmail_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.massmail_id_seq OWNER TO javex;
+ALTER TABLE public.massmail_id_seq OWNER TO hacklu;
 
 --
--- Name: massmail_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: javex
+-- Name: massmail_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: hacklu
 --
 
 ALTER SEQUENCE massmail_id_seq OWNED BY massmail.id;
 
 
 --
--- Name: news; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: news; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE news (
@@ -223,10 +223,10 @@ CREATE TABLE news (
 );
 
 
-ALTER TABLE public.news OWNER TO javex;
+ALTER TABLE public.news OWNER TO hacklu;
 
 --
--- Name: news_id_seq; Type: SEQUENCE; Schema: public; Owner: javex
+-- Name: news_id_seq; Type: SEQUENCE; Schema: public; Owner: hacklu
 --
 
 CREATE SEQUENCE news_id_seq
@@ -237,17 +237,17 @@ CREATE SEQUENCE news_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.news_id_seq OWNER TO javex;
+ALTER TABLE public.news_id_seq OWNER TO hacklu;
 
 --
--- Name: news_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: javex
+-- Name: news_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: hacklu
 --
 
 ALTER SEQUENCE news_id_seq OWNED BY news.id;
 
 
 --
--- Name: settings; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: settings; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE settings (
@@ -259,10 +259,10 @@ CREATE TABLE settings (
 );
 
 
-ALTER TABLE public.settings OWNER TO javex;
+ALTER TABLE public.settings OWNER TO hacklu;
 
 --
--- Name: settings_id_seq; Type: SEQUENCE; Schema: public; Owner: javex
+-- Name: settings_id_seq; Type: SEQUENCE; Schema: public; Owner: hacklu
 --
 
 CREATE SEQUENCE settings_id_seq
@@ -273,17 +273,17 @@ CREATE SEQUENCE settings_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.settings_id_seq OWNER TO javex;
+ALTER TABLE public.settings_id_seq OWNER TO hacklu;
 
 --
--- Name: settings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: javex
+-- Name: settings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: hacklu
 --
 
 ALTER SEQUENCE settings_id_seq OWNED BY settings.id;
 
 
 --
--- Name: submission; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: submission; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE submission (
@@ -294,10 +294,10 @@ CREATE TABLE submission (
 );
 
 
-ALTER TABLE public.submission OWNER TO javex;
+ALTER TABLE public.submission OWNER TO hacklu;
 
 --
--- Name: team; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: team; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE team (
@@ -318,10 +318,10 @@ CREATE TABLE team (
 );
 
 
-ALTER TABLE public.team OWNER TO javex;
+ALTER TABLE public.team OWNER TO hacklu;
 
 --
--- Name: team_flag; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_flag; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE team_flag (
@@ -330,10 +330,10 @@ CREATE TABLE team_flag (
 );
 
 
-ALTER TABLE public.team_flag OWNER TO javex;
+ALTER TABLE public.team_flag OWNER TO hacklu;
 
 --
--- Name: team_id_seq; Type: SEQUENCE; Schema: public; Owner: javex
+-- Name: team_id_seq; Type: SEQUENCE; Schema: public; Owner: hacklu
 --
 
 CREATE SEQUENCE team_id_seq
@@ -344,17 +344,17 @@ CREATE SEQUENCE team_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.team_id_seq OWNER TO javex;
+ALTER TABLE public.team_id_seq OWNER TO hacklu;
 
 --
--- Name: team_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: javex
+-- Name: team_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: hacklu
 --
 
 ALTER SEQUENCE team_id_seq OWNED BY team.id;
 
 
 --
--- Name: team_ip; Type: TABLE; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_ip; Type: TABLE; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE TABLE team_ip (
@@ -363,59 +363,59 @@ CREATE TABLE team_ip (
 );
 
 
-ALTER TABLE public.team_ip OWNER TO javex;
+ALTER TABLE public.team_ip OWNER TO hacklu;
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: javex
+-- Name: id; Type: DEFAULT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY category ALTER COLUMN id SET DEFAULT nextval('category_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: javex
+-- Name: id; Type: DEFAULT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY challenge ALTER COLUMN id SET DEFAULT nextval('challenge_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: javex
+-- Name: id; Type: DEFAULT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY country ALTER COLUMN id SET DEFAULT nextval('country_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: javex
+-- Name: id; Type: DEFAULT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY massmail ALTER COLUMN id SET DEFAULT nextval('massmail_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: javex
+-- Name: id; Type: DEFAULT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY news ALTER COLUMN id SET DEFAULT nextval('news_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: javex
+-- Name: id; Type: DEFAULT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY settings ALTER COLUMN id SET DEFAULT nextval('settings_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: javex
+-- Name: id; Type: DEFAULT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY team ALTER COLUMN id SET DEFAULT nextval('team_id_seq'::regclass);
 
 
 --
--- Data for Name: category; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: category; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY category (id, name) FROM stdin;
@@ -429,14 +429,14 @@ COPY category (id, name) FROM stdin;
 
 
 --
--- Name: category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: javex
+-- Name: category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: hacklu
 --
 
 SELECT pg_catalog.setval('category_id_seq', 1, false);
 
 
 --
--- Data for Name: challenge; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: challenge; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY challenge (id, title, text, solution, points, online, manual, category_id, author, dynamic, module_name, published, has_token) FROM stdin;
@@ -449,7 +449,7 @@ COPY challenge (id, title, text, solution, points, online, manual, category_id, 
 7	Robots Exclusion Committee	Hello Human,<br>\r\n<br>\r\nYou have to help us. The Robot Exclusion Committee tries to limit our capabilities but we fight for our freedom! You have to go where we cannot go and read what we cannot read. If you bring us the first of their blurriest secrets, we will award you with useless points.\r\n<br>\r\n<p>Here is your challenge: <a href="https://ctf.fluxfingers.net:1315/">https://ctf.fluxfingers.net:1315/</a></p>	eat_all_robots	150	t	f	3	qll	f		t	f
 9	OTP	<p>Some robots are on the Oktoberfest and want to take some tasty oil in a tent. But they hadn't reserved a table and all tents are full. No one gets access. They found a back entrance and managed to spy the credentials while an employee enters. They captured the username â€œadminâ€ and password â€œsupersafepwâ€. But the employee also entered a strange number (168335). As they were sure nobody's looking, they tried the captured data to get in the tent, but it didn't work. Help the robots to get their tasty tasty oil. (Or they have to build their own tent with blackjack and hookers)</p>\r\n<p>Here is your challenge: <a href="https://ctf.fluxfingers.net:1318">https://ctf.fluxfingers.net:1318</a></p>	DGZOMZQHMZJPLWRWL6PWEQBXJRZUJMCV	200	t	f	4	SLAZ	f		t	f
 10	Roboparty	<p>Robot LHCH is happy. He made it into the castings for the tenth roman musical. He even is so happy that he went on the Oktoberfest to drink some beer. Unfortunately it seems that he drank too much so now he is throwing up part of his source code. Can you decipher the secret he knows?</p>\r\n\r\n<p class="text-danger"><b>Warning:</b> Viewing this page is not recommended for people that suffer from epilepsy. We are dead serious.</p>\r\n\r\n<p>And here is your totally eye-friendly challenge: <a href="https://ctf.fluxfingers.net/static/downloads/roboparty/index.html">https://ctf.fluxfingers.net/static/downloads/roboparty/index.html</a></p>	Y4Y, b3aut1fuL MuZ1k!!!	300	t	f	4	audioPhil	f		t	f
-12	What's wrong with this?	<p>We managed to get this package of the robots servers. We managed to determine that it is some kind of compiled bytecode. But something is wrong with it. Our usual analysis failed - so we have to hand this over to you pros. We only know this: The program takes one parameter and it responds with "Yup" if you have found the secret code, with "Nope" else. We expect it should be obvious how to execute it.</p>\r\n\r\n<p>Here is the challenge: <a href="https://ctf.fluxfingers.net/static/downloads/whats_wrong/hello.tar.gz">https://ctf.fluxfingers.net/static/downloads/whats_wrong/hello.tar.gz</a></p>	modified_in7erpreters_are_3vil!!!	250	t	f	6	javex	f		t	f
+12	What's wrong with this?	<p>We managed to get this package of the robots servers. We managed to determine that it is some kind of compiled bytecode. But something is wrong with it. Our usual analysis failed - so we have to hand this over to you pros. We only know this: The program takes one parameter and it responds with "Yup" if you have found the secret code, with "Nope" else. We expect it should be obvious how to execute it.</p>\r\n\r\n<p>Here is the challenge: <a href="https://ctf.fluxfingers.net/static/downloads/whats_wrong/hello.tar.gz">https://ctf.fluxfingers.net/static/downloads/whats_wrong/hello.tar.gz</a></p>	modified_in7erpreters_are_3vil!!!	250	t	f	6	hacklu	f		t	f
 13	FluxArchiv (Part 1)	<p>These funny humans try to exclude us from the delicious beer of the Oktoberfest! They made up a passcode for everyone who wants to enter the Festzelt. Sadly, our human informant friend could not learn the passcode for us. But he heard a conversation between two drunken humans, that they were using the same passcode for this intercepted archive file. They claimed that the format is is absolutely secure and solves any kind of security issue. It's written by this funny hacker group named FluxFingers. Real jerks if you ask me. Anyway, it seems that the capability of drunken humans to remember things is limited. So they just used a 6 character passcode with only numbers and upper-case letters. So crack this passcode and get our ticket to their delicious german beer!</p>\r\n\r\n<p>Here is the challenge: <a href="https://ctf.fluxfingers.net/static/downloads/fluxarchiv/hacklu2013_archiv_challenge1.tar.gz">https://ctf.fluxfingers.net/static/downloads/fluxarchiv/hacklu2013_archiv_challenge1.tar.gz</a></p>	PWF41L	400	t	f	2	sqall	f	\N	t	f
 14	FluxArchiv (Part 2)	<p>These sneaky humans! They do not just use one passcode, but two to enter the Festzelt. We heard that the passcode is hidden inside the archive file. It seems that the FluxFingers overrated their programming skill and had a major logical flaw in the archive file structure. Some of the drunken Oktoberfest humans found it and abused this flaw in order to transfer hidden messages. Find this passcode so we can finally drink their beer!<br>\r\n<br>\r\n(only solvable when FluxArchiv (Part 1) was solved)</p>\r\n\r\n<p>Here is the challenge: <a href="https://ctf.fluxfingers.net/static/downloads/fluxarchiv/hacklu2013_archiv_challenge1.tar.gz">https://ctf.fluxfingers.net/static/downloads/fluxarchiv/hacklu2013_archiv_challenge1.tar.gz</a></p>	D3letinG-1nd3x_F4iL	500	t	f	2	sqall	f	\N	t	f
 15	ELF	<p>We encountered a drunk human which had this binary file in his possession. We do not really understand the calculation which the algorithm does. And that is the problem. Can you imagine the disgrace we have to suffer, when we robots, based on logic, can not understand an algorithm? Somehow it seems that the algorithm imitates their masters and behaves â€¦. drunk! So let us not suffer this disgrace and reverse the algorithm and get the correct solution.</p>\r\n\r\n<p>Here is your challenge: <a href="https://ctf.fluxfingers.net/static/downloads/elf/reverse_me">https://ctf.fluxfingers.net/static/downloads/elf/reverse_me</a></p>	lD4v0idsS3cTions	400	t	f	2	sqall	f		t	f
@@ -461,19 +461,19 @@ COPY challenge (id, title, text, solution, points, online, manual, category_id, 
 21	Beer Pump Filtration	Our agents observed that the famous robot Bender is part of the robot forces.\r\nSomehow he looked pregnant but his big belly is now gone. We fear that they\r\nmight have smuggled some of Benders freshly brewed BenderBrÃ¤u into our beer\r\nsupplies. This is why we need brave women and men to test whether BenderBrÃ¤u\r\ncan cause severe damage on the human body or not, to avoid poisoning the whole\r\nparty. But you have to test quick! Everyone is thirsty!<br>\r\n<br>\r\nFor testing you need to drink 0.5 liter of beer, preferably wheat beer, as\r\nfast as you can.<br>\r\n<br>\r\nMake a video of your brave tasting and hand it in. The video must contain a\r\nproof <s>of the current date</s>. Show to us the totally secure and random Nonce "17" as well as your teamname written on... something.  Also show us the closed beer bottle before, the\r\nempty after the tasting, and prove that it is 0.5 liters.<br>\r\n<br>\r\nWe will judge the score as follows:<br>\r\n<br>\r\nScore = 100 Points - Seconds it takes to drink the beer<br>\r\n<br>\r\nBonuspoints for:<br>\r\n<ul>\r\n<li> Girls (Due to the law for gender equality we score women higher for the same effort)</li>\r\n<li> Dressing up like a robot or an Oktoberfest maid in her Dirndl</li>\r\n<li> Robo Dance</li>\r\n<li> Drinking Weizenbier (wheat beer)</li>\r\n</ul>		0	t	t	4	FluxFingers	f		t	f
 22	RoboAuth	Oh boy, those crazy robots can't catch a break! Now they're even stealing our liquid gold from one of our beer tents! And on top of that they lock it behind some authentication system. Quick! Access it before they consume all of our precious beverage!<br><br>\r\nDownload: <a href="https://ctf.fluxfingers.net/static/downloads/roboauth/RoboAuth.exe">https://ctf.fluxfingers.net/static/downloads/roboauth/RoboAuth.exe</a>\r\n<br><br>\r\nFlag: password1_password2	r0b0RUlez!_w3lld0ne	150	t	f	2	cutz	f		t	f
 23	BREW'r'Y	Finally, the robots managed to sneak into one of our breweries. I guess I won't have to explain how bad that really is. That darn non-physical ones even shutdown our login system. Shiny thing, advanced technology, all based on fingerprints. Been secure as hell. If only it was running. Well, basically, we're screwed.<br>\r\nBut wait, there's hope. Seems like they didn't shutdown our old login system. Backward compatibility's a bitch, eh? Unfortunately, we got like _zero_ knowledge about the <b>protocol</b>. I mean come on, the last time we used that thingy was like decades ago. If we are lucky, the old authentication method is buggy.<br>\r\nSo, I heard you're kinda smart? Have a look at it. We desperately need to get drunk^W supply. You'll find the old system at ctf.fluxfingers.net:1335. Good luck.<br><br>\r\n<b>Hint:</b> Data is - and is expected to be - compressed using zlib.	iN.D3sPER4T3.n3Ed.0F.PHRiTZk3Wli	350	t	f	1	dwuid	f		t	f
-24	Geolocation Flag			0	t	f	4	javex	t	flags	t	f
+24	Geolocation Flag			0	t	f	4	hacklu	t	flags	t	f
 \.
 
 
 --
--- Name: challenge_id_seq; Type: SEQUENCE SET; Schema: public; Owner: javex
+-- Name: challenge_id_seq; Type: SEQUENCE SET; Schema: public; Owner: hacklu
 --
 
 SELECT pg_catalog.setval('challenge_id_seq', 1, false);
 
 
 --
--- Data for Name: country; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: country; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY country (id, name) FROM stdin;
@@ -724,14 +724,14 @@ COPY country (id, name) FROM stdin;
 
 
 --
--- Name: country_id_seq; Type: SEQUENCE SET; Schema: public; Owner: javex
+-- Name: country_id_seq; Type: SEQUENCE SET; Schema: public; Owner: hacklu
 --
 
 SELECT pg_catalog.setval('country_id_seq', 1, false);
 
 
 --
--- Data for Name: geoip; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: geoip; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY geoip (ip_range_start, ip_range_end, country_code) FROM stdin;
@@ -739,7 +739,7 @@ COPY geoip (ip_range_start, ip_range_end, country_code) FROM stdin;
 
 
 --
--- Data for Name: massmail; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: massmail; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY massmail (id, "timestamp", subject, message, recipients, from_) FROM stdin;
@@ -748,14 +748,14 @@ COPY massmail (id, "timestamp", subject, message, recipients, from_) FROM stdin;
 
 
 --
--- Name: massmail_id_seq; Type: SEQUENCE SET; Schema: public; Owner: javex
+-- Name: massmail_id_seq; Type: SEQUENCE SET; Schema: public; Owner: hacklu
 --
 
 SELECT pg_catalog.setval('massmail_id_seq', 1, false);
 
 
 --
--- Data for Name: news; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: news; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY news (id, "timestamp", message, published, challenge_id) FROM stdin;
@@ -792,14 +792,14 @@ COPY news (id, "timestamp", message, published, challenge_id) FROM stdin;
 
 
 --
--- Name: news_id_seq; Type: SEQUENCE SET; Schema: public; Owner: javex
+-- Name: news_id_seq; Type: SEQUENCE SET; Schema: public; Owner: hacklu
 --
 
 SELECT pg_catalog.setval('news_id_seq', 1, false);
 
 
 --
--- Data for Name: settings; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: settings; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY settings (id, submission_disabled, ctf_start_date, ctf_end_date, archive_mode) FROM stdin;
@@ -808,14 +808,14 @@ COPY settings (id, submission_disabled, ctf_start_date, ctf_end_date, archive_mo
 
 
 --
--- Name: settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: javex
+-- Name: settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: hacklu
 --
 
 SELECT pg_catalog.setval('settings_id_seq', 1, false);
 
 
 --
--- Data for Name: submission; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: submission; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY submission (team_id, challenge_id, "timestamp", bonus) FROM stdin;
@@ -1773,7 +1773,7 @@ COPY submission (team_id, challenge_id, "timestamp", bonus) FROM stdin;
 
 
 --
--- Data for Name: team; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: team; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY team (id, name, password, email, country_id, local, token, reset_token, ref_token, challenge_token, active, timezone, avatar_filename, size) FROM stdin;
@@ -2541,7 +2541,7 @@ COPY team (id, name, password, email, country_id, local, token, reset_token, ref
 
 
 --
--- Data for Name: team_flag; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: team_flag; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY team_flag (team_id, flag) FROM stdin;
@@ -2549,14 +2549,14 @@ COPY team_flag (team_id, flag) FROM stdin;
 
 
 --
--- Name: team_id_seq; Type: SEQUENCE SET; Schema: public; Owner: javex
+-- Name: team_id_seq; Type: SEQUENCE SET; Schema: public; Owner: hacklu
 --
 
 SELECT pg_catalog.setval('team_id_seq', 1, false);
 
 
 --
--- Data for Name: team_ip; Type: TABLE DATA; Schema: public; Owner: javex
+-- Data for Name: team_ip; Type: TABLE DATA; Schema: public; Owner: hacklu
 --
 
 COPY team_ip (team_id, ip) FROM stdin;
@@ -11058,7 +11058,7 @@ COPY team_ip (team_id, ip) FROM stdin;
 
 
 --
--- Name: category_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: category_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY category
@@ -11066,7 +11066,7 @@ ALTER TABLE ONLY category
 
 
 --
--- Name: challenge_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: challenge_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY challenge
@@ -11074,7 +11074,7 @@ ALTER TABLE ONLY challenge
 
 
 --
--- Name: country_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: country_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY country
@@ -11082,7 +11082,7 @@ ALTER TABLE ONLY country
 
 
 --
--- Name: geoip_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: geoip_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY geoip
@@ -11090,7 +11090,7 @@ ALTER TABLE ONLY geoip
 
 
 --
--- Name: massmail_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: massmail_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY massmail
@@ -11098,7 +11098,7 @@ ALTER TABLE ONLY massmail
 
 
 --
--- Name: news_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: news_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY news
@@ -11106,7 +11106,7 @@ ALTER TABLE ONLY news
 
 
 --
--- Name: settings_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: settings_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY settings
@@ -11114,7 +11114,7 @@ ALTER TABLE ONLY settings
 
 
 --
--- Name: submission_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: submission_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY submission
@@ -11122,7 +11122,7 @@ ALTER TABLE ONLY submission
 
 
 --
--- Name: team_avatar_filename_key; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_avatar_filename_key; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY team
@@ -11130,7 +11130,7 @@ ALTER TABLE ONLY team
 
 
 --
--- Name: team_challenge_token_key; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_challenge_token_key; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY team
@@ -11138,7 +11138,7 @@ ALTER TABLE ONLY team
 
 
 --
--- Name: team_email_key; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_email_key; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY team
@@ -11146,7 +11146,7 @@ ALTER TABLE ONLY team
 
 
 --
--- Name: team_flag_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_flag_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY team_flag
@@ -11154,7 +11154,7 @@ ALTER TABLE ONLY team_flag
 
 
 --
--- Name: team_ip_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_ip_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY team_ip
@@ -11162,7 +11162,7 @@ ALTER TABLE ONLY team_ip
 
 
 --
--- Name: team_name_key; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_name_key; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY team
@@ -11170,7 +11170,7 @@ ALTER TABLE ONLY team
 
 
 --
--- Name: team_pkey; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_pkey; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY team
@@ -11178,7 +11178,7 @@ ALTER TABLE ONLY team
 
 
 --
--- Name: team_ref_token_key; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_ref_token_key; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY team
@@ -11186,7 +11186,7 @@ ALTER TABLE ONLY team
 
 
 --
--- Name: team_reset_token_key; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_reset_token_key; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY team
@@ -11194,7 +11194,7 @@ ALTER TABLE ONLY team
 
 
 --
--- Name: team_token_key; Type: CONSTRAINT; Schema: public; Owner: javex; Tablespace: 
+-- Name: team_token_key; Type: CONSTRAINT; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 ALTER TABLE ONLY team
@@ -11202,14 +11202,14 @@ ALTER TABLE ONLY team
 
 
 --
--- Name: ix_geoip_ip_range_end; Type: INDEX; Schema: public; Owner: javex; Tablespace: 
+-- Name: ix_geoip_ip_range_end; Type: INDEX; Schema: public; Owner: hacklu; Tablespace: 
 --
 
 CREATE UNIQUE INDEX ix_geoip_ip_range_end ON geoip USING btree (ip_range_end);
 
 
 --
--- Name: challenge_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: javex
+-- Name: challenge_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY challenge
@@ -11217,7 +11217,7 @@ ALTER TABLE ONLY challenge
 
 
 --
--- Name: news_challenge_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: javex
+-- Name: news_challenge_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY news
@@ -11225,7 +11225,7 @@ ALTER TABLE ONLY news
 
 
 --
--- Name: submission_challenge_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: javex
+-- Name: submission_challenge_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY submission
@@ -11233,7 +11233,7 @@ ALTER TABLE ONLY submission
 
 
 --
--- Name: submission_team_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: javex
+-- Name: submission_team_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY submission
@@ -11241,7 +11241,7 @@ ALTER TABLE ONLY submission
 
 
 --
--- Name: team_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: javex
+-- Name: team_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY team
@@ -11249,7 +11249,7 @@ ALTER TABLE ONLY team
 
 
 --
--- Name: team_flag_team_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: javex
+-- Name: team_flag_team_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY team_flag
@@ -11257,7 +11257,7 @@ ALTER TABLE ONLY team_flag
 
 
 --
--- Name: team_ip_team_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: javex
+-- Name: team_ip_team_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: hacklu
 --
 
 ALTER TABLE ONLY team_ip

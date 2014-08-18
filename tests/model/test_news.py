@@ -13,7 +13,11 @@ class TestQueries(object):
     def _prepare(self, dbsession, make_challenge, make_news):
         self.dbsession = dbsession
         self.make_challenge = make_challenge
-        self.make_news = make_news
+
+        def _make_news(**kw):
+            kw.setdefault("timestamp", now() - timedelta(1))
+            return make_news(**kw)
+        self.make_news = _make_news
 
     def test_get_published_news(self):
         n = self.make_news(published=True)

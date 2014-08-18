@@ -42,7 +42,7 @@ rules_url = http://2014.hack.lu/index.php/CaptureTheFlag
 db.user = hacklu
 db.password =
 db.host = localhost
-db.port = 3306
+db.port = 5432
 db.database = scoreboard
 
 # Enter SMTP mail settings for outgoing email messages
@@ -90,7 +90,7 @@ session.data_dir = %(here)s/data/session/data
 app_name = fluxscoreboard
 
 # The final database URL
-# To use a different database type, swap out the "mysql://" part for a
+# To use a different database type, swap out the "postgresql://" part for a
 # different type. See
 # http://docs.sqlalchemy.org/en/rel_0_8/core/engines.html#database-urls for
 # details.

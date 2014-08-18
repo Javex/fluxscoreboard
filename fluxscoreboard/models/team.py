@@ -340,11 +340,12 @@ class Team(Base):
     email = Column(Unicode, nullable=False, unique=True)
     country_id = Column(Integer, ForeignKey('country.id'), nullable=False)
     local = Column(Boolean, default=False)
-    token = Column(Unicode, nullable=False, unique=True)
+    token = Column(Unicode, unique=True, default=random_token)
     reset_token = Column(Unicode, unique=True)
     ref_token = Column(Unicode, nullable=False, default=ref_token,
                        unique=True)
-    challenge_token = Column(Unicode, unique=True, default=uuid.uuid4,
+    challenge_token = Column(Unicode, unique=True,
+                             default=lambda: unicode(uuid.uuid4()),
                              nullable=False)
     active = Column(Boolean, default=False)
     timezone = Column(Timezone, default=lambda: utc,
