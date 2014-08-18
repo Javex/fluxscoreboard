@@ -10,6 +10,7 @@ from pyramid.httpexceptions import HTTPFound
 from pytz import timezone, utc
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import StatementError
+from sqlalchemy import select, case
 import pytest
 import re
 from mock import MagicMock
@@ -261,11 +262,23 @@ class TestFuncs(object):
 class TestTeam(object):
 
     @pytest.fixture(autouse=True)
-    def _prepare(self, dbsession, make_team, make_challenge, make_teamflag):
+    def _prepare(self, dbsession, make_team, make_challenge):
         self.dbsession = dbsession
         self.make_team = make_team
         self.make_challenge = make_challenge
-        self.make_teamflag = make_teamflag
+
+    @pytest.fixture
+    def module(self, request):
+        from fluxscoreboard.models import dynamic_challenges
+        module = MagicMock()
+        module_name = u"testmodule"
+        dynamic_challenges.registry[module_name] = module
+
+        def remove_module():
+            del dynamic_challenges.registry[module_name]
+        request.addfinalizer(remove_module)
+        return module_name, module
+
 
     def test_defaults(self):
         t = self.make_team()
@@ -347,18 +360,6 @@ class TestTeam(object):
         self.dbsession.add(s)
         assert t.submissions == [s]
 
-    def test_flags(self):
-        t = self.make_team()
-        f = self.make_teamflag(team=t)
-        self.dbsession.add(f)
-        assert t.flags == ["zw"]
-
-    def test_team_flags(self):
-        t = self.make_team()
-        f = self.make_teamflag(team=t)
-        self.dbsession.add(f)
-        assert t.team_flags == [f]
-
     def test_score_no_chall(self):
         t = self.make_team()
         self.dbsession.add(t)
@@ -390,30 +391,23 @@ class TestTeam(object):
         assert t_ref is t
         assert score == 3
 
-    def test_score_flags(self):
+    def test_score_dynamic(self, module):
+        modname, module = module
         t = self.make_team()
-        c = self.make_challenge(dynamic=True, module='flags')
+        c = self.make_challenge(dynamic=True, module=modname)
         self.dbsession.add_all([t, c])
         c = self.dbsession.query(Challenge).one()
         t = self.dbsession.query(Team).one()
-        self.make_teamflag(team=t)
-        assert t.score == 1
+        module.get_points.return_value = 123
+        assert t.score == 123
         
         self.dbsession.flush()
         self.dbsession.expire(c)
+        module.get_points_query.return_value = select([1234]).as_scalar()
         t_ref, score = self.dbsession.query(Team, Team.score).first()
         assert t_ref is t
-        assert score == 1
+        assert score == 1234
         t._score = None
-
-        for _ in range(10):
-            self.make_teamflag(team=t)
-        assert t.score == 11
-        t._score = None
-
-        t_ref, score = self.dbsession.query(Team, Team.score).first()
-        assert t_ref is t
-        assert score == 11
 
     def test_rank(self):
         t1 = self.make_team()
@@ -445,12 +439,26 @@ class TestTeam(object):
         assert t3_rank == 2
         assert t4_rank == 4
 
-    def test_rank_dynamic(self):
+    def test_rank_dynamic(self, module):
+        modname, module = module
         t1 = self.make_team()
         t2 = self.make_team()
-        c = self.make_challenge(dynamic=True, module='flags')
-        self.make_teamflag(team=t1)
+        module.get_points = lambda t: 1 if t == t1 else 0
+        c = self.make_challenge(dynamic=True, module=modname)
         self.dbsession.add_all([t1, t2, c])
+
+        def get_points_query(t=None):
+            if t is None:
+                t = Team
+            stmt = select([case([
+                (t.id == t1.id, '1'),
+            ],
+            else_='0',
+            )]).correlate(t)
+            return stmt
+        module.get_points_query = get_points_query
+
+        self.dbsession.flush()
         assert t1.rank == 1
         assert t2.rank == 2
 

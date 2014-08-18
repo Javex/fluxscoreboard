@@ -227,17 +227,6 @@ def make_massmail():
 
 
 @pytest.fixture
-def make_teamflag():
-    avail_flags = list(dynamic_challenges.flags.flag_list)
-
-    def _make(team=None, **kw):
-        if "flag" not in kw:
-            kw["flag"] = avail_flags.pop()
-        return TeamFlag(team=team, **kw)
-    return _make
-
-
-@pytest.fixture
 def make_news():
     count = [0]
 
