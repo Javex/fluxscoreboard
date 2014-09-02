@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from PIL import Image
 from fluxscoreboard.forms._validators import (RecaptchaValidator,
     greater_zero_if_set)
 from pyramid.threadlocal import get_current_request
