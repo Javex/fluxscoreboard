@@ -6,3 +6,4 @@ log
 docs/_build
 fluxscoreboard.egg-info
 *.pyc
+*.min.*
