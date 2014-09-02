@@ -1,0 +1,106 @@
+#!/usr/bin/env python2
+import argparse
+import os
+import subprocess
+import sys
+
+
+def print_colored(msg, color):
+    colors = {'red': 31, 'green': 32, 'yellow': 33, 'blue': 34, 'magenta': 35,
+              'cyan': 36, 'white': 37}
+    if color not in colors:
+        raise KeyError('Unknown color %s. Options: %s' % (color, colors.keys()))
+    print('\033[%dm%s\033[0m' % (colors[color], msg))
+
+
+def error(msg):
+    print_colored('[!] Error: ' + msg, 'red')
+    sys.exit(1)
+
+
+def info(msg):
+    print_colored('[-] ' + msg, 'cyan')
+
+
+def warn(msg):
+    print_colored('[^] ' + msg, 'magenta')
+
+
+def execute_visibly(*cmd):
+    info('Executing: %s' % ' '.join(cmd))
+    subprocess.check_call(cmd)
+
+
+def ask_for(name, default):
+    data = raw_input('Please enter %s [%s]: ' % (name, default))
+    return data if data else default
+
+
+def _install_requirements(is_dev):
+    try:
+        execute_visibly('pip', 'install', '-r', 'cfg/requirements.txt')
+        if is_dev:
+            execute_visibly('pip', 'install', '-r', 'cfg/requirements-dev.txt')
+    except subprocess.CalledProcessError:
+        error('pip could not install the requirements.')
+
+
+def _create_configuration(template, mode):
+    info('Creating {0} configuration now (cfg/{0}.ini).'.format(mode))
+    tvars = {'mode': mode, 'session_secret': os.urandom(20).encode('hex'),
+             'db_user': '', 'db_pass': '', 'db_name': ''}
+    if mode in ('test', 'development'):
+        tvars['db_user'] = ask_for('a database username', 'root')
+        tvars['db_pass'] = ask_for('the user\'s password', '')
+        tvars['db_name'] = ask_for('a database name', 'scoreboard')
+        with open('cfg/%s.ini' % mode, 'w+') as f:
+            f.write(template.render(**tvars))
+
+
+def _install_configuration(is_dev):
+    import mako.template  # import here because it was not installed before
+    template = mako.template.Template(filename='cfg/cfg.ini.mako')
+    if is_dev:
+        _create_configuration(template, 'development')
+        warn('Do not use the same database credentials for development and '
+             'test as this may lead to unexpected behaviour.')
+        _create_configuration(template, 'test')
+    else:
+        _create_configuration(template, 'production')
+        warn('Since you are deploying in production, please take care of all '
+             'configuration by yourself. It is located in cfg/production.ini.')
+
+
+def install(mode='production'):
+    is_dev = True if mode == 'development' else False
+    info('Scoreboard wil be installed in %s mode.' % mode)
+    info('Installing all requirements...')
+    _install_requirements(is_dev)
+    info('Creating configuration files...')
+    _install_configuration(is_dev)
+    info('All well and done :-)')
+
+
+if __name__ == '__main__':
+    desc = 'Your one-time-stop-shop for the scoreboard <(^_^<)'
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument('--no-venv', dest='check_venv', default=True,
+                        action='store_false',
+                        help='Do not check if virtual environment present.')
+    subparsers = parser.add_subparsers(title='subcommands')
+
+    i_parser = subparsers.add_parser('install', help='Install the application.')
+    i_parser.add_argument('mode', metavar='MODE',
+                          type=str, choices=('production', 'development'),
+                          help='Either production or development.')
+    i_parser.set_defaults(function=install)
+
+    args = parser.parse_args()
+    if (args.check_venv and not hasattr(sys, 'real_prefix')
+                        and not hasattr(sys, 'base_prefix')):
+        error('Probably not executing in a virtual environment. Pass the '
+              '--no-venv parameter to suppress this error.')
+    args = vars(args)
+    del args['check_venv']
+    function = args.pop('function')
+    function(**args)

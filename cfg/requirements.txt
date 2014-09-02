@@ -14,10 +14,5 @@ webhelpers  # Utility
 py_bcrypt  # Password storage
 wtforms==1.0.5  # Forms
 pytz  # Timezone
-pyramid_debugtoolbar  # Dev Server
-waitress  # Dev Server
-pytest  # Testing
-webtest  # Testing
-mock  # Testing
 requests  # Download data (GeoIP)
 alembic  # Database migration
