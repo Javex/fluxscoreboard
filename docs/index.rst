@@ -34,6 +34,7 @@ Developer Narrative:
    develop/template
    develop/times
    develop/views
+   develop/dynamic
    develop/other
    develop/tests
 

@@ -21,7 +21,7 @@ from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func, desc, bindparam, not_
+from sqlalchemy.sql.expression import func, desc, bindparam, not_, cast
 from sqlalchemy.types import Integer, Unicode, Boolean
 from sqlalchemy.dialects.postgresql import INET
 import logging
@@ -324,13 +324,6 @@ class Team(Base):
 
         ``size``: The size of the team.
 
-        ``flags``: A list of countries from which the team already visited.
-        See :mod:`fluxscoreboard.models.dynamic_challenges.flags` for more
-        information on this feature.
-
-        .. todo::
-            Update this once ``flags`` is a ``set``.
-
         ``country``: Direct access to the teams
         :class:`fluxscoreboard.models.country.Country` attribute.
     """
@@ -353,8 +346,6 @@ class Team(Base):
     avatar_filename = Column(Unicode, unique=True)
     size = Column(Integer)
 
-    # TODO: Make it a set (and update TeamFlags docs)
-    flags = association_proxy("team_flags", "flag")
     ips = association_proxy("team_ips", "ip")
 
     country = relationship("Country", lazy='joined')
@@ -437,7 +428,7 @@ class Team(Base):
                             if s.challenge.published)
             dynamic_points = 0
             for module in dynamic_challenges.registry.values():
-                dynamic_points += module.points(self)
+                dynamic_points += module.get_points(self)
             self._score = challenge_sum + bonus_sum + dynamic_points
         return self._score
 
@@ -450,11 +441,11 @@ class Team(Base):
         bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
         points_col = challenge_sum + bonus_sum
         for module in dynamic_challenges.registry.values():
-            points_col += module.points_query(cls)
+            points_col += module.get_points_query(cls)
         # Create a subquery for the sum of the above points. The filters
         # basically join the columns and the correlation is needed to reference
         # the **outer** Team query.
-        team_score_subquery = (DBSession.query(points_col).
+        team_score_subquery = (DBSession.query(cast(points_col, Integer)).
                                filter(Challenge.id == Submission.challenge_id).
                                filter(cls.id == Submission.team_id).
                                filter(~Challenge.dynamic).

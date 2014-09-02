@@ -3,7 +3,7 @@ from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard import routes
 from fluxscoreboard.forms._fields import RecaptchaField
 from fluxscoreboard.forms.front import RegisterForm
-from fluxscoreboard.models import DBSession, RootFactory
+from fluxscoreboard.models import DBSession, RootFactory, dynamic_challenges
 from fluxscoreboard.models.team import groupfinder, get_team
 from fluxscoreboard.models.settings import load_settings
 from pyramid.authentication import SessionAuthenticationPolicy
@@ -59,6 +59,8 @@ def main(global_config, **settings):
         static_dir = subdirectory + "/" + static_dir
     config.add_static_view(static_dir, 'static', cache_max_age=3600)
     init_routes(config, settings, subdirectory)
+    for mod in dynamic_challenges.registry.values():
+        mod.activate(config, settings)
     config.scan()
     return config.make_wsgi_app()
 

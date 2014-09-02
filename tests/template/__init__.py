@@ -70,8 +70,8 @@ class TemplateTestBase(object):
         from fluxscoreboard.models import dynamic_challenges
         module = MagicMock()
         dynamic_challenges.registry[u"testmodule"] = module
-        module.points_query.return_value = 1
-        module.points.return_value = 1
+        module.get_points_query.return_value = 1
+        module.get_points.return_value = 1
 
         def remove_module():
             del dynamic_challenges.registry[u"testmodule"]

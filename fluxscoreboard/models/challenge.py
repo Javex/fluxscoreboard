@@ -210,8 +210,10 @@ class Challenge(Base):
         if self.author:
             additional_info.append("author(s)=%s" % self.author)
         if self.module:
-            _, name = re.split(r'^.*models\.dynamic_challenges\.',
-                               self.module.__name__)
+            from .dynamic_challenges import registry
+            for name, v in registry.items():
+                if v == self.module:
+                    break
             additional_info.append("module=%s" % name)
         if additional_info:
             additional_info = ", " + ", ".join(additional_info)
