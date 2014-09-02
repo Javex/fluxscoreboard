@@ -1,0 +1,23 @@
+pyramid>=1.5  # WSGI framework
+SQLAlchemy>=0.9  # Database
+mysql-python  # Database
+zope.sqlalchemy  # Database
+transaction  # Transactions
+pyramid_tm  # Transactions
+pyramid_beaker  # Sessions
+beaker  # Sessions
+pyramid_mako  # Templates
+mako  # Template
+pyramid_mailer  # Mail
+repoze.sendmail==4.1  # Mail
+webhelpers  # Utility
+py_bcrypt  # Password storage
+wtforms==1.0.5  # Forms
+pytz  # Timezone
+pyramid_debugtoolbar  # Dev Server
+waitress  # Dev Server
+pytest  # Testing
+webtest  # Testing
+mock  # Testing
+requests  # Download data (GeoIP)
+alembic  # Database migration
