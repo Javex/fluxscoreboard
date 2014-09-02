@@ -6,7 +6,6 @@ from fluxscoreboard.forms.front import RegisterForm
 from fluxscoreboard.models import DBSession, Base, dynamic_challenges
 from fluxscoreboard.models.challenge import Challenge, Category
 from fluxscoreboard.models.country import Country
-from fluxscoreboard.models.dynamic_challenges.flags import TeamFlag
 from fluxscoreboard.models.news import MassMail, News
 from fluxscoreboard.models.settings import (CTF_BEFORE, CTF_STARTED,
     CTF_ARCHIVE, Settings)
