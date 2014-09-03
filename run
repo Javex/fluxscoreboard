@@ -135,6 +135,14 @@ def install(mode='production', root_path=''):
              'configuration by yourself. It is located in %s.' % cfg_path)
 
 
+def serve(root_path=''):
+    cfg_path = os.path.join(root_path, 'cfg', 'development.ini')
+    if not os.path.isfile(cfg_path):
+        error('%s does not exist. Please execute ./run install development '
+              'first.' % cfg_path)
+    execute_visibly('pserve', cfg_path)
+
+
 if __name__ == '__main__':
     desc = 'Your one-time-stop-shop for the scoreboard <(^_^<)'
     parser = argparse.ArgumentParser(description=desc)
@@ -148,6 +156,10 @@ if __name__ == '__main__':
                           type=str, choices=('production', 'development'),
                           help='Either production or development.')
     i_parser.set_defaults(function=install)
+
+    s_parser = subparsers.add_parser('serve',
+                                     help='Serve web app on port 6543.')
+    s_parser.set_defaults(function=serve)
 
     args = parser.parse_args()
     if (args.check_venv and not hasattr(sys, 'real_prefix')
