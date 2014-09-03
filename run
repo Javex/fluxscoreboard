@@ -19,11 +19,11 @@ def error(msg):
 
 
 def info(msg):
-    print_colored('[-] ' + msg, 'cyan')
+    print_colored('[-] Info: ' + msg, 'cyan')
 
 
 def warn(msg):
-    print_colored('[^] ' + msg, 'magenta')
+    print_colored('[^] Warning: ' + msg, 'magenta')
 
 
 def execute_visibly(*cmd):
@@ -59,6 +59,7 @@ def _create_configuration(template, mode, root_path=''):
         tvars['db_name'] = ask_for('a database name', 'scoreboard')
     with open(file_path, 'w+') as f:
         f.write(template.render(**tvars))
+    return file_path
 
 
 def _install_configuration(is_dev, root_path=''):
@@ -66,12 +67,18 @@ def _install_configuration(is_dev, root_path=''):
     template_path = os.path.join(root_path, 'cfg', 'cfg.ini.mako')
     template = mako.template.Template(filename=template_path)
     if is_dev:
-        _create_configuration(template, 'development', root_path)
+        cfg_path = _create_configuration(template, 'development', root_path)
         warn('Do not use the same database for development and test as this '
              'may lead to unexpected behaviour.')
         _create_configuration(template, 'test', root_path)
     else:
-        _create_configuration(template, 'production', root_path)
+        cfg_path = _create_configuration(template, 'production', root_path)
+    return cfg_path
+
+
+def _load_configuration(cfg_path):
+    import paste.deploy.loadwsgi  # import here because was not installed before
+    return paste.deploy.loadwsgi.appconfig('config:' + cfg_path)
 
 
 def _create_directories(dirs, root_path=''):
@@ -83,35 +90,49 @@ def _create_directories(dirs, root_path=''):
             pass
 
 
-def _initialize_database():
-    pass
+def _initialize_logging(cfg_path):
+    import pyramid.paster  # import here because was not installed before
+    with open(os.path.join('log', 'scoreboard.log'), 'w') as f:
+        os.utime(f.name, None)
+    pyramid.paster.setup_logging(cfg_path + '#loggers')
 
 
-def install(mode='production'):
-    root_path = os.path.abspath(os.path.dirname(__file__))
+def _initialize_database(is_dev, cfg_path, settings):
+    import sqlalchemy.engine  # import here because was not installed before
+    import fluxscoreboard.models
+    import fluxscoreboard.install
+    engine = sqlalchemy.engine.engine_from_config(settings, 'sqlalchemy.')
+    fluxscoreboard.models.DBSession.configure(bind=engine)
+    fluxscoreboard.install.install(settings, cfg_path, test_data=is_dev)
+
+
+def install(mode='production', root_path=''):
     is_dev = True if mode == 'development' else False
     info('Scoreboard wil be installed in %s mode.' % mode)  # needs sexy mode
 
-    info('Installing all requirements...')
+    info('Gathering requirements...')
     _install_requirements(is_dev, root_path)
 
     info('Creating configuration files...')
-    _install_configuration(is_dev, root_path)
+    cfg_path = _install_configuration(is_dev, root_path)
+    settings = _load_configuration(cfg_path)
 
     info('Creating all required directories...')
     dirs = ('tmp', 'log', 'fluxscoreboard/static/images/avatars')
     _create_directories(dirs, root_path)
 
-    info('Initializing database...')
-    _initialize_database()
+    info('Initializing logging...')
+    _initialize_logging(cfg_path)
+
+    info('Setting up database...')
+    _initialize_database(is_dev, cfg_path, settings)
 
     if is_dev:
         info('It should work now. You may want to start with running all unit '
              'tests (./run tests).')
     else:
-        prod_cfg_path = os.path.join(root_path, 'cfg', 'production.ini')
         warn('Since you are deploying in production, please take care of all '
-             'configuration by yourself. It is located in %s.' % prod_cfg_path)
+             'configuration by yourself. It is located in %s.' % cfg_path)
 
 
 if __name__ == '__main__':
@@ -136,4 +157,5 @@ if __name__ == '__main__':
     args = vars(args)
     del args['check_venv']
     function = args.pop('function')
+    args['root_path'] = os.path.abspath(os.path.dirname(__file__))
     function(**args)
