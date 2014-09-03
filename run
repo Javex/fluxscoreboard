@@ -31,54 +31,87 @@ def execute_visibly(*cmd):
     subprocess.check_call(cmd)
 
 
-def ask_for(name, default):
-    data = raw_input('Please enter %s [%s]: ' % (name, default))
+def ask_for(desc, default):
+    data = raw_input('Please enter %s [%s]: ' % (desc, default))
     return data if data else default
 
 
-def _install_requirements(is_dev):
+def _install_requirements(is_dev, root_path=''):
     try:
-        execute_visibly('pip', 'install', '-r', 'cfg/requirements.txt')
+        reqs_path = os.path.join(root_path, 'cfg', 'requirements.txt')
+        execute_visibly('pip', 'install', '-r', reqs_path)
         if is_dev:
-            execute_visibly('pip', 'install', '-r', 'cfg/requirements-dev.txt')
+            devreqs_path = os.path.join(root_path, 'cfg',
+                                        'requirements-dev.txt')
+            execute_visibly('pip', 'install', '-r', devreqs_path)
     except subprocess.CalledProcessError:
         error('pip could not install the requirements.')
 
 
-def _create_configuration(template, mode):
-    info('Creating {0} configuration now (cfg/{0}.ini).'.format(mode))
+def _create_configuration(template, mode, root_path=''):
+    file_path = os.path.join(root_path, 'cfg', '%s.ini' % mode)
+    info('Creating %s configuration now (%s).' % (mode, file_path))
     tvars = {'mode': mode, 'session_secret': os.urandom(20).encode('hex'),
              'db_user': '', 'db_pass': '', 'db_name': ''}
     if mode in ('test', 'development'):
         tvars['db_user'] = ask_for('a database username', 'root')
         tvars['db_pass'] = ask_for('the user\'s password', '')
         tvars['db_name'] = ask_for('a database name', 'scoreboard')
-        with open('cfg/%s.ini' % mode, 'w+') as f:
-            f.write(template.render(**tvars))
+    with open(file_path, 'w+') as f:
+        f.write(template.render(**tvars))
 
 
-def _install_configuration(is_dev):
+def _install_configuration(is_dev, root_path=''):
     import mako.template  # import here because it was not installed before
-    template = mako.template.Template(filename='cfg/cfg.ini.mako')
+    template_path = os.path.join(root_path, 'cfg', 'cfg.ini.mako')
+    template = mako.template.Template(filename=template_path)
     if is_dev:
-        _create_configuration(template, 'development')
-        warn('Do not use the same database credentials for development and '
-             'test as this may lead to unexpected behaviour.')
-        _create_configuration(template, 'test')
+        _create_configuration(template, 'development', root_path)
+        warn('Do not use the same database for development and test as this '
+             'may lead to unexpected behaviour.')
+        _create_configuration(template, 'test', root_path)
     else:
-        _create_configuration(template, 'production')
-        warn('Since you are deploying in production, please take care of all '
-             'configuration by yourself. It is located in cfg/production.ini.')
+        _create_configuration(template, 'production', root_path)
+
+
+def _create_directories(dirs, root_path=''):
+    for d in dirs:
+        try:
+            os.makedirs(os.path.join(root_path, d))
+        except OSError:
+            # directory already exists
+            pass
+
+
+def _initialize_database():
+    pass
 
 
 def install(mode='production'):
+    root_path = os.path.abspath(os.path.dirname(__file__))
     is_dev = True if mode == 'development' else False
-    info('Scoreboard wil be installed in %s mode.' % mode)
+    info('Scoreboard wil be installed in %s mode.' % mode)  # needs sexy mode
+
     info('Installing all requirements...')
-    _install_requirements(is_dev)
+    _install_requirements(is_dev, root_path)
+
     info('Creating configuration files...')
-    _install_configuration(is_dev)
-    info('All well and done :-)')
+    _install_configuration(is_dev, root_path)
+
+    info('Creating all required directories...')
+    dirs = ('tmp', 'log', 'fluxscoreboard/static/images/avatars')
+    _create_directories(dirs, root_path)
+
+    info('Initializing database...')
+    _initialize_database()
+
+    if is_dev:
+        info('It should work now. You may want to start with running all unit '
+             'tests (./run tests).')
+    else:
+        prod_cfg_path = os.path.join(root_path, 'cfg', 'production.ini')
+        warn('Since you are deploying in production, please take care of all '
+             'configuration by yourself. It is located in %s.' % prod_cfg_path)
 
 
 if __name__ == '__main__':
