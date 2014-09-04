@@ -203,9 +203,7 @@ class = StreamHandler
 args = (sys.stderr,)
 % else:
 class = FileHandler
-args = ('%(here)s/log/{$ 'test' if mode == 'test' else 'scoreboard' }.log', 'w')
-level = NOTSET
-formatter = generic
+args = ('%(here)s/../log/${'test' if mode == 'test' else 'scoreboard'}.log', 'w')
 % endif
 
 level = NOTSET

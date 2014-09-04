@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 import argparse
 import os
+import re
 import subprocess
 import sys
 
@@ -56,7 +57,8 @@ def _create_configuration(template, mode, root_path=''):
     if mode in ('test', 'development'):
         tvars['db_user'] = ask_for('a database username', 'root')
         tvars['db_pass'] = ask_for('the user\'s password', '')
-        tvars['db_name'] = ask_for('a database name', 'scoreboard')
+        suffix = '_test' if mode == 'test' else ''
+        tvars['db_name'] = ask_for('a database name', 'scoreboard' + suffix)
     with open(file_path, 'w+') as f:
         f.write(template.render(**tvars))
     return file_path
@@ -90,10 +92,28 @@ def _create_directories(dirs, root_path=''):
             pass
 
 
+def _minify_static_files(root_path=''):
+    yui_comp = os.path.join(root_path, 'yuicompressor.jar')
+    static_path = os.path.join(root_path, 'fluxscoreboard', 'static')
+    for dirpath, _, filenames in os.walk(static_path):
+        for filename in filenames:
+            try:
+                basename, ext = filename.rsplit('.', 1)
+            except:
+                continue
+            min_name = '%s.min.%s' % (basename, ext)
+            file_path = os.path.join(dirpath, filename)
+            min_path = os.path.join(dirpath, min_name)
+            if (re.match(r'^[^\.]+(?!\.min)\.(css|js)$', filename)
+                and not os.path.exists(min_path)):
+                execute_visibly('java', '-jar', yui_comp, '-o', min_path,
+                                file_path)
+
+
 def _initialize_logging(cfg_path):
     import pyramid.paster  # import here because was not installed before
-    with open(os.path.join('log', 'scoreboard.log'), 'w') as f:
-        os.utime(f.name, None)
+    execute_visibly('touch', os.path.join('log', 'scoreboard.log'))
+    execute_visibly('touch', os.path.join('log', 'test.log'))
     pyramid.paster.setup_logging(cfg_path + '#loggers')
 
 
@@ -121,6 +141,9 @@ def install(mode='production', root_path=''):
     dirs = ('tmp', 'log', 'fluxscoreboard/static/images/avatars')
     _create_directories(dirs, root_path)
 
+    info('Minifying all static files...')
+    _minify_static_files(root_path)
+
     info('Initializing logging...')
     _initialize_logging(cfg_path)
 
@@ -129,7 +152,7 @@ def install(mode='production', root_path=''):
 
     if is_dev:
         info('It should work now. You may want to start with running all unit '
-             'tests (./run tests).')
+             'tests (./run test).')
     else:
         warn('Since you are deploying in production, please take care of all '
              'configuration by yourself. It is located in %s.' % cfg_path)
@@ -141,6 +164,11 @@ def serve(root_path=''):
         error('%s does not exist. Please execute ./run install development '
               'first.' % cfg_path)
     execute_visibly('pserve', cfg_path)
+
+
+def test(root_path=''):
+    test_cfg_path = os.path.join(root_path, 'cfg', 'test.ini')
+    execute_visibly('py.test', '-c', test_cfg_path, 'tests')
 
 
 if __name__ == '__main__':
@@ -160,6 +188,9 @@ if __name__ == '__main__':
     s_parser = subparsers.add_parser('serve',
                                      help='Serve web app on port 6543.')
     s_parser.set_defaults(function=serve)
+
+    t_parser = subparsers.add_parser('test', help='Run all unit tests.')
+    t_parser.set_defaults(function=test)
 
     args = parser.parse_args()
     if (args.check_venv and not hasattr(sys, 'real_prefix')

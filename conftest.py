@@ -33,7 +33,7 @@ import pytest
 import sys
 import transaction
 ROOT_PATH = os.path.dirname(__file__)
-CONF = os.path.join(ROOT_PATH, 'pytest.ini')
+CONF = os.path.join(ROOT_PATH, 'cfg', 'test.ini')
 setup_logging(CONF + '#loggers')
 log = logging.getLogger(__name__)
 
