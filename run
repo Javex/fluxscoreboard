@@ -220,6 +220,12 @@ def test(root_path=''):
     execute_visibly('py.test', '-c', test_cfg_path, 'tests')
 
 
+def coverage(root_path=''):
+    execute_visibly('coverage', 'run', '--source',
+                    'fluxscoreboard,tests/template/cache', '-m', 'py.test',
+                    'tests/')
+
+
 if __name__ == '__main__':
     desc = 'Your one-time-stop-shop for the scoreboard <(^_^<)'
     parser = argparse.ArgumentParser(description=desc)
@@ -244,6 +250,9 @@ if __name__ == '__main__':
 
     t_parser = subparsers.add_parser('test', help='Run all unit tests.')
     t_parser.set_defaults(function=test)
+
+    c_parser = subparsers.add_parser('coverage', help='Check test coverage.')
+    c_parser.set_defaults(function=coverage)
 
     args = parser.parse_args()
     if (args.check_venv and not hasattr(sys, 'real_prefix')
