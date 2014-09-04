@@ -189,6 +189,7 @@ def uninstall(root_path=''):
         cfg_path = os.path.join(root_path, CFG_DIR, 'production.ini')
         if not os.path.isfile(cfg_path):
             error('No suitable configuration file was found.')
+    info('Scoreboard will be uninstalled with the %s cfg file.' % cfg_path)
     settings = _load_configuration(cfg_path)
 
     info('Uninstalling database...')
@@ -213,6 +214,9 @@ def serve(root_path=''):
 
 def test(root_path=''):
     test_cfg_path = os.path.join(root_path, CFG_DIR, 'test.ini')
+    if not os.path.isfile(test_cfg_path):
+        error('%s does not exist. Please execute .run install development '
+              'first.' % test_cfg_path)
     execute_visibly('py.test', '-c', test_cfg_path, 'tests')
 
 
