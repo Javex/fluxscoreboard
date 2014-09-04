@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 import argparse
+import datetime
 import os
 import re
 import shutil
@@ -123,12 +124,26 @@ def _initialize_logging(cfg_path):
 
 
 def _initialize_database(is_dev, cfg_path, settings):
-    import sqlalchemy.engine  # import here because was not installed before
-    import fluxscoreboard.models
+    from fluxscoreboard.models import DBSession, Settings
     import fluxscoreboard.install
+    import sqlalchemy.engine
+    import transaction
     engine = sqlalchemy.engine.engine_from_config(settings, 'sqlalchemy.')
-    fluxscoreboard.models.DBSession.configure(bind=engine)
+    DBSession.configure(bind=engine)
     fluxscoreboard.install.install(settings, cfg_path, test_data=is_dev)
+
+    info('Setting CTF start and end dates...')
+    time_format = r'%Y-%m-%d %H:%M:%S'
+    now = datetime.datetime.now()
+    start_time = now.strftime(time_format)
+    end_time = (now + datetime.timedelta(days=20)).strftime(time_format)
+    start_time = ask_for('a start time for the CTF in UTC (%s)' % time_format,
+                         start_time)
+    end_time = ask_for('a end time for the CTF in UTC (%s)' % time_format,
+                       end_time)
+    values = {'ctf_start_date': start_time, 'ctf_end_date': end_time}
+    DBSession.query(Settings).update(values)
+    transaction.commit()
 
 
 def install(mode='production', root_path=''):

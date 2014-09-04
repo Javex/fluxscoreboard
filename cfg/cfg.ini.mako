@@ -64,7 +64,7 @@ mail.default_sender =
 # You only need to set a secret here (a random string with an entropy of about
 # 128-256 Bit)
 session.secret = ${session_secret}
-session.lock_dir = %(here)s/data/session/lock
+session.lock_dir = %(here)s/../data/session/lock
 session.key = session
 session.cookie_on_exception = True
 % if mode == 'production':
@@ -75,7 +75,7 @@ session.cookie_domain = %(domain)s
 # Default session: File
 # Disable these two lines if you use another session
 session.type = file
-session.data_dir = %(here)s/data/session/data
+session.data_dir = %(here)s/../data/session/data
 
 # A SQLALchemy session, based on the database settings above. Enable these if
 # you want to have sessions in database as well (but remember to disable the
