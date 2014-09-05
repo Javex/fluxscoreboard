@@ -41,8 +41,8 @@ csp_headers = default-src 'self';
 # Enter your database credentials here
 db.user = ${db_user}
 db.password = ${db_pass}
-db.host = localhost
-db.port = 3306
+db.host = ${db_host}
+db.port = ${db_port}
 db.database = ${db_name}
 
 # Enter SMTP mail settings for outgoing email messages
