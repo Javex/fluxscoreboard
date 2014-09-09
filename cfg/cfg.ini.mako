@@ -185,7 +185,7 @@ handlers =
 qualname = fluxscoreboard
 
 [logger_sqlalchemy]
-level = ${'INFO' if mode == 'development' else 'WARN'}
+level = WARN
 handlers =
 qualname = sqlalchemy.engine
 # "level = INFO" logs SQL queries.
