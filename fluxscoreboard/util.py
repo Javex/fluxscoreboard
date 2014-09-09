@@ -201,7 +201,7 @@ def add_header_csp(event):
     settings = event.request.registry.settings
     # Add CSP header
     csp = settings.get("csp_headers", "").encode("ascii")
-    if csp:
+    if csp and b"Content-Security-Policy" not in event.response.headers:
         event.response.headers[b"Content-Security-Policy"] = csp
 
 

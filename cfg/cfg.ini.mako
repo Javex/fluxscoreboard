@@ -4,7 +4,7 @@
 ###
 
 [app:main]
-use = egg:fluxscoreboard
+use = call:fluxscoreboard:main
 
 #### YOUR CONFIGRATUION ####
 #
@@ -20,8 +20,8 @@ domain = localhost
 #subdirectory =
 
 # reCAPTCHA keys
-recaptcha.public_key =
-recaptcha.private_key =
+recaptcha.public_key = 6LfQ9OYSAAAAAFF5CUgfyh0NNhs39YaGTapCKw_W
+recaptcha.private_key = 6LfQ9OYSAAAAAKK3RqdNgvLov1hO6Adj3VfECaTH
 
 # The domain to use for displaying the avatars. This should be different from
 # the domain of the scoreboard for security reasons. You could for example just
@@ -37,12 +37,13 @@ csp_headers = default-src 'self';
 # HSTS max-age setting
 #hsts.max-age = 31536000
 
+
 # Enter your database credentials here
-db.user = hacklu
-db.password =
-db.host = localhost
-db.port = 3306
-db.database = scoreboard
+db.user = ${db_user}
+db.password = ${db_pass}
+db.host = ${db_host}
+db.port = ${db_port}
+db.database = ${db_name}
 
 # Enter SMTP mail settings for outgoing email messages
 mail.host =
@@ -62,17 +63,19 @@ mail.default_sender =
 # General settings (these are used irregardless of the configuration)
 # You only need to set a secret here (a random string with an entropy of about
 # 128-256 Bit)
-session.secret =
-session.lock_dir = %(here)s/data/session/lock
+session.secret = ${session_secret}
+session.lock_dir = %(here)s/../data/session/lock
 session.key = session
 session.cookie_on_exception = True
+% if mode == 'production':
 session.secure = True
 session.cookie_domain = %(domain)s
+% endif
 
 # Default session: File
 # Disable these two lines if you use another session
 session.type = file
-session.data_dir = %(here)s/data/session/data
+session.data_dir = %(here)s/../data/session/data
 
 # A SQLALchemy session, based on the database settings above. Enable these if
 # you want to have sessions in database as well (but remember to disable the
@@ -104,16 +107,24 @@ sqlalchemy.pool_recycle = 3600
 mako.directories = %(app_name)s:templates
 
 # Pyramid settings
-pyramid.reload_templates = false
+pyramid.reload_templates = ${'true' if mode == 'development' else 'false'}
 pyramid.debug_authorization = false
 pyramid.debug_notfound = false
 pyramid.debug_routematch = false
 pyramid.default_locale_name = en
 pyramid.includes =
+    % if mode != 'production':
+    pyramid_debugtoolbar
+    % endif
     pyramid_tm
     pyramid_beaker
     pyramid_mako
     pyramid_mailer
+
+
+# By default, the toolbar only appears for clients from IP addresses
+# '127.0.0.1' and '::1'.
+# debugtoolbar.hosts = 127.0.0.1 ::1
 
 
 [alembic]
@@ -128,7 +139,12 @@ script_location = alembic
 # revision_environment = false
 
 
+###
+# wsgi server configuration
+###
+
 [server:main]
+% if mode == 'production':
 use = egg:gunicorn#main
 host = 127.0.0.1
 port = 6875
@@ -139,6 +155,11 @@ user = http
 group = http
 error-logfile = log/gunicorn_error.log
 access-logfile = log/gunicorn_access.log
+% else:
+use = egg:waitress#main
+host = 0.0.0.0
+port = 6543
+% endif
 
 ###
 # logging configuration
@@ -155,11 +176,11 @@ keys = console
 keys = generic
 
 [logger_root]
-level = WARN
+level = ${'INFO' if mode == 'development' else 'WARN'}
 handlers = console
 
 [logger_fluxscoreboard]
-level = WARN
+level = ${'DEBUG' if mode == 'development' else 'WARN'}
 handlers =
 qualname = fluxscoreboard
 
@@ -177,10 +198,23 @@ handlers =
 qualname = alembic
 
 [handler_console]
+% if mode == 'development':
+class = StreamHandler
+args = (sys.stderr,)
+% else:
 class = FileHandler
-args = ('%(here)s/log/fluxscoreboard.log', 'w')
+args = ('%(here)s/../log/${'test' if mode == 'test' else 'scoreboard'}.log', 'w')
+% endif
+
 level = NOTSET
 formatter = generic
 
 [formatter_generic]
 format = %(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s
+
+% if mode == 'test':
+[pytest]
+markers =
+    integration: integration tests. Sends Mail and has other side effects.
+addopts = -m "not integration"
+% endif
