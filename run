@@ -231,7 +231,10 @@ def _check_cfg_existance(cfg_path):
 def serve(root_path=''):
     cfg_path = os.path.join(root_path, CFG_DIR, 'development.ini')
     _check_cfg_existance(cfg_path)
-    execute_visibly('pserve', cfg_path)
+    cmd = ('PYTHONPATH=%s' % root_path, 'pserve', cfg_path)
+    fullcmd = ' '.join(cmd)
+    info('Executing: %s' % fullcmd)
+    os.system(fullcmd)
 
 
 def test(root_path=''):
