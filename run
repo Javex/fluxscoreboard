@@ -60,7 +60,8 @@ def _create_configuration(template, mode, root_path=''):
     file_path = os.path.join(root_path, CFG_DIR, '%s.ini' % mode)
     info('Creating %s configuration now (%s).' % (mode, file_path))
     tvars = {'mode': mode, 'session_secret': os.urandom(20).encode('hex'),
-             'db_user': '', 'db_pass': '', 'db_name': ''}
+             'db_user': '', 'db_pass': '', 'db_name': '',
+             'db_host': 'localhost', 'db_port': '3306'}
     if mode in ('test', 'development'):
         tvars['db_user'] = ask_for('a database username', 'root')
         tvars['db_pass'] = ask_for('the user\'s password', '')
