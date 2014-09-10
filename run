@@ -240,7 +240,11 @@ def serve(root_path=''):
 def test(root_path=''):
     test_cfg_path = os.path.join(root_path, CFG_DIR, 'test.ini')
     _check_cfg_existance(test_cfg_path)
-    execute_visibly('py.test', '-c', test_cfg_path, 'tests')
+    cmd = ('PYTHONPATH=%s' % os.path.join(root_path, 'tests'), 'py.test', '-c',
+           test_cfg_path, 'tests')
+    fullcmd = ' '.join(cmd)
+    info('Executing: %s' % fullcmd)
+    os.system(fullcmd)
 
 
 def coverage(root_path=''):
