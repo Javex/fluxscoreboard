@@ -170,22 +170,22 @@ port = 6543
 keys = root, fluxscoreboard, sqlalchemy, alembic
 
 [handlers]
-keys = console
+keys = console, file
 
 [formatters]
 keys = generic
 
 [logger_root]
-level = ${'INFO' if mode == 'development' else 'WARN'}
-handlers = console
+level = ${'WARN' if mode == 'production' else 'INFO'}
+handlers = ${'console' if mode == 'development' else 'file'}
 
 [logger_fluxscoreboard]
-level = ${'DEBUG' if mode == 'development' else 'WARN'}
+level = ${'WARN' if mode == 'production' else 'DEBUG'}
 handlers =
 qualname = fluxscoreboard
 
 [logger_sqlalchemy]
-level = WARN
+level =  ${'INFO' if mode == 'test' else 'WARN'}
 handlers =
 qualname = sqlalchemy.engine
 # "level = INFO" logs SQL queries.
@@ -198,14 +198,14 @@ handlers =
 qualname = alembic
 
 [handler_console]
-% if mode == 'development':
 class = StreamHandler
 args = (sys.stderr,)
-% else:
-class = FileHandler
-args = ('%(here)s/../log/${'test' if mode == 'test' else 'scoreboard'}.log', 'w')
-% endif
+level = NOTSET
+formatter = generic
 
+[handler_file]
+class = FileHandler
+args = ('%(here)s/../log/scoreboard.log', 'w')
 level = NOTSET
 formatter = generic
 
