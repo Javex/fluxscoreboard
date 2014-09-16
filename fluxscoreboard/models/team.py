@@ -16,7 +16,7 @@ from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, subqueryload, joinedload
 from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
@@ -132,7 +132,10 @@ def get_team(request):
         try:
             team = (DBSession.query(Team).
                     filter(Team.id == team_id).
-                    filter(Team.active == True).one())
+                    filter(Team.active == True).
+                    options(subqueryload('submissions').
+                            joinedload('challenge')).
+                    one())
             return team
         except NoResultFound:
             return None
