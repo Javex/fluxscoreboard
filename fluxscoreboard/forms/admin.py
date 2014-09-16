@@ -270,7 +270,7 @@ class SubmissionForm(CSRFForm):
     team = QuerySelectField("Team",
                             query_factory=get_all_teams)
 
-    bonus = IntegerField("Bonus", default=0)
+    additional_pts = IntegerField("Additioanl Points", default=0)
 
     submit = SubmitField("Save")
 
