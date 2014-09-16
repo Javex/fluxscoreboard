@@ -84,10 +84,11 @@ def install_test_data(dbsession, settings):
         challenge = Challenge(title=random_str(10),
                               text=random_str(50),
                               solution=random_str(10),
-                              base_points=random.randint(1, 1000),
+                              base_points=random.choice(range(100, 501, 100)),
                               online=random.choice([True, True, False]),
-                              manual=(True if random.randint(0, 100) < 90
-                                      else False),
+                              published=random.choice([True, True, False]),
+                              manual=(False if random.randint(0, 100) < 90
+                                      else True),
                               category=cat,
                               )
         challenges.append(challenge)
@@ -107,9 +108,9 @@ def install_test_data(dbsession, settings):
     submissions = []
     for challenge in challenges:
         for team in teams:
-            if random.randint(0, 100) < 30:
+            if random.randint(0, 100) < 30 or not team.active:
                 continue
-            submission = Submission(bonus=0)
+            submission = Submission(additional_pts=0)
             submission.team = team
             submission.challenge = challenge
             submissions.append(submission)
