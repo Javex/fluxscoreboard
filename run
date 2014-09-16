@@ -213,8 +213,9 @@ def install(mode='production', root_path=''):
     info('Setting up database...')
     _initialize_database(is_dev, cfg_path, settings)
 
-    info('Installing crontab...')
-    _install_crontab(root_path)
+    if mode == 'production':
+        info('Installing crontab...')
+        _install_crontab(root_path)
 
     if is_dev:
         info('It should work now. You may want to start with running all unit '
@@ -255,7 +256,10 @@ def _delete_crontab_entry(root_path):
     if current.strip():
         _set_crontab('\n'.join(new) + '\n')
     else:
-        execute_visibly('crontab', '-r')
+        try:
+            execute_visibly('crontab', '-r')
+        except subprocess.CalledProcessError:
+            pass
 
 
 def uninstall(root_path=''):
