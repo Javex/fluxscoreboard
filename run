@@ -39,7 +39,11 @@ def execute_visibly(*cmd):
 
 
 def generic_execute(func, cmd, *args, **kw):
-    info('Executing: %s' % ' '.join(cmd))
+    if isinstance(cmd, str):
+        print_cmd = cmd
+    else:
+        print_cmd = ' '.join(cmd)
+    info('Executing: %s' % print_cmd)
     return func(cmd, *args, **kw)
 
 
@@ -289,18 +293,16 @@ def serve(root_path=''):
     _check_cfg_existance(cfg_path)
     cmd = ('PYTHONPATH=%s' % root_path, 'pserve', cfg_path)
     fullcmd = ' '.join(cmd)
-    info('Executing: %s' % fullcmd)
-    os.system(fullcmd)
+    generic_execute(subprocess.check_call, fullcmd, shell=True)
 
 
 def test(root_path=''):
     test_cfg_path = os.path.join(root_path, CFG_DIR, 'test.ini')
     _check_cfg_existance(test_cfg_path)
-    cmd = ('PYTHONPATH=%s' % os.path.join(root_path, 'tests'), 'py.test', '-c',
-           test_cfg_path, 'tests')
+    cmd = ['PYTHONPATH=%s' % os.path.join(root_path, 'tests'), 'py.test', '-c',
+           test_cfg_path, 'tests']
     fullcmd = ' '.join(cmd)
-    info('Executing: %s' % fullcmd)
-    os.system(fullcmd)
+    generic_execute(subprocess.check_call, fullcmd, shell=True)
 
 
 def coverage(root_path=''):
