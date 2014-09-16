@@ -5,7 +5,6 @@ from fluxscoreboard.forms.front import RegisterForm
 from fluxscoreboard.util import now
 from tests.template import TemplateTestBase
 from webob.multidict import MultiDict
-import pytest
 
 
 class TestRegister(TemplateTestBase):
@@ -30,40 +29,40 @@ class TestRegister(TemplateTestBase):
         return f
 
     def test_body(self):
-        out = self.render(form=self.form())
+        out = unicode(self.render(form=self.form()))
         assert "alert" not in out
         assert "alert-danger" not in out
         assert "CTF starts at" not in out
 
     def test_name_missing(self):
-        out = self.render(form=self.form(name=''))
+        out = unicode(self.render(form=self.form(name='')))
         assert "alert-danger" in out
 
     def test_email_missing(self):
-        out = self.render(form=self.form(email=''))
+        out = unicode(self.render(form=self.form(email='')))
         assert "alert-danger" in out
 
     def test_email_repeat_missing(self):
-        out = self.render(form=self.form(email_repeat=''))
+        out = unicode(self.render(form=self.form(email_repeat='')))
         assert "alert-danger" in out
 
     def test_password_missing(self):
-        out = self.render(form=self.form(password=''))
+        out = unicode(self.render(form=self.form(password='')))
         assert "alert-danger" in out
 
     def test_password_repeat_missing(self):
-        out = self.render(form=self.form(password_repeat=''))
+        out = unicode(self.render(form=self.form(password_repeat='')))
         assert "alert-danger" in out
 
     def test_country_wrong(self):
-        out = self.render(form=self.form(country='1234'))
+        out = unicode(self.render(form=self.form(country='1234')))
         assert "alert-danger" in out
 
     def test_size_wrong(self):
-        out = self.render(form=self.form(size='foobla'))
+        out = unicode(self.render(form=self.form(size='foobla')))
         assert "alert-danger" in out
 
     def test_ctf_start_hint(self):
         self.settings.ctf_start_date = now() + timedelta(hours=1)
-        out = self.render(form=self.form())
+        out = unicode(self.render(form=self.form()))
         assert "CTF starts at" in out

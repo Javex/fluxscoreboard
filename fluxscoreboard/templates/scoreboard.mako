@@ -32,7 +32,7 @@
             % for challenge in challenges:
                 <td class="challenge">
                     % if challenge in [s.challenge for s in team.submissions]:
-                        ${challenge.points + [s for s in team.submissions if s.challenge == challenge][0].bonus}
+                        ${challenge.points + [s for s in team.submissions if s.challenge == challenge][0].additional_pts}
                     % elif challenge.dynamic:
                         ${challenge.module.get_points(team)}
                     % else:

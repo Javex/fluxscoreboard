@@ -3,3 +3,4 @@ waitress  # Dev Server
 pytest  # Testing
 webtest  # Testing
 mock  # Testing
+beautifulsoup4  # Template Parsing for Tests

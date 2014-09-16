@@ -44,52 +44,56 @@ class TestChallenge(TemplateTestBase):
 
     def test_body(self):
         out = self.render(form=self.form(False))
-        assert "AuthorFoo" in out
-        assert "CategoryFoo" in out
-        assert self.request.team.challenge_token in out
-        assert "Scoreboard is in archive mode" not in out
-        assert "Enter solution for challenge" in out
-        assert "FooAnn" in out
-        assert "alert" not in out
-        assert "alert-danger" not in out
+        head = out.find("div", class_="panel-heading").find("h3")
+        body = out.find("div", "panel-primary").find("div", class_="col-12")
+        body_rows = body.find_all(class_="row")
+        assert "AuthorFoo" in head.find("small").string
+        assert "CategoryFoo" in head.text
+        assert self.request.team.challenge_token in body_rows[2].text
+        assert "Scoreboard is in archive mode" not in body.text
+        assert "Enter solution for challenge" in body.text
+        assert "FooAnn" in out.text
+        assert "alert" not in out.text
+        assert "alert-danger" not in out.text
 
     def test_solution_missing(self):
         out = self.render(form=self.form(solution=''))
-        assert "alert-danger" in out
+        body = out.find("div", "panel-primary").find("div", class_="col-12")
+        assert body.find("form").find("div", class_="alert-danger")
 
     def test_archive_mode(self):
         self.settings.archive_mode = True
         out = self.render()
-        assert "00000000-0000-0000-0000-000000000000" in out
-        assert "Scoreboard is in archive mode" in out
-        assert "Enter solution" in out
+        assert "00000000-0000-0000-0000-000000000000" in out.text
+        assert "Scoreboard is in archive mode" in out.text
+        assert "Enter solution" in out.text
 
     def test_solved_challenge(self):
         out = self.render(is_solved=True)
-        assert "You have already solved" in out
-        assert "Enter solution" not in out
+        assert "You have already solved" in out.text
+        assert "Enter solution" not in out.text
 
     def test_ctf_over(self):
         self.settings.ctf_end_date = now() - timedelta(hours=1)
         out = self.render()
-        assert "CTF is over" in out
-        assert "Enter solution" not in out
+        assert "CTF is over" in out.text
+        assert "Enter solution" not in out.text
 
     def test_manual_challenge(self):
         self.challenge.manual = True
-        out = self.render()
+        out = unicode(self.render())
         assert "evaluated manually" in out
         assert "Enter solution" not in out
 
     def test_submission_disabled(self):
         self.settings.submission_disabled = True
-        out = self.render()
+        out = unicode(self.render())
         assert "Submission of solutions is currently disabled" in out
         assert "Enter solution" not in out
 
     def test_challenge_offline(self):
         self.challenge.online = False
-        out = self.render()
+        out = unicode(self.render())
         assert "currently offline" in out
         assert "Enter solution" not in out
 
@@ -97,11 +101,11 @@ class TestChallenge(TemplateTestBase):
         self.challenge.dynamic = True
         self.challenge.module = module
         module.render.return_value = "Dynamic<br>Out"
-        out = self.render()
+        out = unicode(self.render())
         assert "Dynamic<br>Out" in out
 
     def test_dynamic(self, dynamic_module):
         _, module = dynamic_module
         self.challenge.dynamic = True
         self.challenge.module = module
-        assert isinstance(self.render(), (unicode, str))
+        assert self.render()

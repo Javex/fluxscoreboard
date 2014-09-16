@@ -33,23 +33,21 @@ class TestTeams(TemplateTestBase):
 
     def test_body(self):
         out = self.render()
-        assert "alert" not in out
-        assert "alert-danger" not in out
-        assert "TitleFoo" not in out
-        assert "<td>1338</td>" not in out
-        assert re.search(r'<td class="avatar">\s+&nbsp;\s+</td>', out)
-        assert self.team.name in out
-        assert str(self.team.country) in out
-        assert not re.search(r'<td class="text-danger">\s+No\s+</td>', out)
-        assert not re.search(r'<td class="challenge">\s+-\s+</td>', out)
-        assert '<td>1337</td>' not in out
+        assert "alert" not in out.text
+        assert "alert-danger" not in out.text
+        assert "TitleFoo" not in out.text
+        assert "<td>1338</td>" not in unicode(out)
+        assert out.find("td", class_='avatar')
+        assert self.team.name in out.text
+        assert str(self.team.country) in out.text
+        assert '<td>1337</td>' not in unicode(out)
 
     def test_no_teams(self):
         self.teams = []
-        out = self.render()
+        out = unicode(self.render())
         assert "No teams have registered" in out
 
     def test_avatar(self):
         self.team.avatar_filename = 'foo.jpg'
-        out = self.render()
+        out = unicode(self.render())
         assert 'foo.jpg' in out

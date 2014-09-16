@@ -5,11 +5,13 @@ from fluxscoreboard.models import dynamic_challenges
 from fluxscoreboard.models.challenge import (get_all_challenges,
     get_online_challenges, Submission, 
     get_submissions, Category, get_all_categories,
-    check_submission, manual_challenge_points, Challenge)
+    check_submission, manual_challenge_points, Challenge,
+    update_playing_teams, update_challenge_points)
 from fluxscoreboard.models.news import News
 from fluxscoreboard.models.settings import Settings
 from fluxscoreboard.util import now
 from sqlalchemy.exc import IntegrityError, DatabaseError
+from sqlalchemy.event import remove, listen
 from mock import MagicMock
 import pytest
 
@@ -145,6 +147,168 @@ class TestManualChallengePoints(object):
         assert isinstance(repr(manual_challenge_points), str)
 
 
+class TestUpdatePlayingTeams(object):
+
+    @pytest.fixture(autouse=True)
+    def _prepare(self, make_team, make_challenge, dbsession):
+        self.make_team = make_team
+        self.make_challenge = lambda **kw: make_challenge(published=True, **kw)
+        self.db = dbsession
+
+        def _run():
+            self.db.flush()
+            update_playing_teams(dbsession.connection())
+            self.db.flush()
+            self.db.expire_all()
+            settings = dbsession.query(Settings).one()
+            return settings.playing_teams
+        self.run = _run
+
+    def test_no_teams(self):
+        assert self.run() == 0
+
+    def test_inactive_team(self):
+        t = self.make_team(active=False)
+        c = self.make_challenge()
+        s = Submission(team=t, challenge=c)
+        self.db.add(s)
+        assert self.run() == 0
+
+    def test_one_team(self):
+        t = self.make_team(active=True)
+        c = self.make_challenge()
+        s = Submission(challenge=c, team=t)
+        self.db.add(s)
+        assert self.run() == 1
+
+    def test_multiple_submissions(self):
+        t = self.make_team(active=True)
+        c1 = self.make_challenge()
+        c2 = self.make_challenge()
+        s1 = Submission(team=t, challenge=c1)
+        s2 = Submission(team=t, challenge=c2)
+        self.db.add_all([s1, s2])
+        assert self.run() == 1
+
+    def test_multiple_teams(self):
+        t1 = self.make_team(active=True)
+        t2 = self.make_team(active=True)
+        c = self.make_challenge()
+        s1 = Submission(team=t1, challenge=c)
+        s2 = Submission(team=t2, challenge=c)
+        self.db.add_all([s1, s2])
+        assert self.run() == 2
+
+    def test_distinct_team_chall(self):
+        t1 = self.make_team(active=True)
+        t2 = self.make_team(active=True)
+        c1 = self.make_challenge()
+        c2 = self.make_challenge()
+        s1 = Submission(team=t1, challenge=c1)
+        s2 = Submission(team=t2, challenge=c2)
+        self.db.add_all([s1, s2])
+        assert self.run() == 2
+
+    def test_submission_remove(self):
+        t = self.make_team(active=True)
+        c = self.make_challenge()
+        s = Submission(team=t, challenge=c)
+        self.db.add(s)
+        assert self.run() == 1
+        self.db.delete(s)
+        assert self.run() == 0
+
+
+class TestUpdateChallengePoints(object):
+
+    @pytest.fixture(autouse=True)
+    def _prepare(self, make_challenge, make_team, dbsession, dbsettings):
+        self.make_team = make_team
+        self.dbsettings = dbsettings
+
+        def _make_challenge(**kw):
+            kw.setdefault('published', True)
+            kw.setdefault('base_points', 100)
+            return make_challenge(**kw)
+        self.make_challenge = _make_challenge
+        self.db = dbsession
+
+        # make some active teams
+        self.challenge = self.make_challenge()
+        self.all_teams = []
+        for _ in range(16):
+            t = self.make_team(active=True)
+            s = Submission(team=t, challenge=self.challenge)
+            self.all_teams.append(t)
+        self.db.add_all(self.all_teams)
+
+        def _run(run_team_upd=True, team_upd_in_chall_upd=False):
+            self.db.flush()
+            if run_team_upd:
+                update_playing_teams(self.db.connection())
+            update_challenge_points(self.db.connection(),
+                                    team_upd_in_chall_upd)
+            self.db.flush()
+            self.db.expire_all()
+        self.run = _run
+        self.run()
+
+    def test_no_teams_solved(self):
+        c = self.make_challenge()
+        self.db.add(c)
+        self.run()
+        assert c.points == c.base_points + 100
+
+    def test_one_team_solved(self):
+        c = self.make_challenge()
+        t = self.all_teams[0]
+        s = Submission(team=t, challenge=c)
+        self.db.add(s)
+        self.run()
+        assert c.points == c.base_points + 90
+
+    def test_half_teams_solved(self):
+        c = self.make_challenge()
+        teams = self.all_teams[::2]
+        self.db.add_all([Submission(team=t, challenge=c) for t in teams])
+        self.run()
+        assert c.points == c.base_points + 50
+
+    def test_all_teams_solved(self):
+        c = self.make_challenge()
+        teams = self.all_teams
+        self.db.add_all([Submission(team=t, challenge=c) for t in teams])
+        self.run()
+        assert c.points == c.base_points
+
+    def test_change_base_points(self):
+        c = self.make_challenge()
+        self.db.add(c)
+        self.run()
+        assert c.points == c.base_points + 100
+        c.base_points = 200
+        self.run()
+        assert c.points == 300
+
+    def test_update_playing_inside(self):
+        c = self.make_challenge()
+        t = self.make_team(active=True)
+        assert self.dbsettings.playing_teams == 16
+        self.db.add(Submission(team=t, challenge=c))
+        self.run(False, True)
+        assert c.points == c.base_points + 90
+        assert self.dbsettings.playing_teams == 17
+
+    def test_no_update_playing(self):
+        c = self.make_challenge()
+        t = self.make_team(active=True)
+        assert self.dbsettings.playing_teams == 16
+        self.db.add_all([c, t])
+        self.run(False, False)
+        assert c.points == c.base_points + 100
+        assert self.dbsettings.playing_teams == 16
+
+
 class TestChallenge(object):
 
     @pytest.fixture(autouse=True)
@@ -168,14 +332,20 @@ class TestChallenge(object):
         c = self.make_challenge()
         self.dbsession.add(c)
         assert c.id is None
+        assert c.base_points is None
         assert c._points is None
         assert c.online is None
         assert c.manual is None
         assert c.dynamic is None
         assert c.has_token is None
         self.dbsession.flush()
+        update_playing_teams(self.dbsession.connection())
+        update_challenge_points(self.dbsession.connection())
+        self.dbsession.flush()
+        self.dbsession.expire(c)
         assert c.id
-        assert c._points == 0
+        assert c.base_points == 0
+        assert c._points == 100
         assert c.online is False
         assert c.manual is False
         assert c.dynamic is False
@@ -242,18 +412,23 @@ class TestChallenge(object):
         assert r == ("<Challenge (dynamic) title=Challenge0, online=False, "
                      "module=%s>" % modname)
 
-    def test_points(self):
-        c = self.make_challenge(points=123)
-        assert c.points == 123
-        c.points = 321
-        assert c.points == 321
+    def test_base_points(self):
+        c = self.make_challenge(base_points=123)
+        assert c.base_points == 123
+        c.base_points = 321
+        assert c.base_points == 321
 
     def test_points_manual(self):
         c = self.make_challenge(manual=True)
-        c.points = 123
+        c.base_points = 123
         assert c.points is manual_challenge_points
-        c.points = 321
+        c.base_points = 321
         assert c.points is manual_challenge_points
+
+    def test_points_readonly(self):
+        c = self.make_challenge()
+        with pytest.raises(AttributeError):
+            c.points = 100
 
     def test_module_mock(self, module):
         c = self.make_challenge()
@@ -353,10 +528,10 @@ class TestSubmission(object):
 
     def test_defaults(self):
         s = Submission(team=self.make_team(), challenge=self.make_challenge())
-        assert s.bonus is None
+        assert s.additional_pts is None
         self.dbsession.add(s)
         self.dbsession.flush()
-        assert s.bonus == 0
+        assert s.additional_pts == 0
 
     def test_nullables(self, nullable_exc):
         fails = [Submission(),
@@ -369,7 +544,7 @@ class TestSubmission(object):
                 self.dbsession.flush()
             trans.rollback()
 
-        for param in ['bonus', 'timestamp']:
+        for param in ['additional_pts', 'timestamp']:
             trans = self.dbsession.begin_nested()
             s = Submission(team=self.make_team(), challenge=self.make_challenge())
             self.dbsession.add(s)
@@ -387,7 +562,7 @@ class TestSubmission(object):
         repr_ = repr(s)
         assert isinstance(repr_, str)
         assert repr_ == ("<Submission challenge=Challenge0, team=Team0, "
-                         "bonus=0, timestamp=2012-01-01 00:00:00>")
+                         "additional_pts=0, timestamp=2012-01-01 00:00:00>")
 
     def test_team(self):
         t = self.make_team()

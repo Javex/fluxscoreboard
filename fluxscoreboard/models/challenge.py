@@ -3,18 +3,18 @@ from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.types import TZDateTime, Module
+from fluxscoreboard.models.settings import Settings
 from fluxscoreboard.util import now
-from sqlalchemy import event
+from sqlalchemy import event, func, select, exists
 from sqlalchemy.orm import relationship, backref, joinedload
-from sqlalchemy.schema import Column, ForeignKey
+from sqlalchemy.schema import Column, ForeignKey, FetchedValue
 from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText
-import re
 
 
-bonus_map = {0: (3, 'first'),
-             1: (2, 'second'),
-             2: (1, 'third'),
-             }
+first_blood_map = {0: (3, 'first'),
+                   1: (2, 'second'),
+                   2: (1, 'third'),
+                   }
 """
 Maps an index of previous solved count to bonus points and a ranking string.
 """
@@ -102,13 +102,13 @@ def check_submission(challenge, solution, team_id, settings):
         return False, "Already solved."
 
     solved_count = len(submissions)
-    bonus, place_msg = bonus_map.get(solved_count, (0, None))
+    first_blood_pts, place_msg = first_blood_map.get(solved_count, (0, None))
     if place_msg is not None:
         msg = 'Congratulations: You solved this challenge as %s!' % place_msg
     else:
         msg = 'Congratulations: That was the correct solution!'
 
-    submission = Submission(bonus=bonus)
+    submission = Submission(additional_pts=first_blood_pts)
     submission.team_id = team_id
     submission.challenge = challenge
     DBSession.add(submission)
@@ -177,7 +177,7 @@ class Challenge(Base):
     title = Column(Unicode(255), nullable=False)
     text = Column(UnicodeText)
     solution = Column(Unicode(255))
-    _points = Column('points', Integer, default=0)
+    base_points = Column(Integer, default=0)
     online = Column(Boolean, default=False, nullable=False)
     manual = Column(Boolean, default=False, nullable=False)
     category_id = Column(Integer, ForeignKey('category.id'))
@@ -186,6 +186,8 @@ class Challenge(Base):
     module = Column(Module)
     published = Column(Boolean, default=False, nullable=False)
     has_token = Column(Boolean, default=False, nullable=False)
+    _points = Column('points', Integer, FetchedValue(), server_default='0',
+                     nullable=False)
 
     category = relationship("Category", backref="challenges")
 
@@ -257,6 +259,11 @@ def assert_not_manual_and_dynamic(mapper, connection, target):
         raise ValueError("Cannot have a manual dynamic challenge!")
 
 
+@event.listens_for(Challenge._points, 'set')
+def _protect_points_set(target, value, oldvalue, initiator):
+    raise AttributeError("Not allowed to set points column!")
+
+
 class Category(Base):
     """
     A category for challenges.
@@ -308,18 +315,49 @@ class Submission(Base):
                        nullable=False,
                        default=datetime.utcnow
                        )
-    bonus = Column(Integer, default=0, nullable=False)
+    additional_pts = Column(Integer, default=0, nullable=False)
 
     team = relationship("Team",
-                             backref=backref("submissions",
-                                             cascade="all, delete-orphan")
-                             )
+                        backref=backref("submissions",
+                                        cascade="all, delete-orphan")
+                        )
     challenge = relationship("Challenge",
                              backref=backref("submissions",
                                              cascade="all, delete-orphan")
                              )
 
     def __repr__(self):
-        r = ("<Submission challenge=%s, team=%s, bonus=%d, timestamp=%s>"
-             % (self.challenge, self.team, self.bonus, self.timestamp))
+        r = ("<Submission challenge=%s, team=%s, additional_pts=%d, "
+             "timestamp=%s>" % (self.challenge, self.team,
+                                self.additional_pts, self.timestamp))
         return r.encode("utf-8")
+
+
+def update_playing_teams(connection):
+    """
+    Update the number of playing teams whenever it changes.
+    """
+    from fluxscoreboard.models.team import Team
+    team_playing = exists(select([1]).where(Submission.team_id == Team.id))
+    source = (select([func.count('*')]).
+              select_from(Team.__table__).
+              where(team_playing).
+              where(Team.active))
+    query = Settings.__table__.update().values(playing_teams=source)
+    connection.execute(query)
+
+
+def update_challenge_points(connection, update_team_count=True):
+    if update_team_count:
+        update_playing_teams(connection)
+    solved_count = (select([func.count('*')]).
+                    select_from(Submission.__table__).
+                    where(Challenge.id == Submission.challenge_id).
+                    correlate(Challenge))
+    team_count = select([Settings.playing_teams]).as_scalar()
+    team_ratio = 1 - solved_count / team_count
+    bonus = func.coalesce(func.round(team_ratio, 1), 1) * 100
+    source = (select([Challenge.base_points + bonus]).correlate(Challenge))
+    query = (Challenge.__table__.update().
+             values(points=source))
+    connection.execute(query)

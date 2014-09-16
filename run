@@ -35,8 +35,12 @@ def warn(msg):
 
 
 def execute_visibly(*cmd):
+    generic_execute(subprocess.check_call, cmd)
+
+
+def generic_execute(func, cmd, *args, **kw):
     info('Executing: %s' % ' '.join(cmd))
-    subprocess.check_call(cmd)
+    return func(cmd, *args, **kw)
 
 
 def ask_for(desc, default):
@@ -60,7 +64,8 @@ def _create_configuration(template, mode, root_path=''):
     file_path = os.path.join(root_path, CFG_DIR, '%s.ini' % mode)
     info('Creating %s configuration now (%s).' % (mode, file_path))
     tvars = {'mode': mode, 'session_secret': os.urandom(20).encode('hex'),
-             'db_user': '', 'db_pass': '', 'db_name': ''}
+             'db_user': '', 'db_pass': '', 'db_name': '',
+             'db_host': 'localhost', 'db_port': '3306'}
     if mode in ('test', 'development'):
         tvars['db_user'] = ask_for('a database username', 'root')
         tvars['db_pass'] = ask_for('the user\'s password', '')
@@ -122,7 +127,6 @@ def _minify_static_files(root_path=''):
 def _initialize_logging(cfg_path):
     import pyramid.paster  # import here because was not installed before
     execute_visibly('touch', os.path.join('log', 'scoreboard.log'))
-    execute_visibly('touch', os.path.join('log', 'test.log'))
     pyramid.paster.setup_logging(cfg_path + '#loggers')
 
 
@@ -149,6 +153,39 @@ def _initialize_database(is_dev, cfg_path, settings):
     transaction.commit()
 
 
+def _make_crontab_entry(root_path):
+    py_path = sys.executable
+    script_path = os.path.abspath(sys.argv[0])
+    cmd = "cd %s && %s %s update_points" % (root_path, py_path, script_path)
+    cron_line = '* * * * * %s' % cmd
+    return cron_line
+
+
+def _get_crontab():
+    try:
+        return generic_execute(subprocess.check_output, ['crontab', '-l'])
+    except subprocess.CalledProcessError as e:
+        if e.returncode == 1:
+            return ''
+        else:
+            raise
+
+
+def _set_crontab(value):
+    p = generic_execute(subprocess.Popen, ['crontab'], stdin=subprocess.PIPE)
+    p.communicate(value)
+    if p.wait() != 0:
+        error('Could not set new crontab, should be:\n' + value)
+
+
+def _install_crontab(root_path):
+    cron_line = _make_crontab_entry(root_path)
+    current = _get_crontab()
+    if cron_line in map(str.strip, current.splitlines()):
+        return
+    _set_crontab(current + cron_line + '\n')
+
+
 def install(mode='production', root_path=''):
     is_dev = True if mode == 'development' else False
     info('Scoreboard wil be installed in %s mode.' % mode)  # needs sexy mode
@@ -171,6 +208,9 @@ def install(mode='production', root_path=''):
 
     info('Setting up database...')
     _initialize_database(is_dev, cfg_path, settings)
+
+    info('Installing crontab...')
+    _install_crontab(root_path)
 
     if is_dev:
         info('It should work now. You may want to start with running all unit '
@@ -201,6 +241,19 @@ def _delete_configuration(root_path=''):
             os.remove(path)
 
 
+def _delete_crontab_entry(root_path):
+    current = _get_crontab()
+    to_delete = _make_crontab_entry(root_path)
+    new = []
+    for line in map(str.strip, current.splitlines()):
+        if line != to_delete:
+            new.append(line)
+    if current.strip():
+        _set_crontab('\n'.join(new) + '\n')
+    else:
+        execute_visibly('crontab', '-r')
+
+
 def uninstall(root_path=''):
     cfg_path = os.path.join(root_path, CFG_DIR, 'development.ini')
     if not os.path.isfile(cfg_path):
@@ -218,6 +271,9 @@ def uninstall(root_path=''):
 
     info('Deleting configuration files...')
     _delete_configuration(root_path)
+
+    info('Deleting crontab entry...')
+    _delete_crontab_entry(root_path)
 
     info('Application successfully uninstalled! \\o/')
 
@@ -245,6 +301,28 @@ def coverage(root_path=''):
                     'fluxscoreboard,tests/template/cache', '-m', 'py.test',
                     'tests/')
 
+
+def update_challenge_points(root_path=''):
+    import fluxscoreboard.models.challenge
+    import paste.deploy.loadwsgi
+    import sqlalchemy
+    import pyramid.paster
+
+    # Find cfg file
+    cfg_path = os.path.join(root_path, CFG_DIR, 'production.ini')
+    if not os.path.isfile(cfg_path):
+        cfg_path = os.path.join(root_path, CFG_DIR, 'development.ini')
+    if not os.path.isfile(cfg_path):
+        error('No valid configuration found. Please execute ./run install.')
+
+    info('Updating challenge points with the %s cfg file' % cfg_path)
+
+    # Load cfg to connect to DB
+    pyramid.paster.setup_logging(cfg_path + '#loggers')
+    cfg = paste.deploy.loadwsgi.appconfig('config:' + cfg_path)
+    engine = sqlalchemy.engine_from_config(cfg, 'sqlalchemy.')
+    with engine.begin() as conn:
+        fluxscoreboard.models.challenge.update_challenge_points(conn, True)
 
 if __name__ == '__main__':
     desc = 'Your one-time-stop-shop for the scoreboard <(^_^<)'
@@ -274,6 +352,10 @@ if __name__ == '__main__':
 
     c_parser = subparsers.add_parser('coverage', help='Check test coverage.')
     c_parser.set_defaults(function=coverage)
+
+    upd_parser = subparsers.add_parser('update_points',
+                                       help='Update challenge points.')
+    upd_parser.set_defaults(function=update_challenge_points)
 
     args = parser.parse_args()
     if (args.check_venv and not hasattr(sys, 'real_prefix')

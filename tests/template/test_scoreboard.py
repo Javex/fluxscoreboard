@@ -34,52 +34,54 @@ class TestScoreboard(TemplateTestBase):
 
     def test_body(self):
         out = self.render()
-        assert "alert" not in out
-        assert "alert-danger" not in out
-        assert "TitleFoo" in out
-        assert "<td>1338</td>" in out
-        assert re.search(r'<td class="avatar">\s+&nbsp;\s+</td>', out)
-        assert self.team.name in out
-        assert str(self.team.country) in out
-        assert re.search(r'<td class="text-danger">\s+No\s+</td>', out)
-        assert re.search(r'<td class="challenge">\s+-\s+</td>', out)
-        assert '<td>1337</td>' in out
+        assert "alert" not in out.text
+        assert "alert-danger" not in out.text
+        assert "TitleFoo" in out.text
+        assert "<td>1338</td>" in unicode(out)
+        assert out.find("td", class_='avatar')
+        assert self.team.name in out.text
+        assert str(self.team.country) in out.text
+        assert out.find("td", class_="text-danger").string.strip() == "No"
+        assert out.find("td", class_="challenge").string.strip() == "-"
+        assert '<td>1337</td>' in unicode(out)
 
     def test_no_challenges(self):
         self.challenges = []
-        out = self.render()
+        out = unicode(self.render())
         assert '<td class="challenge">' not in out
 
     def test_no_teams(self):
         self.teams = []
-        out = self.render()
+        out = unicode(self.render())
         assert not re.search(r'<tbody>.*<tr', out, re.DOTALL)
 
     def test_avatar(self):
         self.team.avatar_filename = 'foo.jpg'
-        out = self.render()
+        out = unicode(self.render())
         assert 'foo.jpg' in out
 
     def test_local(self):
         self.team.local = True
-        out = self.render()
+        out = unicode(self.render())
         assert re.search(r'<td class="text-success">\s+Yes\s+</td>', out)
 
     def test_challenge_dynamic_mock(self, module):
         self.challenge.dynamic = True
         self.challenge.module = module
         module.get_points.return_value = 1337
-        out = self.render()
+        out = unicode(self.render())
         assert "1337" in out
 
     def test_challenge_dynamic(self, dynamic_module):
         _, module = dynamic_module
         self.challenge.dynamic = True
         self.challenge.module = module
-        out = self.render()
+        out = unicode(self.render())
         assert isinstance(out, unicode)
 
     def test_challenge_bonus(self):
-        Submission(challenge=self.challenge, team=self.team, bonus=321)
-        out = self.render()
-        assert "321" in out
+        Submission(challenge=self.challenge, team=self.team,
+                   additional_pts=321)
+        out = unicode(self.render())
+        expected_pts = self.challenge.points + 321
+        assert unicode(expected_pts) in out

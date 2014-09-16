@@ -31,7 +31,7 @@
                 % elif challenge.manual:
                     <em>${challenge.points}</em>
                 % else:
-                    ${challenge.points or '-'}
+                    ${challenge.points}
                 % endif
             </td>
             <td>

@@ -14,37 +14,52 @@ class TestBaseBody(TemplateTestBase):
 
     def test_body(self):
         data = self.render()
-        assert "admin.js" not in data
-        assert "bootstrap.min.css" not in data
-        assert "hacklu-base.min.css" in data
-        assert "Frontpage" not in data
-        assert "navbar-admin" not in data
+        head = data.find("head")
+        script = lambda r: head.find("script", src=re.compile(r'.*%s$' % r))
+        style = lambda r: head.find("link", href=re.compile(r'.*%s$' % r))
+        assert not script("admin.js")
+        assert not style("bootstrap.min.css")
+        assert style("hacklu-base.min.css")
+        adm_nav = data.find("body").find(
+            "ul", class_=["nav navbar-nav pull-right"])
+        assert not adm_nav
+        assert not data.find(class_="navbar-admin")
 
     def test_body_admin(self):
         self.request.path = "/admin/asd"
         data = self.render()
-        assert "admin.js" in data
-        assert "bootstrap.min.css" in data
-        assert "hacklu-base.min.css" not in data
-        assert "navbar-admin" in data
-        assert "Frontpage" in data
+        head = data.find("head")
+        script = lambda r: head.find("script", src=re.compile(r'.*%s$' % r))
+        style = lambda r: head.find("link", href=re.compile(r'.*%s$' % r))
+        assert script("admin.js")
+        assert style("bootstrap.min.css")
+        assert not style("hacklu-base.min.css")
+        adm_nav = data.find("body").find_all("ul", class_="nav")[1]
+        assert adm_nav.find_all("li")[1].a.string == "Frontpage"
+        menu = data.find("div", id="menu")
+        assert "navbar-admin" in menu['class']
 
     def test_body_menu(self):
         self.request.path_url = self.request.route_url('home')
         self.view.menu.append(('home', "Home"))
         data = self.render()
-        assert "active" in data
-        assert "Home" in data
-        assert self.request.path_url in data
+        nav = data.find("ul", class_="menu")
+        nav_entry = nav.find_all("li")[5]
+        nav_link = nav_entry.a
+        assert "active" in nav_entry["class"]
+        assert "Home" == nav_link.string
+        assert self.request.path_url == nav_link.attrs["href"]
 
     def test_body_flash_queues(self):
         for queue, css_type in [('', 'info'), ('error', 'danger'),
                                 ('success', 'success'), ('warning', '')]:
             self.request.session.flash(css_type.upper(), queue)
             data = self.render()
-            assert css_type.upper() in data
-            assert 'class="alert %s"' % ('alert-%s' % css_type if css_type
-                                         else '') in data
+            msg_div = data.find("div", class_=['alert'])
+            classes = sorted(msg_div['class'])
+            assert 'alert' in msg_div['class']
+            if css_type:
+                assert css_type.upper() == msg_div.string
 
 
 class TestRenderFlash(TemplateTestBase):

@@ -5,6 +5,7 @@ from fluxscoreboard.util import now
 from datetime import timedelta
 from webob.multidict import MultiDict
 from mock import MagicMock
+import bs4
 
 
 @pytest.mark.usefixtures("matched_route", "config")
@@ -39,8 +40,9 @@ class TemplateTestBase(object):
         return _render
 
     def render(self, *args, **kwargs):
-        return self.tmpl.render_unicode(*args, request=self.request,
-                                        view=self.view, **kwargs).strip()
+        out = self.tmpl.render_unicode(*args, request=self.request,
+                                       view=self.view, **kwargs).strip()
+        return bs4.BeautifulSoup(out)
 
     def load_template(self):
         self.tmpl = self.get(self.name)

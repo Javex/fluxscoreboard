@@ -39,7 +39,7 @@ class TestSubmit(TemplateTestBase):
         return TemplateTestBase.render(self, *args, **kw)
 
     def test_body(self):
-        out = self.render()
+        out = unicode(self.render())
         assert "TitleFoo" in out
 
         assert "alert" not in out
@@ -47,33 +47,33 @@ class TestSubmit(TemplateTestBase):
 
     def test_archive_mode(self):
         self.settings.archive_mode = True
-        out = self.render()
+        out = unicode(self.render())
         assert "Scoreboard is in archive mode" in out
 
     def test_ctf_over(self):
         self.settings.ctf_end_date = now() - timedelta(hours=1)
-        out = self.render()
+        out = unicode(self.render())
         assert "The CTF is over" in out
         assert "Enter solution for challenge" not in out
 
     def test_submission_disabled(self):
         self.settings.submission_disabled = True
-        out = self.render()
+        out = unicode(self.render())
         assert "submission of solutions is currently disabled" in out
         assert "Enter solution for challenge" not in out
 
     def test_no_challenges(self):
         self.challenge.published = False
-        out = self.render()
+        out = unicode(self.render())
         assert "no challenges to submit" in out
         assert "Enter solution for challenge" not in out
 
     def test_missing_solution(self):
-        out = self.render(form=self.form(solution=''))
+        out = unicode(self.render(form=self.form(solution='')))
         assert "alert" in out
         assert "alert-danger" in out
 
     def test_invalid_challenge(self):
-        out = self.render(form=self.form(challenge=str(self.challenge.id + 1)))
+        out = unicode(self.render(form=self.form(challenge=str(self.challenge.id + 1))))
         assert "alert" in out
         assert "alert-danger" in out
