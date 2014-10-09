@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, print_function, absolute_import
 from datetime import timedelta
 from fluxscoreboard.forms.front import SolutionSubmitForm, LoginForm, RegisterForm, ResetPasswordForm, ProfileForm
-from fluxscoreboard.models.challenge import Submission
+from fluxscoreboard.models.challenge import Submission, update_challenge_points, update_playing_teams
 from fluxscoreboard.models.news import News
 from fluxscoreboard.util import now
 from fluxscoreboard.views.front import FrontView, UserView
@@ -115,7 +115,7 @@ class TestScoreboardView(BaseViewTest):
         self.login(t.id)
         self.request.matchdict["id"] = c.id
         self.request.POST = MultiDict(submit="submit", csrf_token=token,
-                                           solution="Test1")
+                                      solution="Test1")
         self.request.method = "POST"
         self.settings.ctf_end_date = now() + timedelta(1)
         ret = self.view.challenge()
@@ -127,14 +127,19 @@ class TestScoreboardView(BaseViewTest):
     def test_scoreboard(self):
         t1 = self.make_team(active=True)
         t2 = self.make_team(active=True)
-        c = self.make_challenge(points=100, published=True)
+        c = self.make_challenge(base_points=100, published=True)
         self.dbsession.add_all([t1, t2, c])
+        self.dbsession.flush()
+        update_playing_teams(self.dbsession.connection())
+        update_challenge_points(self.dbsession.connection())
+        self.dbsession.flush()
+        self.dbsession.expire(c)
         Submission(challenge=c, team=t1)
         ret = self.view.scoreboard()
         assert len(ret) == 2
         teams = list(ret["teams"])
         assert len(teams) == 2
-        assert teams[0] == (t1, 100, 1)
+        assert teams[0] == (t1, c.points, 1)
         assert teams[1] == (t2, 0, 2)
         challenges = list(ret["challenges"])
         assert len(challenges) == 1

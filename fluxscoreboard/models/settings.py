@@ -69,6 +69,7 @@ class Settings(Base):
     ctf_start_date = Column(TZDateTime)
     ctf_end_date = Column(TZDateTime)
     archive_mode = Column(Boolean, default=False, nullable=False)
+    playing_teams = Column(Integer, default=0, nullable=False)
 
     @property
     def ctf_started(self):

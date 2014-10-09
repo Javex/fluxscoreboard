@@ -3,20 +3,59 @@ from fluxscoreboard.forms.admin import (NewsForm, ChallengeForm, CategoryForm,
     TeamForm, IPSearchForm, SubmissionForm, MassMailForm, ButtonForm,
     SubmissionButtonForm, TeamCleanupForm, SettingsForm,
     get_dynamic_module_choices)
+from fluxscoreboard.models import Challenge, News, Category, Team, Submission, MassMail, Settings
 from fluxscoreboard.models import dynamic_challenges
 from webob.multidict import MultiDict
 from mock import MagicMock
 from conftest import GeneralCSRFTest
+from datetime import datetime
 
 
-class TestNewsForm(GeneralCSRFTest):
+class GeneralAdminFormTest(GeneralCSRFTest):
+    _pks = ['id']
+
+    def test_populate_obj(self, dbsession):
+        obj = self._db_cls()
+        form = self.make(self.data)
+        for k in self._pks:
+            if getattr(form, k).data == '':
+                getattr(form, k).data = None
+        with dbsession.no_autoflush:
+            form.populate_obj(obj)
+            dbsession.add(obj)
+        dbsession.flush()
+        self._check_obj(obj)
+
+    def _check_obj(self, obj):
+        for k, v in self.data.items():
+            if k in ['submit', 'cancel', 'password']:
+                continue
+            if k in self._pks and self.data[k] == '':
+                continue
+            else:
+                if not hasattr(obj, k) and not hasattr(obj, k + '_id'):
+                    continue
+                obj_val = getattr(obj, k, None)
+                pk_val = getattr(obj, k + '_id', None)
+                if isinstance(obj_val, bool):
+                    assert obj_val == bool(v)
+                elif isinstance(obj_val, datetime):
+                    assert str(obj_val.replace(tzinfo=None)) == v
+                elif obj_val is None and pk_val is None:
+                    assert not v
+                else:
+                    assert str(obj_val) == v or str(pk_val) == v
+
+
+class TestNewsForm(GeneralAdminFormTest):
 
     _form = NewsForm
+    _db_cls = News
 
     def _make_data(self):
         data =  [
-            ('message', 'foo'),
-            ('published', False),
+            ('message', u'foo'),
+            ('published', ''),
             ('challenge', ''),
             ('id', ''),
             ('submit', 'Save'),
@@ -42,17 +81,18 @@ class TestNewsForm(GeneralCSRFTest):
         assert form.validate()
 
 
-class TestChallengeForm(GeneralCSRFTest):
+class TestChallengeForm(GeneralAdminFormTest):
 
     _form = ChallengeForm
+    _db_cls = Challenge
 
     def _make_data(self):
         data = [
-            ('title', 'Foo'),
-            ('text', 'Foo<br>Bla'),
-            ('solution', 'Lol'),
-            ('points', '123'),
-            ('author', 'foo, lol'),
+            ('title', u'Foo'),
+            ('text', u'Foo<br>Bla'),
+            ('solution', u'Lol'),
+            ('base_points', '123'),
+            ('author', u'foo, lol'),
             ('online', ''),
             ('manual', ''),
             ('dynamic', ''),
@@ -90,7 +130,7 @@ class TestChallengeForm(GeneralCSRFTest):
 
     def _make_dynamic(self, module):
         self.data["dynamic"] = '1'
-        self.data["points"] = ''
+        self.data["base_points"] = ''
         self.data["solution"] = ''
         self.data["module"] = module
 
@@ -138,22 +178,22 @@ class TestChallengeForm(GeneralCSRFTest):
         assert 'solution' in form.errors
 
     def test_missing_points(self):
-        self.data["points"] = ''
+        self.data["base_points"] = ''
         form = self.make(self.data)
         assert not form.validate()
-        assert 'points' in form.errors
+        assert 'base_points' in form.errors
 
     def test_points_manual(self):
         self.data["manual"] = '1'
         form = self.make(self.data)
         assert not form.validate()
-        assert 'points' in form.errors
+        assert 'base_points' in form.errors
 
     def test_points_dynamic(self):
         self.data["dynamic"] = '1'
         form = self.make(self.data)
         assert not form.validate()
-        assert 'points' in form.errors
+        assert 'base_points' in form.errors
 
     def test_category_invalid(self):
         self.data["category"] = "foo"
@@ -206,13 +246,14 @@ class TestChallengeForm(GeneralCSRFTest):
         assert "module" in form.errors
 
 
-class TestCategoryForm(GeneralCSRFTest):
+class TestCategoryForm(GeneralAdminFormTest):
 
     _form = CategoryForm
+    _db_cls = Category
 
     def _make_data(self):
         data =  [
-            ('name', 'foo'),
+            ('name', u'foo'),
             ('id', ''),
             ('submit', 'Save'),
             ('csrf_token', self.request.session.get_csrf_token()),
@@ -231,15 +272,17 @@ class TestCategoryForm(GeneralCSRFTest):
         assert not form.validate()
         assert "name" in form.errors
 
-class TestTeamForm(GeneralCSRFTest):
+
+class TestTeamForm(GeneralAdminFormTest):
 
     _form = TeamForm
+    _db_cls = Team
 
     def _make_data(self):
         data =  [
-            ('name', 'foo'),
-            ('password', 'foo2foo2foo2'),
-            ('email', 'foo@example.com'),
+            ('name', u'foo'),
+            ('password', u'foo2foo2foo2'),
+            ('email', u'foo@example.com'),
             ('size', ''),
             ('active', ''),
             ('local', ''),
@@ -324,9 +367,11 @@ class TestIPSearchForm(GeneralCSRFTest):
         return data
 
 
-class TestSubmissionForm(GeneralCSRFTest):
+class TestSubmissionForm(GeneralAdminFormTest):
 
     _form = SubmissionForm
+    _db_cls = Submission
+    _pks = []
 
     def _make_data(self):
         data = [
@@ -337,7 +382,7 @@ class TestSubmissionForm(GeneralCSRFTest):
 
     @pytest.fixture(autouse=True)
     def _add_challenge_and_team(self, make_team, make_challenge, dbsession):
-        self.team = make_team()
+        self.team = make_team(active=True)
         self.challenge = make_challenge()
         dbsession.add_all([self.team, self.challenge])
         dbsession.flush()
@@ -357,15 +402,17 @@ class TestSubmissionForm(GeneralCSRFTest):
         assert "team" in form.errors
 
 
-class TestMassMailForm(GeneralCSRFTest):
+class TestMassMailForm(GeneralAdminFormTest):
 
     _form = MassMailForm
+    _db_cls = MassMail
+    _pks = []
 
     def _make_data(self):
         data = [
-            ('from_', 'foo@example.com'),
-            ('subject', 'Bla'),
-            ('message', 'Lol\nWhatever'),
+            ('from_', u'foo@example.com'),
+            ('subject', u'Bla'),
+            ('message', u'Lol\nWhatever'),
             ('submit', 'Send'),
         ]
         return data
@@ -381,6 +428,15 @@ class TestMassMailForm(GeneralCSRFTest):
         form = self.make(self.data)
         assert not form.validate()
         assert "message" in form.errors
+
+    def test_populate_obj(self, dbsession):
+        obj = self._db_cls()
+        form = self.make(self.data)
+        form.populate_obj(obj)
+        obj.recipients = []
+        dbsession.add(obj)
+        dbsession.flush()
+        self._check_obj(obj)
 
 
 class TestButtonForm(GeneralCSRFTest):
@@ -407,7 +463,7 @@ class TestSubmissionButtonForm(GeneralCSRFTest):
 
     def _make_data(self):
         data = [
-            ('button', 'Something'),
+            ('button', b'Something'),
             ('challenge_id', '1'),
             ('team_id', '1'),
         ]
@@ -434,9 +490,11 @@ class TestTeamCleanupForm(GeneralCSRFTest):
         return [('team_cleanup', 'Whatever')]
 
 
-class TestSettingsForm(GeneralCSRFTest):
+class TestSettingsForm(GeneralAdminFormTest):
 
     _form = SettingsForm
+    _db_cls = Settings
+    _pks = []
 
     def _make_data(self):
         data = [

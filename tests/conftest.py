@@ -33,7 +33,7 @@ import pytest
 import sys
 import transaction
 ROOT_PATH = os.path.dirname(__file__)
-CONF = os.path.join(ROOT_PATH, 'pytest.ini')
+CONF = os.path.join(ROOT_PATH, '..', 'cfg', 'test.ini')
 setup_logging(CONF + '#loggers')
 log = logging.getLogger(__name__)
 
@@ -153,8 +153,7 @@ def matched_route(pyramid_request):
 @pytest.fixture(scope="session")
 def settings():
     cfg = appconfig('config:' + CONF)
-    cache_dir = os.path.join(os.path.dirname(__file__), 'tests', 'template',
-                             'cache')
+    cache_dir = os.path.join(os.path.dirname(__file__), 'template', 'cache')
     cfg["mako.module_directory"] = os.path.abspath(cache_dir)
     return cfg
 

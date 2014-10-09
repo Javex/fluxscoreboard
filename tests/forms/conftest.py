@@ -2,8 +2,10 @@ import pytest
 from webob.multidict import MultiDict
 
 class GeneralFormTest(object):
-    
+
     _data = None
+    _form = None
+    _db_cls = None
 
     @property
     def data(self):
@@ -40,7 +42,6 @@ class GeneralCSRFTest(GeneralFormTest):
     def test_missing_token(self):
         form = self._form(csrf_context=self.request)
         assert not form.validate()
-
 
     @pytest.fixture(autouse=True)
     def _init_csrf_token(self, pyramid_request):

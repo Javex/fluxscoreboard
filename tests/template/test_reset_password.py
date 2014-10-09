@@ -34,16 +34,16 @@ class TestResetPassword(TemplateTestBase):
         return TemplateTestBase.render(self, *args, **kw)
 
     def test_body(self):
-        out = self.render()
+        out = unicode(self.render())
         assert "alert" not in out
         assert "alert-danger" not in out
 
     def test_password_missing(self):
-        out = self.render(form=self.form(password=''))
+        out = unicode(self.render(form=self.form(password='')))
         assert "alert" in out
         assert "alert-danger" in out
 
     def test_password_repeat_missing(self):
-        out = self.render(form=self.form(password_repeat=''))
+        out = unicode(self.render(form=self.form(password_repeat='')))
         assert "alert" in out
         assert "alert-danger" in out

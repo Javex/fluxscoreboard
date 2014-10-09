@@ -26,11 +26,11 @@ class TestResetPasswordStart(TemplateTestBase):
         return TemplateTestBase.render(self, *args, **kw)
 
     def test_body(self):
-        out = self.render()
+        out = unicode(self.render())
         assert "alert" not in out
         assert "alert-danger" not in out
 
     def test_email_missing(self):
-        out = self.render(form=self.form(email=''))
+        out = unicode(self.render(form=self.form(email='')))
         assert "alert" in out
         assert "alert-danger" in out

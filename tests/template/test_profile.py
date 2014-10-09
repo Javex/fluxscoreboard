@@ -38,7 +38,7 @@ class TestProfile(TemplateTestBase):
         return TemplateTestBase.render(self, *args, **kw)
 
     def test_body(self):
-        out = self.render()
+        out = unicode(self.render())
         assert "alert" not in out
         assert "alert-danger" not in out
         assert "Edit Your Team" in out

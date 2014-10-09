@@ -73,9 +73,9 @@ class ChallengeForm(CSRFForm):
 
         ``solution``: Solution. Required.
 
-        ``points``: How many points is this challenge worth? Only required if
-        the challenge is not manual, otherwise not allowed to be anything other
-        than 0 or empty.
+        ``base_points``: How many base points is this challenge worth? Only
+        required if the challenge is not manual, otherwise not allowed to be
+        anything other than 0 or empty.
 
         ``online``: If the challenge is online.
 
@@ -101,8 +101,8 @@ class ChallengeForm(CSRFForm):
         "Solution",
         validators=[required_or_not_allowed(["manual", "dynamic"])])
 
-    points = IntegerOrEvaluatedField(
-        "Points",
+    base_points = IntegerOrEvaluatedField(
+        "Base Points",
         validators=[required_or_not_allowed(["manual", "dynamic"])])
 
     author = TextField("Author(s)")
@@ -270,7 +270,7 @@ class SubmissionForm(CSRFForm):
     team = QuerySelectField("Team",
                             query_factory=get_all_teams)
 
-    bonus = IntegerField("Bonus", default=0)
+    additional_pts = IntegerField("Additioanl Points", default=0)
 
     submit = SubmitField("Save")
 

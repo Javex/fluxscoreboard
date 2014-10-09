@@ -1,8 +1,9 @@
 development.ini
 production.ini
+test.ini
 data/session/*
-tests/template/cache
-log
+tests/template/cache/
+log/
 docs/_build
-fluxscoreboard.egg-info
 *.pyc
+*.min.*

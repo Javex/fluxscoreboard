@@ -16,7 +16,7 @@ from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, subqueryload, joinedload, backref
+from sqlalchemy.orm import relationship, backref, subqueryload, joinedload
 from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
@@ -133,7 +133,10 @@ def get_team(request):
         try:
             team = (DBSession.query(Team).
                     filter(Team.id == team_id).
-                    filter(Team.active == True).one())
+                    filter(Team.active == True).
+                    options(subqueryload('submissions').
+                            joinedload('challenge')).
+                    one())
             return team
         except NoResultFound:
             return None
@@ -148,7 +151,8 @@ def register_team(form, request):
     Create a new team from a form and send a confirmation email.
 
     Args:
-        ``form``: A filled out :class:`fluxscoreboard.forms.front.RegisterForm`.
+        ``form``: A filled out
+        :class:`fluxscoreboard.forms.front.RegisterForm`.
 
         ``request``: The corresponding request.
 
@@ -357,7 +361,7 @@ class Team(Base):
 
     def __repr__(self):
         return (('<Team name=%s, email=%s, local=%s, active=%s>'
-                % (self.name, self.email, self.local, self.active)).
+                 % (self.name, self.email, self.local, self.active)).
                 encode("utf-8"))
 
     def validate_password(self, password):
@@ -421,24 +425,31 @@ class Team(Base):
     @hybrid_property
     def score(self):
         if self._score is None:
-            from fluxscoreboard.models import dynamic_challenges
-            challenge_sum = sum(s.challenge.points or 0 for s in self.submissions
+            # challenge points
+            challenge_sum = sum(s.challenge.points for s in self.submissions
                                 if s.challenge.published)
-            bonus_sum = sum(s.bonus or 0 for s in self.submissions
+
+            # first blood points
+            bonus_sum = sum(s.additional_pts or 0 for s in self.submissions
                             if s.challenge.published)
-            dynamic_points = 0
-            for module in dynamic_challenges.registry.values():
-                dynamic_points += module.get_points(self)
+
+            # dynamic points
+            from fluxscoreboard.models import dynamic_challenges
+            dynamic_modules = dynamic_challenges.registry.values()
+            dynamic_points = sum(module.get_points(self)
+                                 for module in dynamic_modules)
+
+            # total score
             self._score = challenge_sum + bonus_sum + dynamic_points
         return self._score
 
     @score.expression
-    def score(cls):  # @NoSelf
+    def score(cls):
         from fluxscoreboard.models import dynamic_challenges
         # Calculate sum of all points, defalt to 0
         challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
-        # Calculate sum of all bonus points, default to 0
-        bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
+        # Calculate sum of all first blood points, default to 0
+        bonus_sum = func.coalesce(func.sum(Submission.additional_pts), 0)
         points_col = challenge_sum + bonus_sum
         for module in dynamic_challenges.registry.values():
             points_col += module.get_points_query(cls)
@@ -486,8 +497,8 @@ class Team(Base):
 
     def get_unsolved_challenges(self):
         """
-        Return a query that produces a list of all unsolved challenges for a given
-        team.
+        Return a query that produces a list of all unsolved challenges for a
+        given team.
         """
         team_solved_subquery = get_team_solved_subquery(self.id)
         online = get_online_challenges()

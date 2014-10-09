@@ -20,14 +20,14 @@ class TestLogin(TemplateTestBase):
         return data
 
     def test_body(self):
-        out = self.render(form=self.form())
+        out = unicode(self.render(form=self.form()))
         assert "alert" not in out
         assert "alert-danger" not in out
 
     def test_email_missing(self):
-        out = self.render(form=self.form(email=''))
+        out = unicode(self.render(form=self.form(email='')))
         assert "alert-danger" in out
 
     def test_password_missing(self):
-        out = self.render(form=self.form(password=''))
+        out = unicode(self.render(form=self.form(password='')))
         assert "alert-danger" in out

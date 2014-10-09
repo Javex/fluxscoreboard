@@ -1,0 +1,382 @@
+#!/usr/bin/env python2
+import argparse
+import datetime
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+
+CFG_DIR = 'cfg'
+TEMPORARY_DIRS = ('tmp', 'log', 'fluxscoreboard/static/images/avatars')
+
+
+def print_colored(msg, color):
+    colors = {'red': 31, 'green': 32, 'yellow': 33, 'blue': 34, 'magenta': 35,
+              'cyan': 36, 'white': 37}
+    if color not in colors:
+        e = 'Unknown color %s. Possibilities are: %s' % (color, colors.keys())
+        raise KeyError(e)
+    print('\033[%dm%s\033[0m' % (colors[color], msg))
+
+
+def error(msg):
+    print_colored('[!] Error: ' + msg, 'red')
+    sys.exit(1)
+
+
+def info(msg):
+    print_colored('[-] Info: ' + msg, 'cyan')
+
+
+def warn(msg):
+    print_colored('[^] Warning: ' + msg, 'magenta')
+
+
+def execute_visibly(*cmd):
+    generic_execute(subprocess.check_call, cmd)
+
+
+def generic_execute(func, cmd, *args, **kw):
+    if isinstance(cmd, str):
+        print_cmd = cmd
+    else:
+        print_cmd = ' '.join(cmd)
+    info('Executing: %s' % print_cmd)
+    return func(cmd, *args, **kw)
+
+
+def ask_for(desc, default):
+    data = raw_input('Please enter %s [%s]: ' % (desc, default))
+    return data if data else default
+
+
+def _install_requirements(is_dev, root_path=''):
+    try:
+        reqs_path = os.path.join(root_path, CFG_DIR, 'requirements.txt')
+        execute_visibly('pip', 'install', '-r', reqs_path)
+        if is_dev:
+            devreqs_path = os.path.join(root_path, CFG_DIR,
+                                        'requirements-dev.txt')
+            execute_visibly('pip', 'install', '-r', devreqs_path)
+    except subprocess.CalledProcessError:
+        error('pip could not install the requirements.')
+
+
+def _create_configuration(template, mode, root_path=''):
+    file_path = os.path.join(root_path, CFG_DIR, '%s.ini' % mode)
+    info('Creating %s configuration now (%s).' % (mode, file_path))
+    tvars = {'mode': mode, 'session_secret': os.urandom(20).encode('hex'),
+             'db_user': '', 'db_pass': '', 'db_name': '',
+             'db_host': 'localhost', 'db_port': '5432'}
+    if mode in ('test', 'development'):
+        tvars['db_user'] = ask_for('a database username', 'root')
+        tvars['db_pass'] = ask_for('the user\'s password', '')
+        suffix = '_test' if mode == 'test' else ''
+        tvars['db_name'] = ask_for('a database name', 'scoreboard' + suffix)
+        tvars['db_host'] = ask_for('the database host', 'localhost')
+        tvars['db_port'] = ask_for('the database port', '5432')
+    with open(file_path, 'w+') as f:
+        f.write(template.render(**tvars))
+    return file_path
+
+
+def _install_configuration(is_dev, root_path=''):
+    import mako.template  # import here because not installed before
+    template_path = os.path.join(root_path, CFG_DIR, 'cfg.ini.mako')
+    template = mako.template.Template(filename=template_path)
+    if is_dev:
+        cfg_path = _create_configuration(template, 'development', root_path)
+        warn('Do not use the same database for development and test as this '
+             'may lead to unexpected behaviour.')
+        _create_configuration(template, 'test', root_path)
+    else:
+        cfg_path = _create_configuration(template, 'production', root_path)
+    return cfg_path
+
+
+def _load_configuration(cfg_path):
+    import paste.deploy.loadwsgi  # import here because not installed before
+    return paste.deploy.loadwsgi.appconfig('config:' + cfg_path)
+
+
+def _create_directories(dirs, root_path=''):
+    for d in dirs:
+        try:
+            os.makedirs(os.path.join(root_path, d))
+        except OSError:
+            # directory already exists
+            pass
+
+
+def _minify_static_files(root_path=''):
+    yui_comp = os.path.join(root_path, 'yuicompressor.jar')
+    static_path = os.path.join(root_path, 'fluxscoreboard', 'static')
+    for dirpath, _, filenames in os.walk(static_path):
+        for filename in filenames:
+            try:
+                basename, ext = filename.rsplit('.', 1)
+            except:
+                continue
+            min_name = '%s.min.%s' % (basename, ext)
+            file_path = os.path.join(dirpath, filename)
+            min_path = os.path.join(dirpath, min_name)
+            if (re.match(r'^[^\.]+(?!\.min)\.(css|js)$', filename)
+                    and not os.path.exists(min_path)):
+                execute_visibly('java', '-jar', yui_comp, '-o', min_path,
+                                file_path)
+
+
+def _initialize_logging(cfg_path):
+    import pyramid.paster  # import here because was not installed before
+    execute_visibly('touch', os.path.join('log', 'scoreboard.log'))
+    pyramid.paster.setup_logging(cfg_path + '#loggers')
+
+
+def _initialize_database(is_dev, cfg_path, settings):
+    from fluxscoreboard.models import DBSession, Settings
+    import fluxscoreboard.install
+    import sqlalchemy.engine
+    import transaction
+    engine = sqlalchemy.engine.engine_from_config(settings, 'sqlalchemy.')
+    DBSession.configure(bind=engine)
+    fluxscoreboard.install.install(settings, cfg_path, test_data=is_dev)
+
+    info('Setting CTF start and end dates...')
+    time_format = r'%Y-%m-%d %H:%M:%S'
+    now = datetime.datetime.now()
+    start_time = now.strftime(time_format)
+    end_time = (now + datetime.timedelta(days=20)).strftime(time_format)
+    start_time = ask_for('a start time for the CTF in UTC (%s)' % time_format,
+                         start_time)
+    end_time = ask_for('a end time for the CTF in UTC (%s)' % time_format,
+                       end_time)
+    values = {'ctf_start_date': start_time, 'ctf_end_date': end_time}
+    DBSession.query(Settings).update(values)
+    transaction.commit()
+
+
+def _make_crontab_entry(root_path):
+    py_path = sys.executable
+    script_path = os.path.abspath(sys.argv[0])
+    cmd = "cd %s && %s %s update_points" % (root_path, py_path, script_path)
+    cron_line = '* * * * * %s' % cmd
+    return cron_line
+
+
+def _get_crontab():
+    try:
+        return generic_execute(subprocess.check_output, ['crontab', '-l'])
+    except subprocess.CalledProcessError as e:
+        if e.returncode == 1:
+            return ''
+        else:
+            raise
+
+
+def _set_crontab(value):
+    p = generic_execute(subprocess.Popen, ['crontab'], stdin=subprocess.PIPE)
+    p.communicate(value)
+    if p.wait() != 0:
+        error('Could not set new crontab, should be:\n' + value)
+
+
+def _install_crontab(root_path):
+    cron_line = _make_crontab_entry(root_path)
+    current = _get_crontab()
+    if cron_line in map(str.strip, current.splitlines()):
+        return
+    _set_crontab(current + cron_line + '\n')
+
+
+def install(mode='production', root_path=''):
+    is_dev = True if mode == 'development' else False
+    info('Scoreboard wil be installed in %s mode.' % mode)  # needs sexy mode
+
+    info('Gathering requirements...')
+    _install_requirements(is_dev, root_path)
+
+    info('Creating configuration files...')
+    cfg_path = _install_configuration(is_dev, root_path)
+    settings = _load_configuration(cfg_path)
+
+    info('Creating all required directories...')
+    _create_directories(TEMPORARY_DIRS, root_path)
+
+    info('Minifying all static files...')
+    _minify_static_files(root_path)
+
+    info('Initializing logging...')
+    _initialize_logging(cfg_path)
+
+    info('Setting up database...')
+    _initialize_database(is_dev, cfg_path, settings)
+
+    if mode == 'production':
+        info('Installing crontab...')
+        _install_crontab(root_path)
+
+    if is_dev:
+        info('It should work now. You may want to start with running all unit '
+             'tests (./run test).')
+    else:
+        warn('Since you are deploying in production, please take care of all '
+             'configuration by yourself. It is located in %s.' % cfg_path)
+
+
+def _uninstall_database(settings):
+    import sqlalchemy.engine
+    import fluxscoreboard.models
+    import fluxscoreboard.install
+    engine = sqlalchemy.engine.engine_from_config(settings, 'sqlalchemy.')
+    fluxscoreboard.models.DBSession.configure(bind=engine)
+    fluxscoreboard.install.uninstall(settings)
+
+
+def _delete_directories(dirs, root_path=''):
+    for dir_ in dirs:
+        shutil.rmtree(os.path.join(root_path, dir_))
+
+
+def _delete_configuration(root_path=''):
+    for f in ('development', 'test', 'production'):
+        path = os.path.join(root_path, CFG_DIR, '%s.ini' % f)
+        if os.path.isfile(path):
+            os.remove(path)
+
+
+def _delete_crontab_entry(root_path):
+    current = _get_crontab()
+    to_delete = _make_crontab_entry(root_path)
+    new = []
+    for line in map(str.strip, current.splitlines()):
+        if line != to_delete:
+            new.append(line)
+    if current.strip():
+        _set_crontab('\n'.join(new) + '\n')
+    else:
+        try:
+            execute_visibly('crontab', '-r')
+        except subprocess.CalledProcessError:
+            pass
+
+
+def uninstall(root_path=''):
+    cfg_path = os.path.join(root_path, CFG_DIR, 'development.ini')
+    if not os.path.isfile(cfg_path):
+        cfg_path = os.path.join(root_path, CFG_DIR, 'production.ini')
+        if not os.path.isfile(cfg_path):
+            error('No suitable configuration file was found.')
+    info('Scoreboard will be uninstalled with the %s cfg file.' % cfg_path)
+    settings = _load_configuration(cfg_path)
+
+    info('Uninstalling database...')
+    _uninstall_database(settings)
+
+    info('Deleting temporary directories...')
+    _delete_directories(TEMPORARY_DIRS, root_path)
+
+    info('Deleting configuration files...')
+    _delete_configuration(root_path)
+
+    info('Deleting crontab entry...')
+    _delete_crontab_entry(root_path)
+
+    info('Application successfully uninstalled! \\o/')
+
+
+def _check_cfg_existance(cfg_path):
+    if not os.path.isfile(cfg_path):
+        error('%s does not exist. Please execute ./run install development '
+              'first.' % cfg_path)
+
+
+def serve(root_path=''):
+    cfg_path = os.path.join(root_path, CFG_DIR, 'development.ini')
+    _check_cfg_existance(cfg_path)
+    cmd = ('PYTHONPATH=%s' % root_path, 'pserve', cfg_path)
+    fullcmd = ' '.join(cmd)
+    generic_execute(subprocess.check_call, fullcmd, shell=True)
+
+
+def test(root_path=''):
+    test_cfg_path = os.path.join(root_path, CFG_DIR, 'test.ini')
+    _check_cfg_existance(test_cfg_path)
+    cmd = ['PYTHONPATH=%s' % os.path.join(root_path, 'tests'), 'py.test', '-c',
+           test_cfg_path, 'tests']
+    fullcmd = ' '.join(cmd)
+    generic_execute(subprocess.check_call, fullcmd, shell=True)
+
+
+def coverage(root_path=''):
+    execute_visibly('coverage', 'run', '--source',
+                    'fluxscoreboard,tests/template/cache', '-m', 'py.test',
+                    'tests/')
+
+
+def update_challenge_points(root_path=''):
+    import fluxscoreboard.models.challenge
+    import paste.deploy.loadwsgi
+    import sqlalchemy
+    import pyramid.paster
+
+    # Find cfg file
+    cfg_path = os.path.join(root_path, CFG_DIR, 'production.ini')
+    if not os.path.isfile(cfg_path):
+        cfg_path = os.path.join(root_path, CFG_DIR, 'development.ini')
+    if not os.path.isfile(cfg_path):
+        error('No valid configuration found. Please execute ./run install.')
+
+    info('Updating challenge points with the %s cfg file' % cfg_path)
+
+    # Load cfg to connect to DB
+    pyramid.paster.setup_logging(cfg_path + '#loggers')
+    cfg = paste.deploy.loadwsgi.appconfig('config:' + cfg_path)
+    engine = sqlalchemy.engine_from_config(cfg, 'sqlalchemy.')
+    with engine.begin() as conn:
+        fluxscoreboard.models.challenge.update_challenge_points(conn, True)
+
+if __name__ == '__main__':
+    desc = 'Your one-time-stop-shop for the scoreboard <(^_^<)'
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument('--no-venv', dest='check_venv', default=True,
+                        action='store_false',
+                        help='Do not check if virtual environment present.')
+    subparsers = parser.add_subparsers(title='subcommands')
+
+    i_parser = subparsers.add_parser('install',
+                                     help='Install the application.')
+    i_parser.add_argument('mode', metavar='MODE',
+                          type=str, choices=('production', 'development'),
+                          help='Either production or development.')
+    i_parser.set_defaults(function=install)
+
+    u_parser = subparsers.add_parser('uninstall',
+                                     help='Uninstall the application.')
+    u_parser.set_defaults(function=uninstall)
+
+    s_parser = subparsers.add_parser('serve',
+                                     help='Serve web app on port 6543.')
+    s_parser.set_defaults(function=serve)
+
+    t_parser = subparsers.add_parser('test', help='Run all unit tests.')
+    t_parser.set_defaults(function=test)
+
+    c_parser = subparsers.add_parser('coverage', help='Check test coverage.')
+    c_parser.set_defaults(function=coverage)
+
+    upd_parser = subparsers.add_parser('update_points',
+                                       help='Update challenge points.')
+    upd_parser.set_defaults(function=update_challenge_points)
+
+    args = parser.parse_args()
+    if (args.check_venv and not hasattr(sys, 'real_prefix')
+            and not hasattr(sys, 'base_prefix')):
+        error('Probably not executing in a virtual environment. Pass the '
+              '--no-venv parameter to suppress this error.')
+    args = vars(args)
+    del args['check_venv']
+    function = args.pop('function')
+    args['root_path'] = os.path.abspath(os.path.dirname(__file__))
+    function(**args)

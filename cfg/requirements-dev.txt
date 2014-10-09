@@ -1,0 +1,6 @@
+pyramid_debugtoolbar  # Dev Server
+waitress  # Dev Server
+pytest  # Testing
+webtest  # Testing
+mock  # Testing
+beautifulsoup4  # Template Parsing for Tests

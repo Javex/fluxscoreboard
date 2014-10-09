@@ -19,7 +19,7 @@ def public_route(request):
 @pytest.fixture(params=[(add_header_x_frame_options, 'X-Frame-Options', True),
                         (add_header_x_xss_protection, 'X-XSS-Protection', True),
                         (add_header_hsts, 'Strict-Transport-Security', True),
-                        (add_header_csp, 'Content-Security-Policy', False)])
+                        (add_header_csp, 'Content-Security-Policy', True)])
 def header(request):
     return request.param
 

@@ -3,6 +3,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 from datetime import timedelta
 from fluxscoreboard.util import now
 from fluxscoreboard.models import Submission
+from fluxscoreboard.models.challenge import update_challenge_points, update_playing_teams
 from tests.template import TemplateTestBase
 from webob.multidict import MultiDict
 from mock import MagicMock
@@ -23,6 +24,7 @@ class TestChallenges(TemplateTestBase):
                                                       published=True))
         dbsession.add(self.challenge)
         dbsession.flush()
+        self.db = dbsession
         self.challenges = [(self.challenge, False, 1337)]
 
     @pytest.fixture(autouse=True)
@@ -41,7 +43,7 @@ class TestChallenges(TemplateTestBase):
         return TemplateTestBase.render(self, *args, **kw)
 
     def test_body(self):
-        out = self.render()
+        out = unicode(self.render())
         assert "ChallengeFoo" in out
         assert "1337" in out
         assert "CategoryFoo" in out
@@ -51,30 +53,31 @@ class TestChallenges(TemplateTestBase):
 
     def test_no_category(self):
         self.challenge.category = None
-        out = self.render()
+        out = unicode(self.render())
         assert "<em>None</em>" in out
 
     def test_dynamic(self):
-        self.challenge.points = 1338
+        self.challenge.base_points = 1338
         self.challenge.dynamic = True
+        update_playing_teams(self.db.connection())
+        update_challenge_points(self.db.connection())
+        self.db.flush()
+        self.db.expire(self.challenge)
         out = self.render()
-        assert "1338" not in out
+        points = out.find("tbody").find("tr").find_all("td")[3]
+        assert points.text.strip() == '-'
 
     def test_manual(self):
         self.challenge.manual = True
-        out = self.render()
+        out = unicode(self.render())
         assert "<em>evaluated</em>" in out
-
-    def test_no_points(self):
-        out = self.render()
-        assert re.search(r'<td>\s+-\s+</td>', out)
 
     def test_dynamic_solved_count(self):
         self.challenge.dynamic = True
-        out = self.render()
+        out = unicode(self.render())
         assert re.search(r'<td>\s+-\s+</td>\s+<td>\s+-\s+</td>', out)
 
     def test_challenge_offline(self):
         self.challenge.online = False
-        out = self.render()
+        out = unicode(self.render())
         assert "offline" in out

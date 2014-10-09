@@ -1,6 +1,6 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
-from fluxscoreboard.models.challenge import Submission, Challenge
+from fluxscoreboard.models.challenge import (Submission, Challenge, update_challenge_points, update_playing_teams)
 from fluxscoreboard.models.team import (get_team_solved_subquery, get_team,
     groupfinder, get_all_teams, get_active_teams, get_number_solved_subquery,
     register_team, confirm_registration, login, password_reminder,
@@ -371,25 +371,29 @@ class TestTeam(object):
 
     def test_score(self):
         t = self.make_team()
-        c = self.make_challenge(points=100, published=True)
+        c = self.make_challenge(base_points=100, published=True)
         self.dbsession.add_all([t, c])
+        self.dbsession.flush()
+        self.dbsession.expire(c)
         Submission(challenge=c, team=t)
-        assert t.score == 100
+        assert t.score == c.points
 
         t_ref, score = self.dbsession.query(Team, Team.score).first()
         assert t_ref is t
-        assert score == 100
+        assert score == c.points
 
     def test_score_bonus(self):
         t = self.make_team()
         c = self.make_challenge(published=True)
         self.dbsession.add_all([t, c])
-        Submission(challenge=c, team=t, bonus=3)
-        assert t.score == 3
+        Submission(challenge=c, team=t, additional_pts=3)
+        self.dbsession.flush()
+        self.dbsession.expire(c)
+        assert t.score == 3 + c.points
 
         t_ref, score = self.dbsession.query(Team, Team.score).first()
         assert t_ref is t
-        assert score == 3
+        assert score == 3 + c.points
 
     def test_score_dynamic_mock(self, module):
         modname, module = module
@@ -414,6 +418,8 @@ class TestTeam(object):
         t = self.make_team()
         c = self.make_challenge(dynamic=True, module=modname)
         self.dbsession.add_all([t, c])
+        self.dbsession.flush()
+        self.dbsession.expire(c)
         c = self.dbsession.query(Challenge).one()
         t = self.dbsession.query(Team).one()
         assert isinstance(module.get_points(t), (int, long))
@@ -426,14 +432,19 @@ class TestTeam(object):
         t._score = None
 
     def test_rank(self):
-        t1 = self.make_team()
-        t2 = self.make_team()
-        t3 = self.make_team()
-        t4 = self.make_team()
-        c1 = self.make_challenge(points=100, published=True)
+        t1 = self.make_team(active=True)
+        t2 = self.make_team(active=True)
+        t3 = self.make_team(active=True)
+        t4 = self.make_team(active=True)
+        c1 = self.make_challenge(base_points=100, published=True)
         self.dbsession.add_all([t1, t2, t3, t4, c1])
+        self.dbsession.flush()
+        update_playing_teams(self.dbsession.connection())
+        update_challenge_points(self.dbsession.connection())
+        self.dbsession.flush()
+        self.dbsession.expire(c1)
         Submission(challenge=c1, team=t1)
-        Submission(challenge=c1, team=t2, bonus=3)
+        Submission(challenge=c1, team=t2, additional_pts=3)
         Submission(challenge=c1, team=t3)
         assert t1.rank == 2
         assert t2.rank == 1
