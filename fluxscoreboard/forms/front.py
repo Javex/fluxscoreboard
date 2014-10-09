@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import AvatarField, team_size_field
-from fluxscoreboard.forms.validators import (name_length_validator,
+from fluxscoreboard.forms._fields import AvatarField, team_size_field
+from fluxscoreboard.forms._validators import (name_length_validator,
     email_length_validator, password_min_length_validator,
     password_max_length_validator, required_validator, email_equal_validator,
     email_unique_validator, password_equal_validator,
     password_required_and_valid_if_pw_change, password_min_length_if_set_validator,
-    password_max_length_if_set_validator, avatar_dimensions_validator,
-    avatar_size_validator, name_unique_validator)
-from fluxscoreboard.models.challenge import get_solvable_challenges
+    password_max_length_if_set_validator, avatar_size_validator, name_unique_validator)
 from fluxscoreboard.models.country import get_all_countries
-from pyramid.security import authenticated_userid
 from pyramid.threadlocal import get_current_request
 from pytz import common_timezones, utc
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
@@ -36,8 +33,7 @@ def _solvable_challenges_factory():
     the request from the current context.
     """
     request = get_current_request()
-    team_id = authenticated_userid(request)
-    return get_solvable_challenges(team_id)
+    return request.team.get_solvable_challenges()
 
 
 class RegisterForm(CSRFForm):
@@ -210,18 +206,15 @@ class ProfileForm(CSRFForm):
 
     password_repeat = PasswordField("Repeat New Password")
 
-    avatar = AvatarField("Avatar",
-                       description=("Upload an avatar image. The File must "
-                                    "not be larger than %d%s and must have "
-                                    "maximum dimensions of %dx%dpx"
-                                    % (avatar_size_validator.max_size,
-                                       avatar_size_validator.unit,
-                                       avatar_dimensions_validator.max_width,
-                                       avatar_dimensions_validator.max_height)
-                                    ),
-                         validators=[avatar_dimensions_validator,
-                                     avatar_size_validator],
-                         )
+    avatar = AvatarField(
+        "Avatar",
+        description=("Upload an avatar image. The File must not be larger "
+                     "than %d%s and must have maximum dimensions of 90x25px"
+                     % (avatar_size_validator.max_size,
+                        avatar_size_validator.unit)
+                    ),
+        validators=[avatar_size_validator],
+    )
 
     country = QuerySelectField("Country/State",
                                query_factory=get_all_countries

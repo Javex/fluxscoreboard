@@ -17,9 +17,11 @@
     % for team, points, rank in teams:
         <tr class="${'success bold' if request.team and team.id == request.team.id else ''}">
             <td>${rank}</td>
-            <td>
+            <td class="avatar">
             % if team.avatar_filename:
-                <img src="${request.static_url('fluxscoreboard:static/images/avatars/%s' % team.avatar_filename)}" class="avatar" title="${team.name}"/>
+                <img src="${request.route_url('avatar', avatar=team.avatar_filename)}" class="avatar" title="${team.name}"/>
+            % else:
+                &nbsp;
             % endif
             </td>
             <td>${team.name}</td>
@@ -30,9 +32,9 @@
             % for challenge in challenges:
                 <td class="challenge">
                     % if challenge in [s.challenge for s in team.submissions]:
-                        ${challenge.points + [s for s in team.submissions if s.challenge == challenge][0].bonus}
+                        ${challenge.points + [s for s in team.submissions if s.challenge == challenge][0].additional_pts}
                     % elif challenge.dynamic:
-                        ${challenge.module.points(team)}
+                        ${challenge.module.get_points(team)}
                     % else:
                         -
                     % endif

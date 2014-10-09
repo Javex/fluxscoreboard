@@ -1,9 +1,4 @@
 <%inherit file="base.mako"/>
-<%
-from fluxscoreboard.models.challenge import manual_challenge_points
-import logging
-log = logging.getLogger(__name__)
-%>
 <table class="table sortable">
     <thead>
         <tr>
@@ -33,10 +28,10 @@ log = logging.getLogger(__name__)
             <td>
                 % if challenge.dynamic:
                     -
-                % elif challenge.points is manual_challenge_points:
+                % elif challenge.manual:
                     <em>${challenge.points}</em>
                 % else:
-                    ${challenge.points or '-'}
+                    ${challenge.base_points} (+ ${challenge.points - challenge.base_points if challenge.points else 100})
                 % endif
             </td>
             <td>

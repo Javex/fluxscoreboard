@@ -9,7 +9,7 @@ def get_all_countries():
     """
     Get a query that fetches a list of all countries from the database.
     """
-    return DBSession().query(Country)
+    return DBSession.query(Country)
 
 
 class Country(Base):
@@ -19,9 +19,6 @@ class Country(Base):
     """
     id = Column(Integer, primary_key=True)
     name = Column(UnicodeText)
-
-    def __str__(self):
-        return unicode(self).encode("utf-8")
 
     def __unicode__(self):
         return self.name

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-from PIL import Image
-from fluxscoreboard.forms.validators import (RecaptchaValidator,
+from fluxscoreboard.forms._validators import (RecaptchaValidator,
     greater_zero_if_set)
 from pyramid.threadlocal import get_current_request
 from pytz import utc
-from wtforms.fields.core import _unset_value, Field
+from wtforms.fields.core import Field
 from wtforms.fields.html5 import IntegerField, DateTimeField
 from wtforms.fields.simple import FileField
 from wtforms.widgets.core import FileInput, HTMLString, html_params, Input
@@ -21,9 +20,6 @@ class AvatarWidget(FileInput):
     """
     A widget that renders the current avatar above the form to upload a new
     one.
-
-    .. todo::
-        Create a button to delete the existing avatar.
     """
 
     def __call__(self, field, **kwargs):
@@ -34,24 +30,25 @@ class AvatarWidget(FileInput):
             fpath = request.static_url("fluxscoreboard:static/images/avatars/%s"
                                        % filename)
             out.append('<img class="avatar-large" src="%s" />' % fpath)
+            out.append('<input id="delete-avatar" type="submit" '
+                       'class="btn btn-danger btn-small" value="Delete Avatar"'
+                       ' name="delete-avatar" />')
         out.append(FileInput.__call__(self, field, **kwargs))
         return HTMLString(''.join(out))
 
 
 class AvatarField(FileField):
     """
-    An avatar upload field with a display of an existing avatar. Also gives
-    access to an ``image`` that is in instance of a PIL ``Image`` if the
-    filename is set.
+    An avatar upload field with a display of an existing avatar.
     """
     widget = AvatarWidget()
 
-    def process(self, formdata, data=_unset_value):
-        FileField.process(self, formdata, data)
-        try:
-            self.image = Image.open(self.data.file)
-        except (IOError, AttributeError):
-            self.image = None
+    def process(self, formdata, *args, **kw):
+        if formdata.getlist("delete-avatar"):
+            self.delete = True
+        else:
+            self.delete = False
+        return FileField.process(self, formdata, *args, **kw)
 
 
 class ButtonWidget(object):

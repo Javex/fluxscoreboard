@@ -3,13 +3,14 @@ from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.team import (TEAM_MAIL_MAX_LENGTH, Team,
     TEAM_PASSWORD_MAX_LENGTH, TEAM_NAME_MAX_LENGTH)
+from fluxscoreboard.models.challenge import Challenge
 from pyramid.threadlocal import get_current_request
 from urllib import urlencode
 from wtforms import validators
 from wtforms.validators import ValidationError
 import logging
 import urllib2
-from fluxscoreboard.models.challenge import Challenge
+import os
 
 
 log = logging.getLogger(__name__)
@@ -39,8 +40,7 @@ def email_unique_validator(form, field):
     yet.
     """
     email = field.data
-    dbsession = DBSession()
-    email_exists = dbsession.query(Team).filter(Team.email == email).all()
+    email_exists = DBSession.query(Team).filter(Team.email == email).all()
     if len(email_exists) > 0:
         raise ValueError("This email is already registered.")
     else:
@@ -53,8 +53,7 @@ def name_unique_validator(form, field):
     yet.
     """
     name = field.data
-    dbsession = DBSession()
-    name_exists = dbsession.query(Team).filter(Team.name == name).all()
+    name_exists = DBSession.query(Team).filter(Team.name == name).all()
     if len(name_exists) > 0:
         raise ValueError("This name is already registered.")
     else:
@@ -67,7 +66,7 @@ password_min_length_validator = validators.Length(
     min=8, message=("Oh boy, shorter than %(min)d characters. You should be "
                     "ashamed!"))
 password_max_length_validator = validators.Length(
-    max=TEAM_PASSWORD_MAX_LENGTH,
+    max=1024,
     message=("Wow! I am proud of you. But don't you think %(max)d characters "
              "should be secure enough?"))
 name_length_validator = validators.Length(min=1, max=TEAM_NAME_MAX_LENGTH,
@@ -106,7 +105,7 @@ def password_required_if_new(form, field):
     A validator that only requires a password if the team is newly created,
     i.e. its id is ``None``.
     """
-    if form.id.data is None:
+    if not form.id.data:
         return required_validator(form, field)
     else:
         return True
@@ -215,47 +214,14 @@ def dynamic_check_multiple_allowed(form, field):
         return True
     from ..models import dynamic_challenges
     module = dynamic_challenges.registry[field.data]
-    instance_exists = (DBSession().query(Challenge).
-                       filter(Challenge.module_name == field.data))
+    instance_exists = (DBSession.query(Challenge).
+                       filter(Challenge.module == field.data))
     if form.id.data:
         instance_exists = instance_exists.filter(Challenge.id != form.id.data)
     if not module.allow_multiple and instance_exists.first():
         raise ValueError("Multiple instances of this module are not allowed.")
     else:
         return True
-
-
-class AvatarDimensions(object):
-    """
-    A validator for image dimensions. Pass it a maximum width and height with
-    the ``max_width`` and ``max_height`` parameters and optionally a custom
-    message that has access to both parameters:
-    ``"Maximum dimensions: (%(max_width)d, %(max_height)d)"``.
-
-    .. note::
-        This validator requires access to a PIL Image, for example from the
-        :class:`fluxscoreboard.forms.fields.AvatarField`.
-    """
-
-    def __init__(self, max_width, max_height, message=None):
-        self.max_width = max_width
-        self.max_height = max_height
-        if message is None:
-            message = ('Invalid dimensions. The maximum allowed width is '
-                       '%(max_width)dpx and the maximum allowed height is '
-                       '%(max_height)dpx.')
-        self.message = message % locals()
-
-    def __call__(self, form, field):
-        if field.data == '' or field.data is None:
-            return True
-        if field.image is None:
-            raise ValueError("Invalid image.")
-        width, height = field.image.size
-        if width > self.max_width or height > self.max_height:
-            raise ValueError(self.message)
-        else:
-            return True
 
 
 class AvatarSize(object):
@@ -280,7 +246,7 @@ class AvatarSize(object):
     def __call__(self, form, field):
         if field.data == '' or field.data is None:
             return True
-        byte_size = len(field.data.value)
+        byte_size = os.fstat(field.data.file.fileno()).st_size
         unit_size = byte_size / self.unit_mult[self.unit]
         if unit_size > self.max_size:
             raise ValueError(self.message)
@@ -288,8 +254,7 @@ class AvatarSize(object):
             return True
 
 
-avatar_dimensions_validator = AvatarDimensions(450, 200)
-avatar_size_validator = AvatarSize(1)
+avatar_size_validator = AvatarSize(100, 'KB')
 
 
 class RecaptchaValidator(object):

@@ -17,8 +17,9 @@ Documentation for Users
 .. toctree::
    :maxdepth: 2
 
-   install
-   features
+   user/install
+   user/features
+
 
 Documentation for Develpers
 ---------------------------
@@ -33,6 +34,7 @@ Developer Narrative:
    develop/template
    develop/times
    develop/views
+   develop/dynamic
    develop/other
    develop/tests
 

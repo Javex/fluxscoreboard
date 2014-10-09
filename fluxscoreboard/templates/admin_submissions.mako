@@ -10,7 +10,7 @@
                 <th>Team (ID)</th>
                 <th>Challenge (ID)</th>
                 <th>Timestamp (UTC)</th>
-                <th>Bonus</th>
+                <th>Additional Points</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -20,7 +20,7 @@
                 <td>${submission.team} (${submission.team_id})</td>
                 <td>${submission.challenge} (${submission.challenge_id})</td>
                 <td>${submission.timestamp.strftime("%Y-%m-%d %H:%M:%S")}</td>
-                <td>${submission.bonus}</td>
+                <td>${submission.additional_pts}</td>
                 <td class="btn-group">
                     <button type="button" class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown">
                         Action <span class="caret"></span>

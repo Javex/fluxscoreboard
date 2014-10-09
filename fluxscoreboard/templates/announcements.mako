@@ -1,5 +1,8 @@
+<%
+from fluxscoreboard.util import now
+%>
 <%inherit file="base.mako"/>
-<h1>Welcome to the hack.lu 2013 CTF!</h1>
+<h1>Welcome to the hack.lu ${now().year} CTF!</h1>
 ${render_announcements(announcements)}
 
 <%def name="render_announcements(announcements, display_item_title=True, challenge_title=None)">
@@ -24,7 +27,7 @@ ${render_announcements(announcements)}
                     General Announcement
                 % endif
             % endif
-                <small>(Published on ${tz_str(news.timestamp, view.team.timezone if view.team else None)})</small>
+                <small>(Published on ${tz_str(news.timestamp, request.team.timezone if request.team else None)})</small>
             </h4>
         <p>${news.message | n}</p>
         </div>

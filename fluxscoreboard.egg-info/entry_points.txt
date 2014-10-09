@@ -1,5 +1,0 @@
-      [paste.app_factory]
-      main = fluxscoreboard:main
-      [console_scripts]
-      initialize_fluxscoreboard_db = fluxscoreboard.scripts.initializedb:main
-      

@@ -47,6 +47,7 @@
                                                          ('admin_teams_delete', "Delete"), 
                                                          ('admin_teams_activate', ("Deactivate" if team.active else "Activate") + " Team"),
                                                          ('admin_teams_toggle_local', "Make Team " + ("Remote" if team.local else "Local")),
+                                                         ('admin_teams_regenerate_token', "Regenerate Token"),
                                                          ('test_login', "Test Login"),
                                                          ('admin_teams_ips', "List IPs")])}
                 </td>

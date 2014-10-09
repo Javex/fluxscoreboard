@@ -1,31 +1,34 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
-from fluxscoreboard.models.challenge import Submission, Challenge, Category
-from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token
+from fluxscoreboard.models.challenge import (Submission, Challenge, Category,
+    get_online_challenges)
+from fluxscoreboard.models.types import Timezone
+from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token, now
 from pyramid.decorator import reify
 from pyramid.events import subscriber, NewRequest
 from pyramid.renderers import render
-from pyramid.security import unauthenticated_userid, authenticated_userid
 from pyramid.threadlocal import get_current_request
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
-from pytz import utc, timezone, all_timezones
+from pytz import utc
 from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, subqueryload, joinedload, backref
+from sqlalchemy.orm import relationship, backref, subqueryload, joinedload
 from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
-from sqlalchemy.sql.expression import func, desc
+from sqlalchemy.sql.expression import func, desc, bindparam, not_, cast
 from sqlalchemy.types import Integer, Unicode, Boolean
+from sqlalchemy.dialects.postgresql import INET
 import logging
 import random
 import string
 import transaction
+import uuid
 
 
 log = logging.getLogger(__name__)
@@ -45,7 +48,7 @@ def groupfinder(userid, request):
     Check if there is a team logged in, and if it is, return the default
     :data:`TEAM_GROUPS`.
     """
-    if get_team(request):
+    if request.team:
         return TEAM_GROUPS
 
 
@@ -53,26 +56,14 @@ def get_all_teams():
     """
     Get a query that returns a list of all teams.
     """
-    return DBSession().query(Team)
+    return DBSession.query(Team)
 
 
 def get_active_teams():
     """
     Get a query that returns a list of all active teams.
     """
-    return DBSession().query(Team).filter(Team.active == True)
-
-
-def get_leading_team():
-    """
-    Get the leading team with the highest rank.
-    """
-    actives = get_active_teams()
-    score = desc(Team.score)
-    try:
-        return actives.order_by(score)[0]
-    except IndexError:
-        return None
+    return DBSession.query(Team).filter(Team.active == True)
 
 
 def get_team_solved_subquery(team_id):
@@ -84,8 +75,8 @@ def get_team_solved_subquery(team_id):
         .. code-block:: python
 
             team_solved_subquery = get_team_solved_subquery(team_id)
-            challenge_query = (dbsession.query(Challenge,
-                                               team_solved_subquery.exists()))
+            challenge_query = (DBSession.query(Challenge,
+                                               team_solved_subquery))
 
     In this example we query for a list of all challenges and additionally
     fetch whether the currenttly logged in team has solved it.
@@ -94,11 +85,16 @@ def get_team_solved_subquery(team_id):
     # solved the corresponding challenge. The correlate statement is
     # a SQLAlchemy statement that tells it to use the **outer** challenge
     # column.
-    team_solved_subquery = (DBSession().query(Submission).
-                            filter(Submission.team_id == team_id).
-                            filter(Challenge.id ==
-                                   Submission.challenge_id).
-                            correlate(Challenge))
+    if team_id:
+        team_solved_subquery = (DBSession.query(Submission).
+                                filter(Submission.team_id == team_id).
+                                filter(Challenge.id ==
+                                       Submission.challenge_id).
+                                correlate(Challenge).
+                                exists().
+                                label("has_solved"))
+    else:
+        team_solved_subquery = bindparam("has_solved", 0)
     return team_solved_subquery
 
 
@@ -111,7 +107,7 @@ def get_number_solved_subquery():
         .. code-block:: python
 
             number_of_solved_subquery = get_number_solved_subquery()
-            challenge_query = (dbsession.query(Challenge,
+            challenge_query = (DBSession.query(Challenge,
                                                number_of_solved_subquery)
 
     Here we query for a list of all challenges and additionally fetch the
@@ -119,36 +115,35 @@ def get_number_solved_subquery():
     challenge to correlate on, so make sure to provide one or this query
     makes no sense.
     """
-    return (DBSession().query(func.count('*')).
+    return (DBSession.query(func.count('*')).
             filter(Challenge.id == Submission.challenge_id).
             correlate(Challenge).
-            as_scalar())
+            label("solved_count"))
 
 
 def get_team(request):
     """
-    Get the currently logged in team. Fetches the team from the database
-    only once, then stores it in the request.
+    Get the currently logged in team. Returns None if the team is invalid (e.g.
+    inactive) or noone is logged in or if the scoreboard is in archive mode.
     """
-    if not hasattr(request, 'team'):
-        dbsession = DBSession()
-        team_id = unauthenticated_userid(request)
-        if not request.settings.archive_mode:
-            try:
-                team = (dbsession.query(Team).
-                        options(subqueryload('submissions'),
-                                joinedload('submissions.challenge'),
-                                joinedload('team_flags')).
-                        filter(Team.id == team_id).
-                        filter(Team.active == True).one())
-                request.team = team
-            except NoResultFound:
-                request.team = None
-        else:
-            request.team = None
-            if team_id:
-                request.session.invalidate()
-    return request.team
+    team_id = request.unauthenticated_userid
+    if team_id is None:
+        return None
+    if not request.settings.archive_mode:
+        try:
+            team = (DBSession.query(Team).
+                    filter(Team.id == team_id).
+                    filter(Team.active == True).
+                    options(subqueryload('submissions').
+                            joinedload('challenge')).
+                    one())
+            return team
+        except NoResultFound:
+            return None
+    else:
+        if team_id:
+            request.session.invalidate()
+        return None
 
 
 def register_team(form, request):
@@ -156,7 +151,8 @@ def register_team(form, request):
     Create a new team from a form and send a confirmation email.
 
     Args:
-        ``form``: A filled out :class:`fluxscoreboard.forms.front.RegisterForm`.
+        ``form``: A filled out
+        :class:`fluxscoreboard.forms.front.RegisterForm`.
 
         ``request``: The corresponding request.
 
@@ -170,13 +166,13 @@ def register_team(form, request):
                 timezone=form.timezone.data,
                 size=form.size.data,
                 )
-    dbsession = DBSession()
-    dbsession.add(team)
+    DBSession.add(team)
     mailer = get_mailer(request)
-    message = Message(subject="Your hack.lu 2013 CTF Registration",
+    year = now().year
+    message = Message(subject="Your hack.lu %s CTF Registration" % year,
                       recipients=[team.email],
                       html=render('mail_register.mako',
-                                  {'team': team},
+                                  {'team': team, 'year': year},
                                   request=request,
                                   )
                       )
@@ -199,11 +195,11 @@ def confirm_registration(token):
     if token is None:
         return False
     try:
-        team = DBSession().query(Team).filter(Team.token == token).one()
+        team = DBSession.query(Team).filter(Team.token == token).one()
     except NoResultFound:
         return False
     team.active = True
-    team.token = random_token()
+    team.token = None
     return True
 
 
@@ -227,7 +223,7 @@ def login(email, password):
         login failed, ``team`` is ``None``.
     """
     try:
-        team = (DBSession().
+        team = (DBSession.
                 query(Team).
                 filter(Team.email == email).
                 one())
@@ -246,9 +242,8 @@ def password_reminder(email, request):
     reset token. If no team is found send an email that no user was found for
     this address.
     """
-    dbsession = DBSession()
     mailer = get_mailer(request)
-    team = dbsession.query(Team).filter(Team.email == email).first()
+    team = DBSession.query(Team).filter(Team.email == email).first()
     if team:
         # send mail with reset token
         team.reset_token = random_token()
@@ -260,7 +255,8 @@ def password_reminder(email, request):
         html = render('mail_password_reset_invalid.mako', {'email': email},
                       request=request)
         recipients = [email]
-    message = Message(subject="Password Reset for Hack.lu 2013",
+    year = now().year
+    message = Message(subject="Password Reset for hack.lu CTF %s" % year,
                       recipients=recipients,
                       html=html,
                       )
@@ -272,15 +268,13 @@ def check_password_reset_token(token):
     """
     Check if an entered password reset token actually exists in the database.
     """
-    dbsession = DBSession()
-    team = (dbsession.query(Team).
+    team = (DBSession.query(Team).
             filter(Team.reset_token == token).first())
     return team
 
 
 def get_team_by_ref(ref_id):
-    return (DBSession().query(Team).
-            # options(subqueryload(Team.flags)).
+    return (DBSession.query(Team).
             filter(Team.ref_token == ref_id).one())
 
 
@@ -318,6 +312,10 @@ class Team(Base):
 
         ``ref_token``: When using the ``ref`` feature, this token is used.
 
+        ``challenge_token``: Unique token for each team they can provide to
+            a challenge so this challenge can do rate-limiting or banning or
+            whatever it wants to do.
+
         ``active``: Whether the team's mail address has been verified and the
         team can actively log in.
 
@@ -330,54 +328,40 @@ class Team(Base):
 
         ``size``: The size of the team.
 
-        ``flags``: A list of countries from which the team already visited.
-        See :mod:`fluxscoreboard.models.dynamic_challenges.flags` for more
-        information on this feature.
-
-        .. todo::
-            Update this once ``flags`` is a ``set``.
-
         ``country``: Direct access to the teams
         :class:`fluxscoreboard.models.country.Country` attribute.
     """
     id = Column(Integer, primary_key=True)
-    name = Column(Unicode(TEAM_NAME_MAX_LENGTH), nullable=False, unique=True)
-    _password = Column('password', Unicode(TEAM_PASSWORD_MAX_LENGTH),
-                       nullable=False)
-    email = Column(Unicode(TEAM_MAIL_MAX_LENGTH), nullable=False, unique=True)
+    name = Column(Unicode, nullable=False, unique=True)
+    _password = Column('password', Unicode, nullable=False)
+    email = Column(Unicode, nullable=False, unique=True)
     country_id = Column(Integer, ForeignKey('country.id'), nullable=False)
     local = Column(Boolean, default=False)
-    token = Column(Unicode(64), nullable=False, unique=True)
-    reset_token = Column(Unicode(64), unique=True)
-    ref_token = Column(Unicode(15), nullable=False, default=ref_token,
+    token = Column(Unicode, unique=True, default=random_token)
+    reset_token = Column(Unicode, unique=True)
+    ref_token = Column(Unicode, nullable=False, default=ref_token,
                        unique=True)
+    challenge_token = Column(Unicode, unique=True,
+                             default=lambda: unicode(uuid.uuid4()),
+                             nullable=False)
     active = Column(Boolean, default=False)
-    # TODO: Timezone as seperate type
-    _timezone = Column('timezone', Unicode(30),
-                       default=lambda: unicode(utc.zone),
-                       nullable=False)
-    avatar_filename = Column(Unicode(68), unique=True)
+    timezone = Column(Timezone, default=lambda: utc,
+                      nullable=False)
+    avatar_filename = Column(Unicode, unique=True)
     size = Column(Integer)
 
-    # TODO: Make it a set (and update TeamFlags docs)
-    flags = association_proxy("team_flags", "flag")
     ips = association_proxy("team_ips", "ip")
 
     country = relationship("Country", lazy='joined')
 
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("token", random_token())
-        Base.__init__(self, *args, **kwargs)
-
-    def __str__(self):
-        return unicode(self).encode("utf-8")
+    _score = None
 
     def __unicode__(self):
         return self.name
 
     def __repr__(self):
         return (('<Team name=%s, email=%s, local=%s, active=%s>'
-                % (self.name, self.email, self.local, self.active)).
+                 % (self.name, self.email, self.local, self.active)).
                 encode("utf-8"))
 
     def validate_password(self, password):
@@ -400,19 +384,6 @@ class Team(Base):
     def password(self, pw):
         self._password = encrypt_pw(pw)
 
-    @property
-    def timezone(self):
-        if self._timezone is None:
-            return None
-        else:
-            return timezone(self._timezone)
-
-    @timezone.setter
-    def timezone(self, tz):
-        timezone = unicode(tz)
-        assert timezone in all_timezones
-        self._timezone = timezone
-
     def get_category_solved(self, category):
         cat_solved, total = self.stats.get(category, (0, 0))
         if total == 0:
@@ -430,18 +401,17 @@ class Team(Base):
     @reify
     def stats(self):
         _stats = {}
-        dbsession = DBSession()
-        count_query = (dbsession.query(func.count(Challenge.id)).
+        count_query = (DBSession.query(func.count(Challenge.id)).
                        filter(Challenge.category_id == Category.id).
                        filter(~Challenge.dynamic).
                        filter(Challenge.published).
                        correlate(Category))
-        submission = (dbsession.query(Submission).
+        submission = (DBSession.query(Submission).
                       filter(Submission.team_id == self.id).
                       filter(Submission.challenge_id == Challenge.id).
                       correlate(Challenge))
         team_count_query = count_query.filter(submission.exists())
-        query = dbsession.query(Category.name, count_query.as_scalar(),
+        query = DBSession.query(Category.name, count_query.as_scalar(),
                                 team_count_query.as_scalar())
         for name, total, team_count in query:
             _stats[name] = (team_count, total)
@@ -454,31 +424,39 @@ class Team(Base):
 
     @hybrid_property
     def score(self):
-        from fluxscoreboard.models import dynamic_challenges
-        challenge_sum = sum(s.challenge.points or 0 for s in self.submissions
+        if self._score is None:
+            # challenge points
+            challenge_sum = sum(s.challenge.points for s in self.submissions
+                                if s.challenge.published)
+
+            # first blood points
+            bonus_sum = sum(s.additional_pts or 0 for s in self.submissions
                             if s.challenge.published)
-        bonus_sum = sum(s.bonus or 0 for s in self.submissions
-                        if s.challenge.published)
-        dynamic_points = 0
-        for module in dynamic_challenges.registry.values():
-            dynamic_points += module.points(self)
-        return challenge_sum + bonus_sum + dynamic_points
+
+            # dynamic points
+            from fluxscoreboard.models import dynamic_challenges
+            dynamic_modules = dynamic_challenges.registry.values()
+            dynamic_points = sum(module.get_points(self)
+                                 for module in dynamic_modules)
+
+            # total score
+            self._score = challenge_sum + bonus_sum + dynamic_points
+        return self._score
 
     @score.expression
-    def score(cls):  # @NoSelf
+    def score(cls):
         from fluxscoreboard.models import dynamic_challenges
-        dbsession = DBSession()
         # Calculate sum of all points, defalt to 0
         challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
-        # Calculate sum of all bonus points, default to 0
-        bonus_sum = func.coalesce(func.sum(Submission.bonus), 0)
+        # Calculate sum of all first blood points, default to 0
+        bonus_sum = func.coalesce(func.sum(Submission.additional_pts), 0)
         points_col = challenge_sum + bonus_sum
         for module in dynamic_challenges.registry.values():
-            points_col += module.points_query(cls)
+            points_col += module.get_points_query(cls)
         # Create a subquery for the sum of the above points. The filters
         # basically join the columns and the correlation is needed to reference
         # the **outer** Team query.
-        team_score_subquery = (dbsession.query(points_col).
+        team_score_subquery = (DBSession.query(cast(points_col, Integer)).
                                filter(Challenge.id == Submission.challenge_id).
                                filter(cls.id == Submission.team_id).
                                filter(~Challenge.dynamic).
@@ -493,7 +471,7 @@ class Team(Base):
 
         .. code-block:: python
 
-            DBSession().query(Team).order_by(Team.rank)
+            DBSession.query(Team).order_by(Team.rank)
             # or
             team = Team()
             team.rank
@@ -503,19 +481,43 @@ class Team(Base):
         `"1224" ranking <http://en.wikipedia.org/wiki/Ranking#Standard_competition_ranking_.28.221224.22_ranking.29>`_
         here.
         """
-        rank = (DBSession().query(Team).filter(Team.score > self.score).
+        rank = (DBSession.query(Team).filter(Team.score > self.score).
                 order_by(desc(Team.score)).count()) + 1
         return rank
 
     @rank.expression
     def rank(self):
         inner_team = aliased(Team)
-        return (DBSession().query(func.count('*') + 1).
+        return (DBSession.query(func.count('*') + 1).
                 select_from(inner_team).
                 filter(inner_team.score > Team.score).
-                order_by(desc(inner_team.score)).
+                #order_by(desc(inner_team.score)).
                 correlate(Team).
                 label('rank'))
+
+    def get_unsolved_challenges(self):
+        """
+        Return a query that produces a list of all unsolved challenges for a
+        given team.
+        """
+        team_solved_subquery = get_team_solved_subquery(self.id)
+        online = get_online_challenges()
+        return online.filter(not_(team_solved_subquery))
+
+    def get_solvable_challenges(self):
+        """
+        Return a list of challenges that the team can solve right now. It
+        returns a list of challenges that are
+
+        - online
+        - unsolved by the current team
+        - not manual or dynamic (i.e. solvable by entering a solution)
+        """
+        unsolved = self.get_unsolved_challenges()
+        return (unsolved.
+                filter(~Challenge.manual).
+                filter(~Challenge.dynamic).
+                filter(Challenge.published))
 
 
 @event.listens_for(Team._password, 'set')
@@ -534,15 +536,14 @@ def register_ip(event):
             event.request.session["test-login"] or
             event.request.path.startswith('/static')):
         return None
-    team_id = authenticated_userid(event.request)
+    team_id = event.request.authenticated_userid
     t = transaction.savepoint()
     if not team_id:
         return
     ip = unicode(event.request.client_addr)
     try:
-        dbsession = DBSession()
-        dbsession.add(TeamIP(team_id=team_id, ip=ip))
-        dbsession.flush()
+        DBSession.add(TeamIP(team_id=team_id, ip=ip))
+        DBSession.flush()
     except IntegrityError:
         t.rollback()
 
@@ -550,7 +551,7 @@ def register_ip(event):
 class TeamIP(Base):
     __tablename__ = 'team_ip'
     team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
-    ip = Column(Unicode(15), primary_key=True)
+    ip = Column(INET, primary_key=True)
 
     team = relationship("Team", backref=backref("team_ips",
                                                 cascade="all, delete-orphan"))

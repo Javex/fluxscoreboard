@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard import routes
-from fluxscoreboard.forms.fields import RecaptchaField
+from fluxscoreboard.forms._fields import RecaptchaField
 from fluxscoreboard.forms.front import RegisterForm
-from fluxscoreboard.models import DBSession, RootFactory
-from fluxscoreboard.models.team import groupfinder
+from fluxscoreboard.models import DBSession, RootFactory, dynamic_challenges
+from fluxscoreboard.models.team import groupfinder, get_team
+from fluxscoreboard.models.settings import load_settings
 from pyramid.authentication import SessionAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
@@ -14,7 +15,7 @@ from sqlalchemy import engine_from_config
 import warnings
 
 
-__version__ = '0.3.7'
+__version__ = '0.4.0'
 # ALWAYS make an exception for a warning (from sqlalchemy)
 warnings.filterwarnings("error", category=Warning, module=r'.*sqlalchemy.*')
 
@@ -47,18 +48,28 @@ def main(global_config, **settings):
                           root_factory=RootFactory,
                           )
 
+    # Add request properties
+    config.add_request_method(load_settings, b'settings', reify=True)
+    config.add_request_method(get_team, b'team', reify=True)
+
     # Routes & Views
     static_dir = 'static'
     subdirectory = settings.get("subdirectory", "")
     if subdirectory:
         static_dir = subdirectory + "/" + static_dir
     config.add_static_view(static_dir, 'static', cache_max_age=3600)
-    init_routes(config, subdirectory)
+    init_routes(config, settings, subdirectory)
+    for mod in dynamic_challenges.registry.values():
+        mod.activate(config, settings)
     config.scan()
     return config.make_wsgi_app()
 
 
-def init_routes(config, subdirectory=""):
+def init_routes(config, settings, subdirectory=""):
+    avatar_domain = settings["avatar_domain"]
+    avatar_base_url = '%s/static/images/avatars/' % avatar_domain
+    config.add_route('avatar', avatar_base_url + '{avatar}')
+    config.add_route('rules', settings["rules_url"])
     for name, path in routes.routes:
         if subdirectory:
             path = "/" + subdirectory + path

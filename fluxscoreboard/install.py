@@ -84,10 +84,11 @@ def install_test_data(dbsession, settings):
         challenge = Challenge(title=random_str(10),
                               text=random_str(50),
                               solution=random_str(10),
-                              _points=random.randint(1, 1000),
+                              base_points=random.choice(range(100, 501, 100)),
                               online=random.choice([True, True, False]),
-                              manual=(True if random.randint(0, 100) < 90
-                                      else False),
+                              published=random.choice([True, True, False]),
+                              manual=(False if random.randint(0, 100) < 90
+                                      else True),
                               category=cat,
                               )
         challenges.append(challenge)
@@ -107,9 +108,9 @@ def install_test_data(dbsession, settings):
     submissions = []
     for challenge in challenges:
         for team in teams:
-            if random.randint(0, 100) < 30:
+            if random.randint(0, 100) < 30 or not team.active:
                 continue
-            submission = Submission(bonus=0)
+            submission = Submission(additional_pts=0)
             submission.team = team
             submission.challenge = challenge
             submissions.append(submission)
@@ -129,19 +130,20 @@ def install_test_data(dbsession, settings):
 
 
 def create_country_list(dbsession):
-    if not dbsession.query(Country).all():
+    countries = dbsession.query(Country).all()
+    if not countries:
         with open("states.json") as f:
             country_names = [item["name"] for item in json.load(f)]
         for name in country_names:
             assert isinstance(name, unicode)
         countries = [Country(name=name) for name in country_names]
         dbsession.add_all(countries)
-        return countries
+    return countries
 
 
 def uninstall(settings):
     """
     Remove those parts created by install
     """
-    Base.metadata.drop_all(bind=DBSession().connection())
+    Base.metadata.drop_all(bind=DBSession.connection())
     transaction.commit()

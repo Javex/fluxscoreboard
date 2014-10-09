@@ -56,6 +56,11 @@ th.avatar {
 img.avatar {
     width: 90px;
     vertical-align: middle;
+    max-height: 25px;
+}
+
+td.avatar {
+    height: 42px;
 }
 
 img.avatar-large {
@@ -63,6 +68,10 @@ img.avatar-large {
     display:block;
 }
 
+#delete-avatar {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
 
 .text-white {
 	color: white;

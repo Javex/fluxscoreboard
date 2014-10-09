@@ -11,10 +11,14 @@ import logging
 log = logging.getLogger(__name__)
 
 
-@subscriber(NewRequest)
-def load_settings(event):
-    settings = DBSession().query(Settings).one()
-    event.request.settings = settings
+CTF_BEFORE = 1
+CTF_STARTED = 2
+CTF_ARCHIVE = 3
+
+
+def load_settings(request):
+    settings = DBSession.query(Settings).one()
+    return settings 
 
 
 class Settings(Base):
@@ -56,12 +60,16 @@ class Settings(Base):
             - Solutions can be submitted but will only return the result, not
               enter something into the databse
             - Challenges are public in addition to the scoreboard
+
+        ``ctf_state``: Which time state the CTF currently is in. Relevant for
+            permissions etc.
     """
     id = Column(Integer, primary_key=True)
-    submission_disabled = Column(Boolean, default=False)
+    submission_disabled = Column(Boolean, default=False, nullable=False)
     ctf_start_date = Column(TZDateTime)
     ctf_end_date = Column(TZDateTime)
     archive_mode = Column(Boolean, default=False, nullable=False)
+    playing_teams = Column(Integer, default=0, nullable=False)
 
     @property
     def ctf_started(self):
@@ -69,3 +77,12 @@ class Settings(Base):
         if self.ctf_start_date is None:
             return False
         return now() >= self.ctf_start_date
+
+    @property
+    def ctf_state(self):
+        if self.archive_mode:
+            return CTF_ARCHIVE
+        elif self.ctf_started:
+            return CTF_STARTED
+        else:
+            return CTF_BEFORE

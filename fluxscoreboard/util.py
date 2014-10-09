@@ -4,7 +4,6 @@ from datetime import datetime
 from functools import wraps
 from pyramid.events import NewResponse, subscriber
 from pyramid.httpexceptions import HTTPFound
-from pyramid.security import authenticated_userid
 from pytz import utc
 import bcrypt
 import binascii
@@ -26,9 +25,8 @@ def display_design(request):
     - If it is a test-login from the backend, show the design.
     - If the CTF has started, the real design is loaded for the frontpage
       (i.e. ``True``).
-    - If no route is matched or a public route is matched, the default design
-      is loaded (``False``).
-    - Otherwise the real design is loaded (``True``).
+    - If no route is matched, the default design is loaded (``False``).
+    - Otherwise we fall back to not show the design (``False``).
 
     The conditions are processed in order, i.e. the first match is returned.
     """
@@ -48,14 +46,8 @@ def display_design(request):
     if not request.matched_route:
         return False
 
-    # If the view is something that is public and we did not launch yet
-    # we display the default one. This is a list of routes that is public.
-    if request.matched_route.name in ['login', 'register',
-                                      'reset-password-start', 'reset-password',
-                                      'confirm']:
-        return False
-    else:
-        return True
+    # Safe fallback: No reason to display the real design
+    return False
 
 
 def is_admin_path(request):
@@ -182,7 +174,7 @@ class not_logged_in(object):
     def __call__(self, func):
         @wraps(func)
         def _redirect_if_logged_in(self_wrap, *args, **kwargs):
-            if authenticated_userid(self_wrap.request):
+            if self_wrap.request.authenticated_userid:
                 self_wrap.request.session.flash(self.msg)
                 return HTTPFound(location=self_wrap.request.route_url('home'))
             return func(self_wrap, *args, **kwargs)
@@ -209,7 +201,7 @@ def add_header_csp(event):
     settings = event.request.registry.settings
     # Add CSP header
     csp = settings.get("csp_headers", "").encode("ascii")
-    if csp:
+    if csp and b"Content-Security-Policy" not in event.response.headers:
         event.response.headers[b"Content-Security-Policy"] = csp
 
 

@@ -1,6 +1,5 @@
 <%
-from pyramid.security import authenticated_userid, has_permission
-from fluxscoreboard.util import display_design, tz_str, is_admin_path
+from fluxscoreboard.util import display_design, tz_str, is_admin_path, now
 import pytz
 %>
 
@@ -25,15 +24,14 @@ import pytz
             <link href="${request.static_url('fluxscoreboard:static/css/bootstrap.min.css')}" rel="stylesheet" />
         % endif
         <link href="${request.static_url('fluxscoreboard:static/css/hacklu.css')}" rel="stylesheet" />
-        <link href="${request.static_url('fluxscoreboard:static/css/flags16.css')}" rel="stylesheet" />
         
-        <title>Hack.lu 2013 CTF</title>
+        <title>Hack.lu ${now().year} CTF</title>
     </head>
     % if display_design(request):
     <body>
         <header>
         <div id="top">
-            <h1>hack.lu CTF v.2013</h1>
+            <h1>hack.lu CTF v.${now().year}</h1>
         </div>
         </header>
         <div id="head-wrap">
@@ -48,7 +46,7 @@ import pytz
                             <img src="${request.static_url('fluxscoreboard:static/images/lgraph_%s.png' % (int(view.ctf_progress * 10) * 10))}">
                         </div>
                         <div id="timer">
-                        % if not view.archive_mode:
+                        % if not request.settings.archive_mode:
                             <div>seconds until end</div>
                             <span id="timer-seconds">${view.seconds_until_end}</span>
                         % else:
@@ -57,7 +55,7 @@ import pytz
                         </div>
                         <div id="rgraph">
                             overall completion<br>
-                            <img src="${request.static_url('fluxscoreboard:static/images/rgraph_%s.png' % (int(round(view.team.get_overall_stats(), 1) * 100) if view.team else 0))}">
+                            <img src="${request.static_url('fluxscoreboard:static/images/rgraph_%s.png' % (int(round(request.team.get_overall_stats(), 1) * 100) if request.team else 0))}">
                         </div>
                     </div>
                     ${orb("Crypto")}
@@ -69,13 +67,13 @@ import pytz
                 <div id="middle-wrapper">
                     <div id="bar">
                         rank
-                        <div class="bar-val">${view.team.rank if view.team else '-'}</div>
+                        <div class="bar-val">${request.team.rank if request.team else '-'}</div>
                         <hr>
                         players
-                        <div class="bar-val">${view.team.size if view.team and view.team.size else '-'}</div>
+                        <div class="bar-val">${request.team.size if request.team and request.team.size else '-'}</div>
                         <hr>
                         score
-                        <div class="bar-val">${view.team.score if view.team else '-'}</div>
+                        <div class="bar-val">${request.team.score if request.team else '-'}</div>
                     </div>
                     <nav>
                         <ul class="menu">
@@ -89,7 +87,7 @@ import pytz
                             % endif
                         % endfor
                         </ul>
-                        <div id="teamname">${view.team.name if view.team else '-'}</div>
+                        <div id="teamname">${request.team.name if request.team else '-'}</div>
                     </nav>
                     <img src="${request.static_url('fluxscoreboard:static/images/middle.png')}" id="orb">
                     <div id="announcements">
@@ -97,7 +95,7 @@ import pytz
                         <div id="announce-items">
                         % for news in view.announcements:
                             <p>
-                                <span>[${tz_str(news.timestamp, view.team.timezone if view.team else pytz.utc)}]</span>
+                                <span>[${tz_str(news.timestamp, request.team.timezone if request.team else pytz.utc)}]</span>
                                 % if news.challenge_id:
                                     <em>[${news.challenge.title}]</em>
                                 % endif
@@ -160,7 +158,7 @@ import pytz
 
 <%def name="orb(title)">
 <div class="perc-orb">
-    <div data-value="${int(round(view.team.get_category_solved(title) * 100, 0)) if view.team else '-'}" class="perc"></div>
+    <div data-value="${int(round(request.team.get_category_solved(title) * 100, 0)) if request.team else '-'}" class="perc"></div>
     <a href="#">${title}</a>
 </div>
 </%def>

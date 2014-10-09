@@ -18,6 +18,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.sql.expression import not_, desc, asc
 from webhelpers.paginate import Page, PageURL_WebOb
 import logging
+import uuid
 
 
 log = logging.getLogger(__name__)
@@ -63,7 +64,6 @@ class AdminView(object):
                     break
             else:
                 self.request.session.flash(message)
-        # TODO: Make the choice a bit nicer.
         items_per_page = self.request.GET.get('items', None)
         if items_per_page:
             self.request.session["items_per_page"] = int(items_per_page)
@@ -90,7 +90,7 @@ class AdminView(object):
         Construct a simple query to the database. Even though it is dead simple
         it is factored out because it is used in more than one place.
         """
-        return DBSession().query(DatabaseClass)
+        return DBSession.query(DatabaseClass)
 
     def _list_retparams(self, page, form, is_new=None):
         """
@@ -174,7 +174,6 @@ class AdminView(object):
                                     Challenge, "Challenge")
         """
         # Prepare some paramters
-        dbsession = DBSession()
         items = self.items(DatabaseClass)
         if change_query:
             items = change_query(items)
@@ -195,7 +194,7 @@ class AdminView(object):
         if item_id is None:
             form = FormClass(self.request.POST, csrf_context=self.request)
         else:
-            db_item = (dbsession.query(DatabaseClass).
+            db_item = (DBSession.query(DatabaseClass).
                        filter(DatabaseClass.id == item_id).one())
             form = FormClass(None, db_item, csrf_context=self.request)
 
@@ -213,7 +212,6 @@ class AdminView(object):
         assert self.request.method == "POST"
 
         # Prepare parameters
-        dbsession = DBSession()
         form = FormClass(self.request.POST, csrf_context=self.request)
         page = self.page(self.items(DatabaseClass))
         redirect = self.redirect(route_name, page.page)
@@ -229,10 +227,10 @@ class AdminView(object):
         # New item or existing one?
         if not form.id.data:
             db_item = DatabaseClass()
-            dbsession.add(db_item)
+            DBSession.add(db_item)
             self.request.session.flash("%s added!" % title)
         else:
-            db_item = (dbsession.query(DatabaseClass).
+            db_item = (DBSession.query(DatabaseClass).
                        filter(DatabaseClass.id == form.id.data).one())
             self.request.session.flash("%s edited!" % title)
 
@@ -264,7 +262,6 @@ class AdminView(object):
         # Prepare parameters
         delete_form = ButtonForm(self.request.POST, csrf_context=self.request)
         current_page = int(self.request.GET.get('page', 1))
-        dbsession = DBSession()
         redirect = self.redirect(route_name, current_page)
         if title_plural is None:
             title_plural = title + "s"
@@ -278,9 +275,9 @@ class AdminView(object):
         item_id = delete_form.id.data
 
         # Delete the item
-        item = (dbsession.query(DatabaseClass).
+        item = (DBSession.query(DatabaseClass).
                 filter(DatabaseClass.id == item_id))
-        self._delete_item(dbsession, item, title, title_plural)
+        self._delete_item(DBSession, item, title, title_plural)
         return redirect
 
     def _admin_toggle_status(self, route_name, DatabaseClass, title='',
@@ -321,7 +318,6 @@ class AdminView(object):
         assert self.request.method == "POST"
 
         # Prepare parameters
-        dbsession = DBSession()
         current_page = int(self.request.GET.get('page', 1))
         redirect = self.redirect(route_name, current_page)
 
@@ -336,7 +332,7 @@ class AdminView(object):
                                     for key, value in status_types.items())
 
         # Fetch the item to toggle
-        item = (dbsession.query(DatabaseClass).
+        item = (DBSession.query(DatabaseClass).
                 filter(DatabaseClass.id == toggle_form.id.data).one())
 
         # Read the current status
@@ -530,10 +526,27 @@ class AdminView(object):
                              True: 'Set team as a local team'}
             )
 
+    @view_config(route_name='admin_teams_regenerate_token', request_method='POST')
+    def team_regenerate_token(self):
+        """Manually regenerate the teams challenge token"""
+        current_page = int(self.request.GET.get('page', 1))
+        redirect = self.redirect('admin_teams', current_page)
+        button_form = ButtonForm(self.request.POST, csrf_context=self.request)
+        if not button_form.validate():
+            self.request.session.flash("Regenerate failed.")
+            return redirect
+
+        team = DBSession.query(Team).filter(Team.id == button_form.id.data).one()
+        log.info("Generating new token for team %s, old token: %s"
+                 % (team.name, team.challenge_token))
+        team.challenge_token = str(uuid.uuid4()).decode("ascii")
+
+        self.request.session.flash("New token created for team %s" % team.name)
+        return redirect
+
     @view_config(route_name='admin_teams_cleanup', request_method='POST')
     def team_cleanup(self):
         """Remove ALL inactive teams. Warning: **DANGEROUS**"""
-        dbsession = DBSession()
         form = TeamCleanupForm(self.request.POST, csrf_context=self.request)
         redirect = self.redirect('admin_teams',
                                  int(self.request.GET.get("page", 1)))
@@ -541,10 +554,10 @@ class AdminView(object):
             return redirect
         if not form.team_cleanup.data:
             return redirect
-        inactive_teams = dbsession.query(Team).filter(not_(Team.active)).all()
+        inactive_teams = DBSession.query(Team).filter(not_(Team.active)).all()
         delete_count = len(inactive_teams)
         for team in inactive_teams:
-            dbsession.delete(team)
+            DBSession.delete(team)
         self.request.session.flash("Deleted %d teams" % delete_count)
         return redirect
 
@@ -552,7 +565,7 @@ class AdminView(object):
     def team_ips(self):
         """A list of IPs per team."""
         form = ButtonForm(self.request.POST, csrf_context=self.request)
-        team = (DBSession().query(Team).
+        team = (DBSession.query(Team).
                 filter(Team.id == form.id.data).
                 options(subqueryload('team_ips')).
                 one())
@@ -563,7 +576,7 @@ class AdminView(object):
         form = IPSearchForm(self.request.POST, csrf_context=self.request)
         retparams = {'form': form}
         redirect = self.redirect('admin_ip_search')
-        query = DBSession().query(Team).join(TeamIP)
+        query = DBSession.query(Team).join(TeamIP)
         if self.request.method == 'POST':
             if not form.validate():
                 return redirect
@@ -580,18 +593,7 @@ class AdminView(object):
         But in the end it is basically the same functionality as with the other
         list views.
         """
-        # TODO: Possibly we need a way to distinguish between someone selecting
-        # an existing Challenge/Team combo and clicking the "Edit" button.
-        # Currently the former is somewhat buggy...
-        # TODO: Additionally, we need a way to exclude already existing
-        # combinations in the list selection. This can likely only be done
-        # with JS or needs a complete restructuring of the view thingy to
-        # go like this: "Select Challenge" -> "Add Team Submission" or
-        # "Select Team" -> "Add Challenge Submission"... Decide what's best
-        # here...
-
         # Prepare parameters
-        dbsession = DBSession()
         submissions = get_submissions()
         page = self.page(submissions)
         redirect = self.redirect('admin_submissions', page.page)
@@ -612,7 +614,7 @@ class AdminView(object):
         if challenge_id is None or team_id is None:
             form = SubmissionForm(self.request.POST, csrf_context=self.request)
         else:
-            submission = (dbsession.query(Submission).
+            submission = (DBSession.query(Submission).
                        filter(Submission.team_id == team_id).
                        filter(Submission.challenge_id == challenge_id).
                        one())
@@ -627,7 +629,6 @@ class AdminView(object):
                  request_method='POST')
     def submissions_edit(self):
         # Prepare parameters
-        dbsession = DBSession()
         form = SubmissionForm(self.request.POST, csrf_context=self.request)
         submissions = get_submissions()
         page = self.page(submissions)
@@ -644,7 +645,7 @@ class AdminView(object):
 
         # New item or existing one?
         try:
-            submission = (dbsession.query(Submission).
+            submission = (DBSession.query(Submission).
                           filter(Submission.challenge_id ==
                                  form.challenge.data.id).
                           filter(Submission.team_id == form.team.data.id).
@@ -652,7 +653,7 @@ class AdminView(object):
             self.request.session.flash("Submission edited!")
         except NoResultFound:
             submission = Submission()
-            dbsession.add(submission)
+            DBSession.add(submission)
             self.request.session.flash("Submission added!")
 
         # Transfer edits into databse
@@ -666,7 +667,6 @@ class AdminView(object):
         delete_form = SubmissionButtonForm(self.request.POST,
                                            csrf_context=self.request)
         current_page = int(self.request.GET.get('page', 1))
-        dbsession = DBSession()
         redirect = self.redirect('admin_submissions', current_page)
 
         # Check for errors
@@ -677,12 +677,12 @@ class AdminView(object):
         # Load the IDs to delete and build query
         challenge_id = delete_form.challenge_id.data
         team_id = delete_form.team_id.data
-        submission = (dbsession.query(Submission).
+        submission = (DBSession.query(Submission).
                         filter(Submission.challenge_id == challenge_id).
                         filter(Submission.team_id == team_id))
 
         # Delete the item
-        self._delete_item(dbsession, submission, "Submission")
+        self._delete_item(DBSession, submission, "Submission")
         return redirect
 
     @view_config(route_name='admin_massmail',
@@ -693,18 +693,12 @@ class AdminView(object):
         mail and its recipients in the database to keep a permanent record of
         sent messages.
         """
-        # TODO: CSRF for massmail
-        dbsession = DBSession()
         form = MassMailForm(self.request.POST, csrf_context=self.request)
         if not form.from_.data:
             settings = self.request.registry.settings
             form.from_.data = settings["mail.default_sender"]
-        mail_query = dbsession.query(MassMail)
+        mail_query = DBSession.query(MassMail)
         page = self.page(mail_query)
-        """current_page = self.request.GET.get('page', 1)
-        page_url = PageURL_WebOb(self.request)
-        page = Page(mail_query, page=current_page, url=page_url,
-                    items_per_page=5, item_count=mail_query.count())"""
         retparams = {'form': form,
                      'items': page.items,
                      'page': page}
@@ -723,7 +717,7 @@ class AdminView(object):
                               body=mail_record.message,
                               sender=mail_record.from_,
                               )
-            dbsession.add(mail_record)
+            DBSession.add(mail_record)
             mailer.send(message)
             self.request.session.flash("Mass mail sent to all %d active users"
                                        % len(recipients))
@@ -735,8 +729,7 @@ class AdminView(object):
     def massmail_single(self):
         """View a single massmail that was sent."""
         id_ = self.request.matchdict["id"]
-        dbsession = DBSession()
-        mail = dbsession.query(MassMail).filter(MassMail.id == id_).one()
+        mail = DBSession.query(MassMail).filter(MassMail.id == id_).one()
         return {'mail': mail}
 
     @view_config(route_name='admin_settings', renderer='admin_settings.mako')
@@ -763,7 +756,7 @@ class AdminView(object):
         If there is at least one team, log in as it to see the page.
         """
         form = ButtonForm(self.request.POST, csrf_context=self.request)
-        team_query = DBSession().query(Team)
+        team_query = DBSession.query(Team)
         if form.id.data:
             team_query = team_query.filter(Team.id == form.id.data)
         team = team_query.first()

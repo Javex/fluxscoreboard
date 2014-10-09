@@ -4,7 +4,7 @@
 ###
 
 [app:main]
-use = egg:fluxscoreboard
+use = call:fluxscoreboard:main
 
 #### YOUR CONFIGRATUION ####
 #
@@ -20,21 +20,34 @@ domain = localhost
 #subdirectory =
 
 # reCAPTCHA keys
-recaptcha.public_key =
-recaptcha.private_key =
+recaptcha.public_key = 6LfQ9OYSAAAAAFF5CUgfyh0NNhs39YaGTapCKw_W
+recaptcha.private_key = 6LfQ9OYSAAAAAKK3RqdNgvLov1hO6Adj3VfECaTH
+
+# The domain to use for displaying the avatars. This should be different from
+# the domain of the scoreboard for security reasons. You could for example just
+# use the static IP which will be considered a different domain.
+avatar_domain = http://127.0.0.1:6543
+
+# external URL with the rules
+rules_url = http://2014.hack.lu/index.php/CaptureTheFlag
 
 # The CSP header values to set
-csp_headers = default-src 'self';
+% if mode == 'development':
+csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self' www.google.com; script-src 'self' www.google.com 'sha256-dtX3Yk6nskFEtsDm1THZkJ4mIIohKJf5grz4nY6HxI8='; style-src 'self';
+% else:
+csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self'; script-src 'self'; style-src 'self';
+% endif
 
 # HSTS max-age setting
 #hsts.max-age = 31536000
 
+
 # Enter your database credentials here
-db.user = hacklu
-db.password =
-db.host = localhost
-db.port = 3306
-db.database = scoreboard
+db.user = ${db_user}
+db.password = ${db_pass}
+db.host = ${db_host}
+db.port = ${db_port}
+db.database = ${db_name}
 
 # Enter SMTP mail settings for outgoing email messages
 mail.host =
@@ -54,17 +67,19 @@ mail.default_sender =
 # General settings (these are used irregardless of the configuration)
 # You only need to set a secret here (a random string with an entropy of about
 # 128-256 Bit)
-session.secret =
-session.lock_dir = %(here)s/data/session/lock
+session.secret = ${session_secret}
+session.lock_dir = %(here)s/../data/session/lock
 session.key = session
 session.cookie_on_exception = True
+% if mode == 'production':
 session.secure = True
 session.cookie_domain = %(domain)s
+% endif
 
 # Default session: File
 # Disable these two lines if you use another session
 session.type = file
-session.data_dir = %(here)s/data/session/data
+session.data_dir = %(here)s/../data/session/data
 
 # A SQLALchemy session, based on the database settings above. Enable these if
 # you want to have sessions in database as well (but remember to disable the
@@ -83,29 +98,34 @@ session.data_dir = %(here)s/data/session/data
 app_name = fluxscoreboard
 
 # The final database URL
-# To use a different database type, swap out the "mysql://" part for a
+# To use a different database type, swap out the "postgresql://" part for a
 # different type. See
 # http://docs.sqlalchemy.org/en/rel_0_8/core/engines.html#database-urls for
 # details.
-sqlalchemy.url = mysql://%(db.user)s:%(db.password)s@%(db.host)s:%(db.port)s/%(db.database)s
-# This fixes a connection timeout problem. Change as desirec according to MySQL
-# timeout settings (and disable if not using MySQL!)
-sqlalchemy.pool_recycle = 3600
+sqlalchemy.url = postgresql://%(db.user)s:%(db.password)s@%(db.host)s:%(db.port)s/%(db.database)s
 
 # Template settings
 mako.directories = %(app_name)s:templates
 
 # Pyramid settings
-pyramid.reload_templates = false
+pyramid.reload_templates = ${'true' if mode == 'development' else 'false'}
 pyramid.debug_authorization = false
 pyramid.debug_notfound = false
 pyramid.debug_routematch = false
 pyramid.default_locale_name = en
 pyramid.includes =
+    % if mode != 'production':
+    pyramid_debugtoolbar
+    % endif
     pyramid_tm
     pyramid_beaker
     pyramid_mako
     pyramid_mailer
+
+
+# By default, the toolbar only appears for clients from IP addresses
+# '127.0.0.1' and '::1'.
+# debugtoolbar.hosts = 127.0.0.1 ::1
 
 
 [alembic]
@@ -120,7 +140,12 @@ script_location = alembic
 # revision_environment = false
 
 
+###
+# wsgi server configuration
+###
+
 [server:main]
+% if mode == 'production':
 use = egg:gunicorn#main
 host = 127.0.0.1
 port = 6875
@@ -131,6 +156,11 @@ user = http
 group = http
 error-logfile = log/gunicorn_error.log
 access-logfile = log/gunicorn_access.log
+% else:
+use = egg:waitress#main
+host = 0.0.0.0
+port = 6543
+% endif
 
 ###
 # logging configuration
@@ -141,22 +171,22 @@ access-logfile = log/gunicorn_access.log
 keys = root, fluxscoreboard, sqlalchemy, alembic
 
 [handlers]
-keys = console
+keys = console, file
 
 [formatters]
 keys = generic
 
 [logger_root]
-level = WARN
-handlers = console
+level = ${'WARN' if mode == 'production' else 'INFO'}
+handlers = ${'console' if mode == 'development' else 'file'}
 
 [logger_fluxscoreboard]
-level = WARN
+level = ${'WARN' if mode == 'production' else 'DEBUG'}
 handlers =
 qualname = fluxscoreboard
 
 [logger_sqlalchemy]
-level = WARN
+level =  ${'INFO' if mode == 'test' else 'WARN'}
 handlers =
 qualname = sqlalchemy.engine
 # "level = INFO" logs SQL queries.
@@ -169,10 +199,23 @@ handlers =
 qualname = alembic
 
 [handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[handler_file]
 class = FileHandler
-args = ('%(here)s/log/fluxscoreboard.log', 'w')
+args = ('%(here)s/../log/scoreboard.log', 'w')
 level = NOTSET
 formatter = generic
 
 [formatter_generic]
 format = %(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s
+
+% if mode == 'test':
+[pytest]
+markers =
+    integration: integration tests. Sends Mail and has other side effects.
+addopts = -m "not integration"
+% endif

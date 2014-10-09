@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
-from fluxscoreboard.forms.fields import (IntegerOrEvaluatedField, ButtonWidget,
+from fluxscoreboard.forms._fields import (IntegerOrEvaluatedField, ButtonWidget,
     team_size_field, TZDateTimeField)
-from fluxscoreboard.forms.validators import (email_length_validator,
+from fluxscoreboard.forms._validators import (email_length_validator,
     password_length_validator_conditional, password_required_if_new,
     required_validator, name_length_validator, not_dynamic, only_if_dynamic,
     required_except, required_or_not_allowed, dynamic_check_multiple_allowed)
@@ -73,9 +73,9 @@ class ChallengeForm(CSRFForm):
 
         ``solution``: Solution. Required.
 
-        ``points``: How many points is this challenge worth? Only required if
-        the challenge is not manual, otherwise not allowed to be anything other
-        than 0 or empty.
+        ``base_points``: How many base points is this challenge worth? Only
+        required if the challenge is not manual, otherwise not allowed to be
+        anything other than 0 or empty.
 
         ``online``: If the challenge is online.
 
@@ -101,8 +101,8 @@ class ChallengeForm(CSRFForm):
         "Solution",
         validators=[required_or_not_allowed(["manual", "dynamic"])])
 
-    points = IntegerOrEvaluatedField(
-        "Points",
+    base_points = IntegerOrEvaluatedField(
+        "Base Points",
         validators=[required_or_not_allowed(["manual", "dynamic"])])
 
     author = TextField("Author(s)")
@@ -125,7 +125,7 @@ class ChallengeForm(CSRFForm):
                      "below. Also, you may NOT make it a manual challenge as "
                      "well!"))
 
-    module_name = SelectField(
+    module = SelectField(
         "Dynamic Module",
         description=("Which module should be used for this dynamic challenge "
                      "(only relevant if dynamic is checked above), see above "
@@ -138,6 +138,13 @@ class ChallengeForm(CSRFForm):
         "Published",
         description=("An unpublished challenge will not be displayed in the "
                      "frontend."))
+
+    has_token = BooleanField(
+        "Has Token",
+        description=("If this is active, the teams token will be displayed "
+                     "below the challenge so they can provide it to the "
+                     "challenge. A challenge can use it to identify teams. "
+                     "Check docs for move info."))
 
     id = HiddenField()
 
@@ -263,7 +270,7 @@ class SubmissionForm(CSRFForm):
     team = QuerySelectField("Team",
                             query_factory=get_all_teams)
 
-    bonus = IntegerField("Bonus", default=0)
+    additional_pts = IntegerField("Additioanl Points", default=0)
 
     submit = SubmitField("Save")
 
@@ -293,11 +300,11 @@ class MassMailForm(CSRFForm):
         ``cancel``: Don't send.
 
     """
-    from_ = TextField("From")
+    from_ = EmailField("From")
 
-    subject = TextField("Subject")
+    subject = TextField("Subject", validators=[required_validator])
 
-    message = TextAreaField("Message")
+    message = TextAreaField("Message", validators=[required_validator])
 
     submit = SubmitField("Send")
 

@@ -2,19 +2,20 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from datetime import datetime
 from fluxscoreboard.models import Base, DBSession
-from fluxscoreboard.models.types import TZDateTime
+from fluxscoreboard.models.types import TZDateTime, Module
+from fluxscoreboard.models.settings import Settings
 from fluxscoreboard.util import now
-from sqlalchemy import event
+from sqlalchemy import event, func, select, exists
 from sqlalchemy.orm import relationship, backref, joinedload
-from sqlalchemy.schema import Column, ForeignKey
-from sqlalchemy.sql.expression import not_
-from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText
+from sqlalchemy.schema import Column, ForeignKey, FetchedValue
+from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText, Numeric
+from sqlalchemy.sql.expression import cast, case
 
 
-bonus_map = {0: (3, 'first'),
-             1: (2, 'second'),
-             2: (1, 'third'),
-             }
+first_blood_map = {0: (3, 'first'),
+                   1: (2, 'second'),
+                   2: (1, 'third'),
+                   }
 """
 Maps an index of previous solved count to bonus points and a ranking string.
 """
@@ -24,42 +25,15 @@ def get_all_challenges():
     """
     Return a query that gets **all** challenges.
     """
-    return DBSession().query(Challenge)
+    return DBSession.query(Challenge)
 
 
 def get_online_challenges():
     """
     Return a query that gets only those challenges that are online.
     """
-    return (DBSession().query(Challenge).
+    return (DBSession.query(Challenge).
             filter(Challenge.online))
-
-
-def get_unsolved_challenges(team_id):
-    """
-    Return a query that produces a list of all unsolved challenges for a given
-    team.
-    """
-    from fluxscoreboard.models.team import get_team_solved_subquery
-    team_solved_subquery = get_team_solved_subquery(team_id)
-    online = get_online_challenges()
-    return (online.filter(not_(team_solved_subquery.exists())))
-
-
-def get_solvable_challenges(team_id):
-    """
-    Return a list of challenges that the current team can solve right now. It
-    returns a list of challenges that are
-
-    - online
-    - unsolved by the current team
-    - not manual (i.e. solvable by entering a solution)
-    """
-    unsolved = get_unsolved_challenges(team_id)
-    return (unsolved.
-            filter(~Challenge.manual).
-            filter(~Challenge.dynamic).
-            filter(Challenge.published))
 
 
 def get_submissions():
@@ -67,14 +41,14 @@ def get_submissions():
     Creates a query to **eagerly** load all submissions. That is, all teams
     and challenges that are attached to the submissions are fetched with them.
     """
-    return (DBSession().query(Submission).
+    return (DBSession.query(Submission).
             options(joinedload('challenge')).
             options(joinedload('team')))
 
 
 def get_all_categories():
     """Get a list of all available categories."""
-    return DBSession().query(Category)
+    return DBSession.query(Category)
 
 
 def check_submission(challenge, solution, team_id, settings):
@@ -96,8 +70,6 @@ def check_submission(challenge, solution, team_id, settings):
         a string with either a result (if ``result == False``) or a
         congratulations message.
     """
-    dbsession = DBSession()
-
     # Perform all checks that filter out invalid submissions
     if settings.submission_disabled:
         return False, "Submission is currently disabled"
@@ -123,7 +95,7 @@ def check_submission(challenge, solution, team_id, settings):
                       "However, since the scoreboard is in archive mode, you "
                       "will not be awarded any points.")
 
-    query = (dbsession.query(Submission.team_id).
+    query = (DBSession.query(Submission.team_id).
              filter(Submission.challenge_id == challenge.id))
     submissions = [id_ for id_, in query]
 
@@ -131,16 +103,16 @@ def check_submission(challenge, solution, team_id, settings):
         return False, "Already solved."
 
     solved_count = len(submissions)
-    bonus, place_msg = bonus_map.get(solved_count, (0, None))
+    first_blood_pts, place_msg = first_blood_map.get(solved_count, (0, None))
     if place_msg is not None:
         msg = 'Congratulations: You solved this challenge as %s!' % place_msg
     else:
         msg = 'Congratulations: That was the correct solution!'
 
-    submission = Submission(bonus=bonus)
+    submission = Submission(additional_pts=first_blood_pts)
     submission.team_id = team_id
     submission.challenge = challenge
-    dbsession.add(submission)
+    DBSession.add(submission)
     return True, msg
 
 
@@ -191,10 +163,11 @@ class Challenge(Base):
         default of ``False`` this is just a normal challenge, otherwise, the
         attribute ``module`` must be set.
 
-        ``module_name``: If this challenge is dynamic, it must provide a valid
+        ``module``: If this challenge is dynamic, it must provide a valid
         dotted python name for a module that provides the interface for
         validation and display. The dotted python name given here will be
-        prefixed with ``fluxscoreboard.dynamic_challenges.``
+        prefixed with ``fluxscoreboard.dynamic_challenges.`` from which the
+        module will be loaded and made available on using it.
 
         ``module``: Loads the module from the module name and returns it.
 
@@ -202,27 +175,27 @@ class Challenge(Base):
         frontend at all.
     """
     id = Column(Integer, primary_key=True)
-    title = Column(Unicode(255), nullable=False)
+    title = Column(Unicode, nullable=False)
     text = Column(UnicodeText)
-    solution = Column(Unicode(255))
-    _points = Column('points', Integer, default=0)
+    solution = Column(Unicode)
+    base_points = Column(Integer, default=0)
     online = Column(Boolean, default=False, nullable=False)
     manual = Column(Boolean, default=False, nullable=False)
     category_id = Column(Integer, ForeignKey('category.id'))
-    author = Column(Unicode(255))
+    author = Column(Unicode)
     dynamic = Column(Boolean, default=False, nullable=False)
-    module_name = Column(Unicode(255))
+    module = Column(Module)
     published = Column(Boolean, default=False, nullable=False)
+    has_token = Column(Boolean, default=False, nullable=False)
+    _points = Column('points', Integer, FetchedValue(), server_default='0',
+                     nullable=False)
 
-    category = relationship("Category", backref="challenges", lazy="joined")
+    category = relationship("Category", backref="challenges")
 
     def __init__(self, *args, **kwargs):
         if kwargs.get("manual", False) and kwargs.get("points", 0):
             raise ValueError("A manual challenge cannot have points!")
         Base.__init__(self, *args, **kwargs)
-
-    def __str__(self):
-        return unicode(self).encode("utf-8")
 
     def __unicode__(self):
         return self.title
@@ -239,8 +212,12 @@ class Challenge(Base):
             additional_info.append("category=%s" % self.category)
         if self.author:
             additional_info.append("author(s)=%s" % self.author)
-        if self.module_name:
-            additional_info.append("module=%s" % self.module_name)
+        if self.module:
+            from .dynamic_challenges import registry
+            for name, v in registry.items():
+                if v == self.module:
+                    break
+            additional_info.append("module=%s" % name)
         if additional_info:
             additional_info = ", " + ", ".join(additional_info)
         else:
@@ -269,11 +246,6 @@ class Challenge(Base):
     def points(self, points):
         self._points = points
 
-    @property
-    def module(self):
-        from . import dynamic_challenges
-        return dynamic_challenges.registry.get(self.module_name, None)
-
 
 @event.listens_for(Challenge, 'before_update')
 @event.listens_for(Challenge, 'before_insert')
@@ -288,6 +260,11 @@ def assert_not_manual_and_dynamic(mapper, connection, target):
         raise ValueError("Cannot have a manual dynamic challenge!")
 
 
+@event.listens_for(Challenge._points, 'set')
+def _protect_points_set(target, value, oldvalue, initiator):
+    raise AttributeError("Not allowed to set points column!")
+
+
 class Category(Base):
     """
     A category for challenges.
@@ -300,10 +277,7 @@ class Category(Base):
         ``challenges``: List of challenges in that category.
     """
     id = Column(Integer, primary_key=True)
-    name = Column(Unicode(255), nullable=False)
-
-    def __str__(self):
-        return unicode(self).encode("utf-8")
+    name = Column(Unicode, nullable=False)
 
     def __unicode__(self):
         return self.name
@@ -342,28 +316,49 @@ class Submission(Base):
                        nullable=False,
                        default=datetime.utcnow
                        )
-    bonus = Column(Integer, default=0, nullable=False)
+    additional_pts = Column(Integer, default=0, nullable=False)
 
     team = relationship("Team",
-                             backref=backref("submissions",
-                                             cascade="all, delete-orphan")
-                             )
+                        backref=backref("submissions",
+                                        cascade="all, delete-orphan")
+                        )
     challenge = relationship("Challenge",
                              backref=backref("submissions",
                                              cascade="all, delete-orphan")
                              )
 
-    def __init__(self, *args, **kwargs):
-        if "timestamp" not in kwargs:
-            self.timestamp = datetime.utcnow()
-        Base.__init__(self, *args, **kwargs)
-
     def __repr__(self):
-        r = ("<Submission challenge=%s, team=%s, bonus=%d, timestamp=%s>"
-             % (self.challenge, self.team, self.bonus, self.timestamp))
+        r = ("<Submission challenge=%s, team=%s, additional_pts=%d, "
+             "timestamp=%s>" % (self.challenge, self.team,
+                                self.additional_pts, self.timestamp))
         return r.encode("utf-8")
 
-    @property
-    def points(self):
-        # TODO: remove
-        return self.challenge.points + self.bonus
+
+def update_playing_teams(connection):
+    """
+    Update the number of playing teams whenever it changes.
+    """
+    from fluxscoreboard.models.team import Team
+    team_playing = exists(select([1]).where(Submission.team_id == Team.id))
+    source = (select([func.count('*')]).
+              select_from(Team.__table__).
+              where(team_playing).
+              where(Team.active))
+    query = Settings.__table__.update().values(playing_teams=source)
+    connection.execute(query)
+
+
+def update_challenge_points(connection, update_team_count=True):
+    if update_team_count:
+        update_playing_teams(connection)
+    solved_count = (select([cast(func.count('*'), Numeric)]).
+                    select_from(Submission.__table__).
+                    where(Challenge.id == Submission.challenge_id).
+                    correlate(Challenge))
+    team_count = select([Settings.playing_teams]).as_scalar()
+    team_ratio = 1 - solved_count / team_count
+    bonus = case([(team_count != 0, func.round(team_ratio, 1))], else_=1) * 100
+    source = (select([Challenge.base_points + bonus]).correlate(Challenge))
+    query = (Challenge.__table__.update().
+             values(points=source))
+    connection.execute(query)

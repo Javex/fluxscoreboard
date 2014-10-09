@@ -16,6 +16,7 @@
                 <th>Online</th>
                 <th>Published</th>
                 <th>Dynamic</th>
+                <th>Has Token</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -51,7 +52,10 @@
                 </td>
                 <td class="text-${'success' if challenge.dynamic else 'danger'}">
                     ${'Yes' if challenge.dynamic else 'No'}
-                </ts>
+                </td>
+                <td class="text-${'success' if challenge.has_token else 'danger'}">
+                    ${'Yes' if challenge.has_token else 'No'}
+                </td>
                 <td class="btn-group">
                     ${admin_funcs.display_action_list(page.page, request, challenge.id,
                                                       [('admin_challenges', "Edit"),

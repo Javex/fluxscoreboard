@@ -1,4 +1,9 @@
 development.ini
 production.ini
+test.ini
 data/session/*
-tests/template/cache
+tests/template/cache/
+log/
+docs/_build
+*.pyc
+*.min.*
