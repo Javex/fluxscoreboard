@@ -23,6 +23,7 @@ from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column
 from sqlalchemy.sql.expression import func, desc, bindparam, not_, cast
 from sqlalchemy.types import Integer, Unicode, Boolean
+from sqlalchemy.dialects.postgresql import INET
 import logging
 import random
 import string
@@ -331,23 +332,22 @@ class Team(Base):
         :class:`fluxscoreboard.models.country.Country` attribute.
     """
     id = Column(Integer, primary_key=True)
-    name = Column(Unicode(TEAM_NAME_MAX_LENGTH), nullable=False, unique=True)
-    _password = Column('password', Unicode(TEAM_PASSWORD_MAX_LENGTH),
-                       nullable=False)
-    email = Column(Unicode(TEAM_MAIL_MAX_LENGTH), nullable=False, unique=True)
+    name = Column(Unicode, nullable=False, unique=True)
+    _password = Column('password', Unicode, nullable=False)
+    email = Column(Unicode, nullable=False, unique=True)
     country_id = Column(Integer, ForeignKey('country.id'), nullable=False)
     local = Column(Boolean, default=False)
-    token = Column(Unicode(64), unique=True, default=random_token)
-    reset_token = Column(Unicode(64), unique=True)
-    ref_token = Column(Unicode(15), nullable=False, default=ref_token,
+    token = Column(Unicode, unique=True, default=random_token)
+    reset_token = Column(Unicode, unique=True)
+    ref_token = Column(Unicode, nullable=False, default=ref_token,
                        unique=True)
-    challenge_token = Column(Unicode(36), unique=True,
+    challenge_token = Column(Unicode, unique=True,
                              default=lambda: unicode(uuid.uuid4()),
                              nullable=False)
     active = Column(Boolean, default=False)
     timezone = Column(Timezone, default=lambda: utc,
                       nullable=False)
-    avatar_filename = Column(Unicode(68), unique=True)
+    avatar_filename = Column(Unicode, unique=True)
     size = Column(Integer)
 
     ips = association_proxy("team_ips", "ip")
@@ -491,7 +491,7 @@ class Team(Base):
         return (DBSession.query(func.count('*') + 1).
                 select_from(inner_team).
                 filter(inner_team.score > Team.score).
-                order_by(desc(inner_team.score)).
+                #order_by(desc(inner_team.score)).
                 correlate(Team).
                 label('rank'))
 
@@ -551,7 +551,7 @@ def register_ip(event):
 class TeamIP(Base):
     __tablename__ = 'team_ip'
     team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
-    ip = Column(Unicode(15), primary_key=True)
+    ip = Column(INET, primary_key=True)
 
     team = relationship("Team", backref=backref("team_ips",
                                                 cascade="all, delete-orphan"))

@@ -35,7 +35,7 @@ class Timezone(TypeDecorator):
     :class:`datetime.tzinfo` instance.
     """
 
-    impl = Unicode(30)
+    impl = Unicode
 
     def process_bind_param(self, value, dialect):
         if value is not None:

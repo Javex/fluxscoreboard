@@ -69,14 +69,14 @@ def _create_configuration(template, mode, root_path=''):
     info('Creating %s configuration now (%s).' % (mode, file_path))
     tvars = {'mode': mode, 'session_secret': os.urandom(20).encode('hex'),
              'db_user': '', 'db_pass': '', 'db_name': '',
-             'db_host': 'localhost', 'db_port': '3306'}
+             'db_host': 'localhost', 'db_port': '5432'}
     if mode in ('test', 'development'):
-        tvars['db_user'] = ask_for('a database username', 'root')
+        tvars['db_user'] = ask_for('a database username', 'postgres')
         tvars['db_pass'] = ask_for('the user\'s password', '')
         suffix = '_test' if mode == 'test' else ''
         tvars['db_name'] = ask_for('a database name', 'scoreboard' + suffix)
         tvars['db_host'] = ask_for('the database host', 'localhost')
-        tvars['db_port'] = ask_for('the database port', '3306')
+        tvars['db_port'] = ask_for('the database port', '5432')
     with open(file_path, 'w+') as f:
         f.write(template.render(**tvars))
     return file_path

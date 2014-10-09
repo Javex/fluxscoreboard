@@ -98,14 +98,11 @@ session.data_dir = %(here)s/../data/session/data
 app_name = fluxscoreboard
 
 # The final database URL
-# To use a different database type, swap out the "mysql://" part for a
+# To use a different database type, swap out the "postgresql://" part for a
 # different type. See
 # http://docs.sqlalchemy.org/en/rel_0_8/core/engines.html#database-urls for
 # details.
-sqlalchemy.url = mysql://%(db.user)s:%(db.password)s@%(db.host)s:%(db.port)s/%(db.database)s
-# This fixes a connection timeout problem. Change as desirec according to MySQL
-# timeout settings (and disable if not using MySQL!)
-sqlalchemy.pool_recycle = 3600
+sqlalchemy.url = postgresql://%(db.user)s:%(db.password)s@%(db.host)s:%(db.port)s/%(db.database)s
 
 # Template settings
 mako.directories = %(app_name)s:templates

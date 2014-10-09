@@ -8,7 +8,8 @@ from fluxscoreboard.models.types import TZDateTime, JSONList
 from sqlalchemy.orm import relationship, backref, lazyload, contains_eager, Load
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.sql.expression import desc, or_
-from sqlalchemy.types import Integer, UnicodeText, Boolean
+from sqlalchemy.types import Integer, UnicodeText, Boolean, Unicode
+from sqlalchemy.dialects.postgresql import ARRAY
 
 
 def get_published_news():
@@ -95,5 +96,5 @@ class MassMail(Base):
                         )
     subject = Column(UnicodeText, nullable=False)
     message = Column(UnicodeText, nullable=False)
-    recipients = Column(JSONList, nullable=False)
+    recipients = Column(ARRAY(Unicode), nullable=False)
     from_ = Column(UnicodeText, nullable=False)

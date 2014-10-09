@@ -1,6 +1,6 @@
 pyramid>=1.5  # WSGI framework
 SQLAlchemy>=0.9  # Database
-mysql-python  # Database
+psycopg2  # Database
 zope.sqlalchemy  # Database
 transaction  # Transactions
 pyramid_tm  # Transactions
