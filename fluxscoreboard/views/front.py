@@ -222,7 +222,8 @@ class FrontView(BaseView):
                                            team_solved_subquery,
                                            number_of_solved_subquery).
                       options(joinedload("category")).
-                      filter(Challenge.published))
+                      filter(Challenge.published).
+                      order_by(Challenge.id))
         return {'challenges': challenges}
 
     @view_config(route_name='challenge', renderer='challenge.mako',
