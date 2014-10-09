@@ -491,7 +491,7 @@ class Team(Base):
         return (DBSession.query(func.count('*') + 1).
                 select_from(inner_team).
                 filter(inner_team.score > Team.score).
-                order_by(desc(inner_team.score)).
+                #order_by(desc(inner_team.score)).
                 correlate(Team).
                 label('rank'))
 

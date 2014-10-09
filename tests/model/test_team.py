@@ -478,9 +478,9 @@ class TestTeam(object):
             if t is None:
                 t = Team
             stmt = select([case([
-                (t.id == t1.id, '1'),
+                (t.id == t1.id, 1),
             ],
-            else_='0',
+            else_=0,
             )]).correlate(t)
             return stmt
         module.get_points_query = get_points_query

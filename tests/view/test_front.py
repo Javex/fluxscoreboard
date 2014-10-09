@@ -1,6 +1,6 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
-from datetime import timedelta
+from datetime import timedelta, datetime
 from fluxscoreboard.forms.front import SolutionSubmitForm, LoginForm, RegisterForm, ResetPasswordForm, ProfileForm
 from fluxscoreboard.models.challenge import Submission, update_challenge_points, update_playing_teams
 from fluxscoreboard.models.news import News
@@ -172,8 +172,8 @@ class TestScoreboardView(BaseViewTest):
         assert len(teams) == 0
 
     def test_news(self):
-        n1 = News(published=False)
-        n2 = News(published=True)
+        n1 = News(published=False, timestamp=datetime.utcnow() - timedelta(0, 1))
+        n2 = News(published=True, timestamp=datetime.utcnow() - timedelta(0, 1))
         self.dbsession.add_all([n1, n2])
         ret = self.view.news()
         assert len(ret) == 1

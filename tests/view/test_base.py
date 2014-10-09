@@ -1,6 +1,6 @@
 # encoding: utf-8
 from __future__ import unicode_literals, print_function, absolute_import
-from datetime import timedelta
+from datetime import timedelta, datetime
 from fluxscoreboard.models.challenge import Submission
 from fluxscoreboard.models.news import News
 from fluxscoreboard.util import now
@@ -69,8 +69,8 @@ class TestBaseView(BaseViewTest):
         assert self.view.team_count == 1
 
     def test_announcements(self):
-        n1 = News(published=False)
-        n2 = News(published=True)
+        n1 = News(published=False, timestamp=datetime.utcnow() - timedelta(0, 1))
+        n2 = News(published=True, timestamp=datetime.utcnow() - timedelta(0, 1))
         self.dbsession.add_all([n1, n2])
         ret = list(self.view.announcements)
         assert len(ret) == 1
@@ -79,7 +79,7 @@ class TestBaseView(BaseViewTest):
     def test_announcements_with_challenge(self):
         c = self.make_challenge(published=True)
         self.dbsession.add(c)
-        n = News(published=True, challenge=c)
+        n = News(published=True, challenge=c, timestamp=datetime.utcnow() - timedelta(0, 1))
         ret = list(self.view.announcements)
         assert len(ret) == 1
         assert ret[0] == n

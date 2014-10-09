@@ -8,7 +8,8 @@ from fluxscoreboard.util import now
 from sqlalchemy import event, func, select, exists
 from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey, FetchedValue
-from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText
+from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText, Numeric
+from sqlalchemy.sql.expression import cast, case
 
 
 first_blood_map = {0: (3, 'first'),
@@ -350,13 +351,13 @@ def update_playing_teams(connection):
 def update_challenge_points(connection, update_team_count=True):
     if update_team_count:
         update_playing_teams(connection)
-    solved_count = (select([func.count('*')]).
+    solved_count = (select([cast(func.count('*'), Numeric)]).
                     select_from(Submission.__table__).
                     where(Challenge.id == Submission.challenge_id).
                     correlate(Challenge))
     team_count = select([Settings.playing_teams]).as_scalar()
     team_ratio = 1 - solved_count / team_count
-    bonus = func.coalesce(func.round(team_ratio, 1), 1) * 100
+    bonus = case([(team_count != 0, func.round(team_ratio, 1))], else_=1) * 100
     source = (select([Challenge.base_points + bonus]).correlate(Challenge))
     query = (Challenge.__table__.update().
              values(points=source))

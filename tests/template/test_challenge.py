@@ -100,9 +100,9 @@ class TestChallenge(TemplateTestBase):
     def test_dynamic_mock(self, module):
         self.challenge.dynamic = True
         self.challenge.module = module
-        module.render.return_value = "Dynamic<br>Out"
+        module.render.return_value = "Dynamic<br/>Out"
         out = unicode(self.render())
-        assert "Dynamic<br>Out" in out
+        assert "Dynamic<br/>Out" in out
 
     def test_dynamic(self, dynamic_module):
         _, module = dynamic_module
