@@ -322,6 +322,16 @@ class TestProfileForm(GeneralCSRFTest):
             assert not form.validate()
         assert 'avatar' in form.errors
 
+    def test_avatar_custom_avatar_domain(self, settings, config):
+        domain = settings["avatar_domain"]
+        self.request.team = self.team
+        assert domain
+        self.team.avatar_filename = 'foobar.png'
+        form = self.make(self.data)
+        expected = (domain + '/static/images/avatars/' +
+                    self.team.avatar_filename)
+        assert expected in form.avatar()
+
     def test_country_invalid_choice(self):
         self.data['country'] = str(self.countries[-1].id + 1)
         form = self.make(self.data)

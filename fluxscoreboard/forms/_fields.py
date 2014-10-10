@@ -27,8 +27,7 @@ class AvatarWidget(FileInput):
         request = get_current_request()
         filename = request.team.avatar_filename
         if filename:
-            fpath = request.static_url("fluxscoreboard:static/images/avatars/%s"
-                                       % filename)
+            fpath = request.route_url('avatar', avatar=filename)
             out.append('<img class="avatar-large" src="%s" />' % fpath)
             out.append('<input id="delete-avatar" type="submit" '
                        'class="btn btn-danger btn-small" value="Delete Avatar"'
