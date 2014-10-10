@@ -12,7 +12,7 @@
         <tbody>
         % for team in teams:
             <tr class="${'success bold' if request.team and team.id == request.team.id else ''}">
-                <td>${loop.index}</td>
+                <td>${loop.index + 1}</td>
                 <td class="avatar">
                 % if team.avatar_filename:
                     <img src="${request.route_url('avatar', avatar=team.avatar_filename)}" class="avatar" title="${team.name}"/>
