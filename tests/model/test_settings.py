@@ -3,7 +3,7 @@ from __future__ import unicode_literals, print_function, absolute_import
 from datetime import datetime, timedelta
 from fluxscoreboard.util import now
 from fluxscoreboard.models.settings import (Settings, load_settings,
-    CTF_ARCHIVE, CTF_BEFORE, CTF_STARTED)
+    CTF_ARCHIVE, CTF_BEFORE, CTF_STARTED, flash_global_announcement)
 from pytz import utc
 from mock import MagicMock
 import pytest
@@ -13,6 +13,46 @@ def test_load_settings(dbsettings, dbsession):
     request = MagicMock()
     settings = load_settings(request)
     assert settings is dbsettings
+
+
+class TestGlobalAnnouncementFlash(object):
+
+    @pytest.fixture(autouse=True)
+    def _prepare(self, pyramid_request, dbsettings):
+        self.request = pyramid_request
+        self.settings = dbsettings
+        self.event = MagicMock(request=self.request)
+
+    def test_no_msg(self):
+        session = self.request.session
+        assert not self.settings.global_announcement
+        assert not session.peek_flash('warning')
+        flash_global_announcement(self.event)
+        assert not session.peek_flash('warning')
+
+    def test_msg(self):
+        session = self.request.session
+        self.settings.global_announcement = 'FooBar'
+        assert not session.peek_flash('warning')
+        flash_global_announcement(self.event)
+        expected = [self.settings.global_announcement]
+        assert session.peek_flash('warning') == expected
+
+    def test_existing_msg(self):
+        session = self.request.session
+        self.settings.global_announcement = 'FooBar2'
+        session.flash('FooBar2', 'warning')
+        flash_global_announcement(self.event)
+        expected = ['FooBar2']
+        assert session.peek_flash('warning') == expected
+
+    def test_persist_other_msgs(self):
+        session = self.request.session
+        session.flash('OtherMsg', 'warning')
+        self.settings.global_announcement = 'FooBar'
+        flash_global_announcement(self.event)
+        expected = ['OtherMsg', 'FooBar']
+        assert session.peek_flash('warning') == expected
 
 
 class TestSettings(object):

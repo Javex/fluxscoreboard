@@ -4,7 +4,7 @@ from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.types import TZDateTime
 from pyramid.events import NewRequest, subscriber
 from sqlalchemy.schema import Column
-from sqlalchemy.types import Integer, Boolean
+from sqlalchemy.types import Integer, Boolean, Unicode
 import logging
 
 
@@ -19,6 +19,18 @@ CTF_ARCHIVE = 3
 def load_settings(request):
     settings = DBSession.query(Settings).one()
     return settings 
+
+
+@subscriber(NewRequest)
+def flash_global_announcement(event):
+    session = event.request.session
+    settings = event.request.settings
+    if settings.global_announcement:
+        for msg in session.peek_flash('warning'):
+            if msg == settings.global_announcement:
+                break
+        else:
+            session.flash(settings.global_announcement, 'warning')
 
 
 class Settings(Base):
@@ -70,6 +82,7 @@ class Settings(Base):
     ctf_end_date = Column(TZDateTime)
     archive_mode = Column(Boolean, default=False, nullable=False)
     playing_teams = Column(Integer, default=0, nullable=False)
+    global_announcement = Column(Unicode)
 
     @property
     def ctf_started(self):

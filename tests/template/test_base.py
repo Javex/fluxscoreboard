@@ -2,6 +2,8 @@
 from __future__ import unicode_literals, print_function, absolute_import
 from mako.template import Template
 from tests.template import TemplateTestBase
+from fluxscoreboard.util import now
+from datetime import timedelta
 import re
 
 
@@ -60,6 +62,23 @@ class TestBaseBody(TemplateTestBase):
             assert 'alert' in msg_div['class']
             if css_type:
                 assert css_type.upper() == msg_div.string
+
+    def test_global_announcement_without_design(self):
+        self.settings.ctf_start_date = now() + timedelta(hours=1)
+        self.test_global_announcement_with_design()
+
+    def test_global_announcement_with_design(self):
+        self.request.session.flash('TestWarningLol', 'warning')
+        data = self.render()
+        assert "TestWarningLol" in unicode(data)
+
+    def test_global_announcement_wo_design_no_msg(self):
+        self.settings.ctf_start_date = now() + timedelta(hours=1)
+        self.test_global_announcement_w_design_no_msg()
+
+    def test_global_announcement_w_design_no_msg(self):
+        data = self.render()
+        assert not data.find(class_='alert')
 
 
 class TestRenderFlash(TemplateTestBase):
