@@ -33,9 +33,9 @@ rules_url = http://2014.hack.lu/index.php/CaptureTheFlag
 
 # The CSP header values to set
 % if mode == 'development':
-csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self' www.google.com; script-src 'self' www.google.com 'sha256-dtX3Yk6nskFEtsDm1THZkJ4mIIohKJf5grz4nY6HxI8='; style-src 'self';
+    csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self' www.google.com; script-src 'self' www.google.com 'sha256-dtX3Yk6nskFEtsDm1THZkJ4mIIohKJf5grz4nY6HxI8='; style-src 'self';
 % else:
-csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self' www.google.com; script-src 'self' www.google.com; style-src 'self';
+csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self' %(avatar_domain)s www.google.com; script-src 'self' www.google.com; style-src 'self';
 % endif
 
 # HSTS max-age setting
