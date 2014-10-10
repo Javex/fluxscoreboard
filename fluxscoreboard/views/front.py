@@ -512,6 +512,9 @@ class UserView(BaseView):
             elif form.avatar.data is not None and form.avatar.data != '':
                 # Handle new avatar
                 ext = form.avatar.data.filename.rsplit('.', 1)[-1]
+                if ext not in ('gif', 'jpg', 'jpeg', 'bmp', 'png'):
+                    self.request.session.flash("Invalid file extension.")
+                    return redirect
                 self.request.team.avatar_filename = random_token() + "." + ext
                 fpath = ("fluxscoreboard/static/images/avatars/%s"
                          % self.request.team.avatar_filename)
