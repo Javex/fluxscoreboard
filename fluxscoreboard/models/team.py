@@ -167,6 +167,7 @@ def register_team(form, request):
                 size=form.size.data,
                 )
     DBSession.add(team)
+    DBSession.flush()
     mailer = get_mailer(request)
     year = now().year
     message = Message(subject="Your hack.lu %s CTF Registration" % year,

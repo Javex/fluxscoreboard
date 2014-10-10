@@ -162,6 +162,8 @@ class TestFuncs(object):
         mail = self.mailer.outbox[0]
         assert re.match(r"Your hack.lu \d{4} CTF Registration", mail.subject)
         assert mail.recipients == ["test1@example.com"]
+        assert team.token is not None
+        assert team.token in mail.html
 
     def test_confirm_registration(self):
         t = self.make_team()
