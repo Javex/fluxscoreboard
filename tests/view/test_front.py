@@ -9,7 +9,7 @@ from fluxscoreboard.views.front import FrontView, UserView
 from pyramid.httpexceptions import HTTPFound
 from webob.multidict import MultiDict
 from tests.view import BaseViewTest
-from mock import MagicMock
+from mock import MagicMock, patch
 import pytest
 import cgi
 import tempfile
@@ -448,7 +448,18 @@ class TestUserViews(BaseViewTest):
         assert len(ret) == 2
         assert ret["form"].errors
         assert ret["team"] == team
-        
+
+    def test_invalid_file_exts(self, team, avatar):
+        self.request.method = 'POST'
+        avatar.filename = 'fuck.php'
+        self.request.POST['avatar'] = avatar
+        self.request.POST['email'] = 'fuck@shit.com'
+        with patch('fluxscoreboard.forms._validators.os') as m:
+            m.fstat.return_value = MagicMock(st_size=1)
+            ret = self.view.profile()
+        flash = self.request.session.peek_flash()
+        assert 'Invalid file extension.' in flash  # gordon
+
     def test_profile_avatar_delete(self, team):
         team.avatar_filename = "foobarfoo"
         self.request.method = 'POST'
