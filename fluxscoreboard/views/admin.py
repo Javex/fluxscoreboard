@@ -7,7 +7,8 @@ from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission, \
     get_submissions, Category
 from fluxscoreboard.models.news import News, MassMail
-from fluxscoreboard.models.team import Team, get_active_teams, TeamIP
+from fluxscoreboard.models.team import (Team, get_active_teams, TeamIP,
+    send_activation_mail)
 from pyramid.httpexceptions import HTTPFound
 from pyramid.security import remember
 from pyramid.view import view_config
@@ -565,11 +566,30 @@ class AdminView(object):
     def team_ips(self):
         """A list of IPs per team."""
         form = ButtonForm(self.request.POST, csrf_context=self.request)
+        redir = self.redirect('admin_teams',
+                              int(self.request.GET.get("page", 1)))
+        if not form.validate():
+            return redir
         team = (DBSession.query(Team).
                 filter(Team.id == form.id.data).
                 options(subqueryload('team_ips')).
                 one())
         return {'team': team}
+
+    @view_config(route_name='admin_teams_resend_activation',
+                 request_method='POST')
+    def team_resend_activation(self):
+        """Resend the activation mail for a team."""
+        form = ButtonForm(self.request.POST, csrf_context=self.request)
+        redir = self.redirect('admin_teams',
+                              int(self.request.GET.get("page", 1)))
+        if not form.validate():
+            return redir
+        team = DBSession.query(Team).filter(Team.id == form.id.data).one()
+        send_activation_mail(team, self.request)
+        self.request.session.flash('Activation mail for team "%s" resent.'
+                                   % team.name)
+        return redir
 
     @view_config(route_name='admin_ip_search', renderer='admin_ips.mako')
     def search_ips(self):

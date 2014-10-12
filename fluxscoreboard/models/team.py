@@ -63,7 +63,7 @@ def get_active_teams():
     """
     Get a query that returns a list of all active teams.
     """
-    return DBSession.query(Team).filter(Team.active == True)
+    return DBSession.query(Team).filter(Team.active == True).order_by(Team.id)
 
 
 def get_team_solved_subquery(team_id):
@@ -168,6 +168,17 @@ def register_team(form, request):
                 )
     DBSession.add(team)
     DBSession.flush()
+    send_activation_mail(team, request)
+    return team
+
+
+def send_activation_mail(team, request):
+    """
+    Send activation mail to particular team.
+    """
+    if team.token is None:
+        raise ValueError("Team must have token before sending activation "
+                         "mail.")
     mailer = get_mailer(request)
     year = now().year
     message = Message(subject="Your hack.lu %s CTF Registration" % year,
@@ -178,7 +189,6 @@ def register_team(form, request):
                                   )
                       )
     mailer.send(message)
-    return team
 
 
 def confirm_registration(token):

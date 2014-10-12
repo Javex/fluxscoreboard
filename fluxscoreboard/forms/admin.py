@@ -380,4 +380,11 @@ class SettingsForm(CSRFForm):
                      "documentation for details.")
     )
 
+    global_announcement = TextField(
+        "Global Announcement",
+        description=("Enter a message that should be displayed on all pages, "
+                     "e.g. an important notice. Leave empty to have no "
+                     "message.")
+    )
+
     submit = SubmitField("Send")
