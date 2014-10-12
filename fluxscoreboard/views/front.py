@@ -14,16 +14,14 @@ from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
     display_design)
 from fluxscoreboard.models.settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
 from pyramid.decorator import reify
-from pyramid.httpexceptions import HTTPFound, HTTPForbidden
+from pyramid.httpexceptions import HTTPFound
 from pyramid.security import remember, forget
 from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
 from pyramid.response import Response
 from pytz import utc
-from sqlalchemy import Integer
-from sqlalchemy.orm import subqueryload, joinedload, lazyload
-from sqlalchemy.sql.expression import desc, bindparam
-import functools
+from sqlalchemy.orm import subqueryload, joinedload
+from sqlalchemy.sql.expression import desc
 import logging
 import os
 from sqlalchemy.orm.exc import NoResultFound
@@ -218,12 +216,11 @@ class FrontView(BaseView):
         team_id = self.request.authenticated_userid
         team_solved_subquery = get_team_solved_subquery(team_id)
         number_of_solved_subquery = get_number_solved_subquery()
-        challenges = (DBSession.query(Challenge,
-                                           team_solved_subquery,
-                                           number_of_solved_subquery).
-                      options(joinedload("category")).
-                      filter(Challenge.published).
-                      order_by(Challenge.id))
+        challenges = (DBSession.query(
+            Challenge, team_solved_subquery, number_of_solved_subquery).
+            options(joinedload("category")).
+            filter(Challenge.published).
+            order_by(Challenge.id))
         return {'challenges': challenges}
 
     @view_config(route_name='challenge', renderer='challenge.mako',
@@ -240,10 +237,11 @@ class FrontView(BaseView):
         team_id = self.request.authenticated_userid
         team_solved_subquery = get_team_solved_subquery(team_id)
         try:
-            challenge, is_solved = (DBSession.query(Challenge,
-                                                team_solved_subquery).
-                                 filter(Challenge.id == challenge_id).
-                                 filter(Challenge.published).one())
+            challenge, is_solved = (
+                DBSession.query(Challenge, team_solved_subquery).
+                filter(Challenge.id == challenge_id).
+                filter(Challenge.published).one()
+            )
         except NoResultFound:
             self.request.session.flash("Challenge not found or published.")
             return HTTPFound(location=self.request.route_url('challenges'))
@@ -255,11 +253,8 @@ class FrontView(BaseView):
         if self.request.method == 'POST':
             if not form.validate():
                 return retparams
-            is_solved, msg = check_submission(challenge,
-                                           form.solution.data,
-                                           team_id,
-                                           self.request.settings,
-                                           )
+            is_solved, msg = check_submission(
+                challenge, form.solution.data, team_id, self.request.settings)
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
             return HTTPFound(location=self.request.route_url('challenge',
@@ -430,7 +425,7 @@ class UserView(BaseView):
                                            'success')
             headers = remember(self.request, team.id)
             return HTTPFound(location=self.request.route_url('home'),
-                                 headers=headers)
+                             headers=headers)
         return retparams
 
     @view_config(route_name='register', renderer='register.mako',
@@ -502,12 +497,13 @@ class UserView(BaseView):
             if not form.validate():
                 return retparams
             if form.avatar.delete:
+                avatar_filename = self.request.team.avatar_filename
                 try:
-                    os.remove(self.request.team.avatar_filename)
+                    os.remove(avatar_filename)
                 except OSError as e:
                     log.warning("Exception while deleting avatar for team "
                                 "'%s' under filename '%s': %s" %
-                                (self.request.team.name, self.request.team.avatar_filename, e))
+                                (self.request.team.name, avatar_filename, e))
                 self.request.team.avatar_filename = None
             elif form.avatar.data is not None and form.avatar.data != '':
                 # Handle new avatar
@@ -522,7 +518,7 @@ class UserView(BaseView):
                     in_file = form.avatar.data.file
                     in_file.seek(0)
                     while True:
-                        data = in_file.read(2<<16)
+                        data = in_file.read(2 << 16)
                         if not data:
                             break
                         out.write(data)
