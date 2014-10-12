@@ -49,7 +49,9 @@
                                                          ('admin_teams_toggle_local', "Make Team " + ("Remote" if team.local else "Local")),
                                                          ('admin_teams_regenerate_token', "Regenerate Token"),
                                                          ('test_login', "Test Login"),
-                                                         ('admin_teams_ips', "List IPs")])}
+                                                         ('admin_teams_ips', "List IPs"),
+                                                         ('admin_teams_resend_activation', "Resend Activation Mail"),
+                                                         ])}
                 </td>
             </tr>
     % endfor

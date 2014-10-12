@@ -4,7 +4,8 @@ from fluxscoreboard.models.challenge import (Submission, Challenge, update_chall
 from fluxscoreboard.models.team import (get_team_solved_subquery, get_team,
     groupfinder, get_all_teams, get_active_teams, get_number_solved_subquery,
     register_team, confirm_registration, login, password_reminder,
-    check_password_reset_token, get_team_by_ref, ref_token, Team)
+    check_password_reset_token, get_team_by_ref, ref_token, Team,
+    send_activation_mail)
 from fluxscoreboard.util import random_token
 from pyramid.httpexceptions import HTTPFound
 from pytz import timezone, utc
@@ -158,12 +159,19 @@ class TestFuncs(object):
         assert team.country == self.countries[0]
         assert team.timezone == timezone("Europe/Berlin")
         assert team.size == 10
+        assert team.token is not None
+
+    def test_send_activation_mail(self):
+        t = self.make_team()
+        self.dbsession.add(t)
+        self.dbsession.flush()
+        send_activation_mail(t, self.request)
         assert len(self.mailer.outbox) == 1
         mail = self.mailer.outbox[0]
         assert re.match(r"Your hack.lu \d{4} CTF Registration", mail.subject)
-        assert mail.recipients == ["test1@example.com"]
-        assert team.token is not None
-        assert team.token in mail.html
+        assert mail.recipients == [t.email]
+        assert t.token is not None
+        assert t.token in mail.html
 
     def test_confirm_registration(self):
         t = self.make_team()
