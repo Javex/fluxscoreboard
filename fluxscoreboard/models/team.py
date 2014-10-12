@@ -63,7 +63,7 @@ def get_active_teams():
     """
     Get a query that returns a list of all active teams.
     """
-    return DBSession.query(Team).filter(Team.active == True)
+    return DBSession.query(Team).filter(Team.active == True).order_by(Team.id)
 
 
 def get_team_solved_subquery(team_id):
