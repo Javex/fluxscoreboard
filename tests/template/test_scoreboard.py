@@ -67,6 +67,7 @@ class TestScoreboard(TemplateTestBase):
 
     def test_challenge_dynamic_mock(self, module):
         self.challenge.dynamic = True
+        self.challenge.base_points = None
         self.challenge.module = module
         module.get_points.return_value = 1337
         out = unicode(self.render())
@@ -75,6 +76,7 @@ class TestScoreboard(TemplateTestBase):
     def test_challenge_dynamic(self, dynamic_module):
         _, module = dynamic_module
         self.challenge.dynamic = True
+        self.challenge.base_points = None
         self.challenge.module = module
         out = unicode(self.render())
         assert isinstance(out, unicode)

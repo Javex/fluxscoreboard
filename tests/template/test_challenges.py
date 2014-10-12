@@ -59,6 +59,7 @@ class TestChallenges(TemplateTestBase):
     def test_dynamic(self):
         self.challenge.base_points = 1338
         self.challenge.dynamic = True
+        self.challenge.base_points = None
         update_playing_teams(self.db.connection())
         update_challenge_points(self.db.connection())
         self.db.flush()
@@ -69,11 +70,13 @@ class TestChallenges(TemplateTestBase):
 
     def test_manual(self):
         self.challenge.manual = True
+        self.challenge.base_points = None
         out = unicode(self.render())
         assert "<em>evaluated</em>" in out
 
     def test_dynamic_solved_count(self):
         self.challenge.dynamic = True
+        self.challenge.base_points = None
         out = unicode(self.render())
         assert re.search(r'<td>\s+-\s+</td>\s+<td>\s+-\s+</td>', out)
 

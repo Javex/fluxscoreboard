@@ -178,7 +178,7 @@ class Challenge(Base):
     title = Column(Unicode, nullable=False)
     text = Column(UnicodeText)
     solution = Column(Unicode)
-    base_points = Column(Integer, default=0)
+    base_points = Column(Integer, nullable=True)
     online = Column(Boolean, default=False, nullable=False)
     manual = Column(Boolean, default=False, nullable=False)
     category_id = Column(Integer, ForeignKey('category.id'))
@@ -191,11 +191,6 @@ class Challenge(Base):
                      nullable=False)
 
     category = relationship("Category", backref="challenges")
-
-    def __init__(self, *args, **kwargs):
-        if kwargs.get("manual", False) and kwargs.get("points", 0):
-            raise ValueError("A manual challenge cannot have points!")
-        Base.__init__(self, *args, **kwargs)
 
     def __unicode__(self):
         return self.title
@@ -245,6 +240,18 @@ class Challenge(Base):
     @points.setter
     def points(self, points):
         self._points = points
+
+
+@event.listens_for(Challenge, 'before_insert')
+@event.listens_for(Challenge, 'before_update')
+def validate_base_points(mapper, connection, challenge):
+    if (not challenge.manual and not challenge.dynamic and
+            not challenge.base_points):
+        raise ValueError("Challenge must have base points.")
+    if challenge.manual and challenge.base_points:
+        raise ValueError("Challenge cannot be manual and have points.")
+    if challenge.dynamic and challenge.base_points:
+        raise ValueError("Challenge cannot be dynamic and have points.")
 
 
 @event.listens_for(Challenge, 'before_update')

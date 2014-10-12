@@ -332,7 +332,6 @@ class TestChallenge(object):
         c = self.make_challenge()
         self.dbsession.add(c)
         assert c.id is None
-        assert c.base_points is None
         assert c._points is None
         assert c.online is None
         assert c.manual is None
@@ -344,15 +343,14 @@ class TestChallenge(object):
         self.dbsession.flush()
         self.dbsession.expire(c)
         assert c.id
-        assert c.base_points == 0
-        assert c._points == 100
+        assert c._points == 200
         assert c.online is False
         assert c.manual is False
         assert c.dynamic is False
         assert c.has_token is False
 
     def test_nullables(self, nullable_exc):
-        c = Challenge()
+        c = Challenge(base_points=100)
         t = self.dbsession.begin_nested()
         self.dbsession.add(c)
         try:
@@ -420,10 +418,26 @@ class TestChallenge(object):
 
     def test_points_manual(self):
         c = self.make_challenge(manual=True)
-        c.base_points = 123
         assert c.points is manual_challenge_points
-        c.base_points = 321
-        assert c.points is manual_challenge_points
+
+    def test_manual_w_base_pts(self):
+        c = self.make_challenge(manual=True, base_points=100)
+        self.dbsession.add(c)
+        with pytest.raises(ValueError):
+            self.dbsession.flush()
+
+    def test_dynamic_w_base_pts(self):
+        c = self.make_challenge(dynamic=True, base_points=100)
+        self.dbsession.add(c)
+        with pytest.raises(ValueError):
+            self.dbsession.flush()
+
+    def test_missing_base_pts(self):
+        c = self.make_challenge()
+        c.base_points = None
+        self.dbsession.add(c)
+        with pytest.raises(ValueError):
+            self.dbsession.flush()
 
     def test_points_readonly(self):
         c = self.make_challenge()
