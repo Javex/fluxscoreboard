@@ -74,17 +74,22 @@ def check_submission(challenge, solution, team_id, settings):
     if settings.submission_disabled:
         return False, "Submission is currently disabled"
 
-    if not challenge.online:
-        return False, "Challenge is offline."
-
     if not settings.archive_mode and now() > settings.ctf_end_date:
         return False, "The CTF is over, no more solutions can be submitted."
+
+    if not challenge.online:
+        return False, "Challenge is offline."
 
     if challenge.manual:
         return False, "Credits for this challenge will be given manually."
 
     if challenge.dynamic:
         return False, "The challenge is dynamic, no submission possible."
+
+    # help faggots
+    solution = solution.strip()
+    if solution.startswith('flag{'):
+        solution = solution[5:-1]
 
     if challenge.solution != solution:
         return False, "Solution incorrect."

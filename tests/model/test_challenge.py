@@ -55,7 +55,7 @@ class TestChallengeQueries(object):
         assert q[0] == cat
 
 
-class TestSubmission(object):
+class TestSubmissionFuncs(object):
 
     @pytest.fixture(autouse=True)
     def _prepare(self, dbsession, dbsettings, make_challenge, make_team,
@@ -66,12 +66,17 @@ class TestSubmission(object):
         self.make_challenge = make_challenge
         self.ctf_end_date = ctf_end_date
 
-    def test_check_submission(self):
-        c = self.make_challenge(online=True, solution="Test")
+    @pytest.mark.parametrize("solution,input_",
+                             [('Test', 'Test'),
+                              ('Test', ' Test '),
+                              ('Test', 'flag{Test}')
+                              ])
+    def test_check_submission(self, solution, input_):
+        c = self.make_challenge(online=True, solution=solution)
         t = self.make_team()
         self.dbsession.add_all([c, t])
         self.dbsession.flush()
-        result, msg = check_submission(c, "Test", t.id, self.dbsettings)
+        result, msg = check_submission(c, input_, t.id, self.dbsettings)
         assert result is True
         assert msg == 'Congratulations: You solved this challenge as first!'
         assert len(c.submissions) == 1
@@ -106,7 +111,7 @@ class TestSubmission(object):
 
     def test_check_submission_incorrect_solution(self):
         c = self.make_challenge(solution="Test", online=True)
-        result, msg = check_submission(c, "Test ", None, self.dbsettings)
+        result, msg = check_submission(c, "TestX", None, self.dbsettings)
         assert result is False
         assert msg == "Solution incorrect."
 
@@ -126,13 +131,13 @@ class TestSubmission(object):
         c = self.make_challenge(solution="Test", online=True)
         t = self.make_team()
         s = Submission(team=t, challenge=c)
-        dbsession.add(s)
-        dbsession.flush()
+        self.dbsession.add(s)
+        self.dbsession.flush()
         result, msg = check_submission(c, "Test", t.id, self.dbsettings)
         assert result is False
         assert msg == "Already solved."
 
-    def test_check_submission_ctf_over():
+    def test_check_submission_ctf_over(self):
         self.dbsettings.ctf_end_date = now() - timedelta(1)
         result, msg = check_submission(None, None, None, self.dbsettings)
         assert result is False
