@@ -10,7 +10,7 @@
                 <th>Title</th>
                 <th>Category</th>
                 <th>Solution</th>
-                <th>Points</th>
+                <th>Base Points (+Bonus Points)</th>
                 <th>Author(s)</th>
                 <th>Manual</th>
                 <th>Online</th>
@@ -33,7 +33,15 @@
                 % endif
                 </td>
                 <td><em>Hidden</em></td>
-                <td>${'dynamic' if challenge.dynamic else challenge.points}</td>
+                <td>
+                % if challenge.dynamic:
+                    <em>dynamic</em>
+                % elif challenge.manual:
+                    <em>manual</em>
+                % else:
+                    ${challenge.base_points} (+${challenge.points - challenge.base_points})
+                % endif
+                </td>
                 <td>
                 % if challenge.author:
                     ${challenge.author}

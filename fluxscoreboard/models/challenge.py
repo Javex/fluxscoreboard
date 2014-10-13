@@ -370,7 +370,9 @@ def update_challenge_points(connection, update_team_count=True):
     team_count = select([Settings.playing_teams]).as_scalar()
     team_ratio = 1 - solved_count / team_count
     bonus = case([(team_count != 0, func.round(team_ratio, 1))], else_=1) * 100
-    source = (select([Challenge.base_points + bonus]).correlate(Challenge))
+    source = select([Challenge.base_points + bonus]).correlate(Challenge)
     query = (Challenge.__table__.update().
+             where(~Challenge.manual).
+             where(~Challenge.dynamic).
              values(points=source))
     connection.execute(query)

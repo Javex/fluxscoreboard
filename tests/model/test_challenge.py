@@ -233,7 +233,6 @@ class TestUpdateChallengePoints(object):
 
         def _make_challenge(**kw):
             kw.setdefault('published', True)
-            kw.setdefault('base_points', 100)
             return make_challenge(**kw)
         self.make_challenge = _make_challenge
         self.db = dbsession
@@ -312,6 +311,18 @@ class TestUpdateChallengePoints(object):
         self.run(False, False)
         assert c.points == c.base_points + 100
         assert self.dbsettings.playing_teams == 16
+
+    def test_update_manual(self):
+        c = self.make_challenge(manual=True)
+        self.db.add(c)
+        self.run()
+        assert not c._points
+
+    def test_update_dynamic(self):
+        c = self.make_challenge(dynamic=True)
+        self.db.add(c)
+        self.run()
+        assert not c._points
 
 
 class TestChallenge(object):
