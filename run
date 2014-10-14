@@ -228,9 +228,9 @@ def _uninstall_database(settings):
     import sqlalchemy.engine
     import fluxscoreboard.models
     import fluxscoreboard.install
-    #engine = sqlalchemy.engine.engine_from_config(settings, 'sqlalchemy.')
-    #fluxscoreboard.models.DBSession.configure(bind=engine)
-    #fluxscoreboard.install.uninstall(settings)
+    engine = sqlalchemy.engine.engine_from_config(settings, 'sqlalchemy.')
+    fluxscoreboard.models.DBSession.configure(bind=engine)
+    fluxscoreboard.install.uninstall(settings)
 
 
 def _delete_directories(dirs, root_path=''):

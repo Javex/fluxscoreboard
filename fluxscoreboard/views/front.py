@@ -97,12 +97,6 @@ class BaseView(object):
         # Fetch the correcnt menu:
         menu = [(k, self._menu_item_map[k])
                 for k in self._menu_item_matrix[ctf_state][logged_in]]
-        # Small hack to accomodate 2013 design, might need to be removed
-        max_len = max(len(i) for x in self._menu_item_matrix.values()
-                      for i in x.values())
-        if display_design(self.request):
-            while len(menu) < max_len:
-                menu.append((None, None))
         return menu
 
     @reify
