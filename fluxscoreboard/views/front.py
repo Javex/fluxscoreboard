@@ -497,14 +497,7 @@ class UserView(BaseView):
             if not form.validate():
                 return retparams
             if form.avatar.delete:
-                avatar_filename = self.request.team.avatar_filename
-                try:
-                    os.remove(avatar_filename)
-                except OSError as e:
-                    log.warning("Exception while deleting avatar for team "
-                                "'%s' under filename '%s': %s" %
-                                (self.request.team.name, avatar_filename, e))
-                self.request.team.avatar_filename = None
+                self.request.team.delete_avatar()
             elif form.avatar.data is not None and form.avatar.data != '':
                 # Handle new avatar
                 ext = form.avatar.data.filename.rsplit('.', 1)[-1]
@@ -512,9 +505,7 @@ class UserView(BaseView):
                     self.request.session.flash("Invalid file extension.")
                     return redirect
                 self.request.team.avatar_filename = random_token() + "." + ext
-                fpath = ("fluxscoreboard/static/images/avatars/%s"
-                         % self.request.team.avatar_filename)
-                with open(fpath, "w") as out:
+                with open(self.request.team.full_avatar_path, "w") as out:
                     in_file = form.avatar.data.file
                     in_file.seek(0)
                     while True:

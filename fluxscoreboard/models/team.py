@@ -29,6 +29,7 @@ import random
 import string
 import transaction
 import uuid
+import os
 
 
 log = logging.getLogger(__name__)
@@ -409,6 +410,21 @@ class Team(Base):
         else:
             return float(done) / total
 
+    def delete_avatar(self):
+        if self.avatar_filename:
+            try:
+                os.remove(self.full_avatar_path)
+            except OSError as e:
+                log.warning("Exception while deleting avatar for team "
+                            "'%s' under filename '%s': %s" %
+                            (self.name, self.full_avatar_path, e))
+            self.avatar_filename = None
+
+    @property
+    def full_avatar_path(self):
+        return ("fluxscoreboard/static/images/avatars/%s"
+                % self.avatar_filename)
+
     @reify
     def stats(self):
         _stats = {}
@@ -539,6 +555,11 @@ def log_password_change(target, value, oldvalue, initiator):
     log.warning("Password changed for team with ID %s and name %s from IP "
                 "address %s"
                 % (target.id, target.name, request.client_addr))
+
+
+@event.listens_for(Team, 'after_delete')
+def _on_team_delete_remove_avatar(mapper, connection, team):
+    team.delete_avatar()
 
 
 @subscriber(NewRequest)
