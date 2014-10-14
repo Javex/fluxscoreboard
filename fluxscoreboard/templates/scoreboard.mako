@@ -1,5 +1,8 @@
+<%
+from fluxscoreboard.util import display_design
+%>
 <%inherit file="base.mako"/>
-<table id="scoreboard" class="table sortable">
+<table id="scoreboard" class="table sortable${' paper paper-curled listing' if display_design(request) else ''}">
     <thead>
         <tr>
             <th>#</th>

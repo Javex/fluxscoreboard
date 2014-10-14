@@ -239,7 +239,10 @@ tr:hover td {
     padding-top: 40px;
     text-align: center;
 }
-.paper form input[type=text] {
+.form-group {
+    padding-bottom: 20px;
+}
+.paper input[type=text], .paper input[type=email], .paper input[type=password]  {
     background: transparent;
     border: 0;
     border-bottom: 2px dashed #333;
@@ -277,4 +280,16 @@ h3 {
     font-variant: small-caps;
     font-size: 26px;
     padding-bottom: 12px;
+}
+.alert {
+    text-align: center;
+    border: 2px solid #ac1212;
+    color: #ac1212;
+    width: 300px;
+    margin: auto;
+    padding: 20px;
+    margin-bottom: 40px;
+}
+.lefty {
+    text-align: left;
 }
