@@ -193,30 +193,37 @@ tr:hover td {
 .team, .location {
     text-align: left;
 }
-.true {
+.true, .text-success {
     color: #294D1B;
 }
-.false {
+.text-center {
+    text-align: center;
+}
+.false, .text-danger, .text-warning {
     color: #ac1212;
 }
-.paper {
+.paper, .panel {
     width: 600px;
     margin: auto;
     position: relative;
     min-height: 20px;
+    margin-bottom: 40px;
     padding: 19px 40px 40px;
     background: url(../images/paper_bg.png);
     box-shadow: 0 1px 4px rgba(0,0,0,.3), 0 0 40px rgba(0,0,0,.2) inset;
 }
-.paper:after, .paper:before {
+.paper:last-child, .panel:last-child {
+    margin-bottom: 0;
+}
+.paper:after, .paper:before, .panel:after, .panel:before {
     content: "";
     position: absolute;
     z-index: -2;
 }
-.paper-curl {
+.paper-curl, .panel-info {
     border-radius: 20px 200px 10px 120px / 2px 10px 1px 6px;
 }
-.paper-curl:after, .paper-curl:before {
+.paper-curl:after, .paper-curl:before, .panel-info:after, .panel-info:before {
     bottom: 12px;
     width: 50%;
     height: 55%;
@@ -224,15 +231,16 @@ tr:hover td {
     max-height: 100px;
     box-shadow: 0 8px 14px rgba(0,0,0,.5);
 }
-.paper-curl:before {
+.paper-curl:before, .panel-info:before {
     left: 6px;
     transform: rotate(-3deg);
 }
-.paper-curl:after {
+.paper-curl:after, .panel-info:after {
     right: 6px;
     transform: rotate(3deg);
 }
-.paper p {
+.paper p, .panel p {
+    padding-top: 20px;
     text-align: justify;
 }
 .paper form {
@@ -251,9 +259,6 @@ tr:hover td {
     outline: 0;
     padding: 2px;
     width: 300px;
-}
-.paper form input[type=submit] {
-
 }
 ::-webkit-input-placeholder {
    color: #333;
@@ -279,7 +284,6 @@ h3 {
     text-align: center;
     font-variant: small-caps;
     font-size: 26px;
-    padding-bottom: 12px;
 }
 .alert {
     text-align: center;
@@ -292,4 +296,7 @@ h3 {
 }
 .lefty {
     text-align: left;
+}
+.text-center {
+    text-align: center;
 }
