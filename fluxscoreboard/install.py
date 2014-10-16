@@ -87,10 +87,11 @@ def install_test_data(dbsession, settings):
                               base_points=random.choice(range(100, 501, 100)),
                               online=random.choice([True, True, False]),
                               published=random.choice([True, True, False]),
-                              manual=(False if random.randint(0, 100) < 90
-                                      else True),
                               category=cat,
                               )
+        if random.randint(0, 100) > 90:
+            challenge.base_points = 0
+            challenge.manual = True
         challenges.append(challenge)
     dbsession.add_all(challenges)
 
