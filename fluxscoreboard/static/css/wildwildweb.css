@@ -346,3 +346,6 @@ h3 {
     padding-top: 8px;
     color: rgba(0, 0, 0, 0.5);
 }
+.bold tr td {
+    font-weight: bold;
+}
