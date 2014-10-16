@@ -1,14 +1,16 @@
 <%
-from fluxscoreboard.util import now, display_design, tz_str
+from fluxscoreboard.util import now, display_design
 %>
 <%inherit file="base.mako"/>
 
 
-<h1>Welcome to the hack.lu ${now().year} CTF!</h1>
 ${render_announcements(announcements)}
 
 
 <%def name="render_announcements(announcements, display_item_title=True, challenge_title=None)">
+    <%
+        from fluxscoreboard.util import tz_str
+    %>
     <div class="panel panel-info">
         <div class="panel-heading">
             <h3 class="panel-title">

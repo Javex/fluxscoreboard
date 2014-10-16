@@ -109,7 +109,7 @@ a.logo {
 a.logo:hover {
     background-position: 0 0;
 }
-button, input[type=submit] {
+button, input[type=submit], select {
     box-shadow: inset 0px 1px 0px 0px #a6827e;
     background-color: #7d5d3b;
     background: linear-gradient(to bottom, #7d5d3b 5%, #634b30 100%);
@@ -123,6 +123,10 @@ button, input[type=submit] {
     padding: 6px 24px;
     text-decoration: none;
     text-shadow: 0px 1px 0px #4d3534;
+    outline: 0;
+}
+select option {
+    background: #634b30;
 }
 button:hover, input[type=submit]:hover {
     color: #fff;
@@ -250,7 +254,7 @@ tr:hover td {
 .form-group {
     padding-bottom: 20px;
 }
-.paper input[type=text], .paper input[type=email], .paper input[type=password]  {
+.paper input[type=text], .paper input[type=email], .paper input[type=password], .paper input[type=number] {
     background: transparent;
     border: 0;
     border-bottom: 2px dashed #333;
@@ -287,16 +291,58 @@ h3 {
 }
 .alert {
     text-align: center;
-    border: 2px solid #ac1212;
-    color: #ac1212;
     width: 300px;
     margin: auto;
     padding: 20px;
     margin-bottom: 40px;
+}
+.alert-danger {
+    border: 2px solid #ac1212;
+    color: #ac1212;
+}
+.alert-success {
+    border: 2px solid #294D1B;
+    color: #294D1B;
+}
+.alert-info {
+    border: 2px solid #333;
+    color: #333;
+}
+.paper .alert {
+    width: auto;
+    padding: 0;
+    margin: 0;
+    border: 0;
 }
 .lefty {
     text-align: left;
 }
 .text-center {
     text-align: center;
+}
+.fkinform label {
+    display: block;
+    width: 200px;
+    float: left;
+    text-align: left;
+}
+.form-group::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+.fkinform input[type=text], .fkinform input[type=password], .fkinform input[type=email], .fkinform input[type=file], .fkinform select {
+    display: block;
+    float: left;
+}
+.fkinform .form-group {
+    margin-bottom: 5px;
+}
+.fkinform .help-block {
+    float: left;
+    display: block;
+    text-align: center;
+    font-size: 12px;
+    padding-top: 8px;
+    color: rgba(0, 0, 0, 0.5);
 }
