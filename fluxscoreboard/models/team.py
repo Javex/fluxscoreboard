@@ -543,8 +543,8 @@ def update_score(connection, update_all=True):
     from fluxscoreboard.models import dynamic_challenges
     if update_all:
         update_challenge_points(connection, update_team_count=True)
-    bonus_score = (select([func.sum(Challenge._points -
-                                    Challenge.base_points)]).
+    bonus_col = func.sum(Challenge._points - Challenge.base_points)
+    bonus_score = (select([func.coalesce(bonus_col, 0)]).
                    where(Challenge.id == Submission.challenge_id).
                    where(Team.id == Submission.team_id).
                    where(~Challenge.dynamic).

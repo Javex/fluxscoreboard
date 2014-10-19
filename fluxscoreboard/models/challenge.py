@@ -118,7 +118,7 @@ def check_submission(challenge, solution, team, settings):
     submission.team_id = team.id
     submission.challenge = challenge
     DBSession.add(submission)
-    team.base_score += challenge.base_points
+    team.base_score += challenge.base_points + first_blood_pts
     team.bonus_score += challenge.points - challenge.base_points
     return True, msg
 
