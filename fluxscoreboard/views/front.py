@@ -265,6 +265,15 @@ class FrontView(BaseView):
         complex part of the query is the query that calculates the sum of
         points right in the SQL.
         """
+        def ranked(teams):
+            """ Iterator adding ranks to team results. """
+            last_score = None
+            for index, (team, score) in enumerate(teams, 1):
+                if last_score is None or score < last_score:
+                    rank = index
+                    last_score = score
+                base_points = 0
+                yield (team, score, rank)
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
         teams = (DBSession.query(Team, Team.score).
@@ -272,17 +281,7 @@ class FrontView(BaseView):
                  options(subqueryload('submissions'),
                          joinedload('submissions.challenge')).
                  order_by(desc("score")))
-        team_list = []
-        last_score = None
-        for index, (team, score) in enumerate(teams, 1):
-            if last_score is None or score < last_score:
-                rank = index
-                last_score = score
-            team_list.append((team, score, rank))
-        challenges = (DBSession.query(Challenge).filter(Challenge.published).
-                      options(joinedload("category")))
-        return {'teams': team_list,
-                'challenges': challenges.all()}
+        return {'teams': ranked(teams)}
 
     @view_config(route_name='teams', renderer='teams.mako', permission='teams')
     def teams(self):
