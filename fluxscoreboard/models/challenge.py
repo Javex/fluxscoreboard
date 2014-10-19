@@ -51,7 +51,7 @@ def get_all_categories():
     return DBSession.query(Category)
 
 
-def check_submission(challenge, solution, team_id, settings):
+def check_submission(challenge, solution, team, settings):
     """
     Check a solution for a challenge submitted by a team and add it to the
     database if it was correct.
@@ -62,7 +62,7 @@ def check_submission(challenge, solution, team_id, settings):
 
         ``solution``: A string, the proposed solution for the challenge.
 
-        ``team_id``: An integer, the team's id which submitted the solution.
+        ``team``: Team that submitted the solution.
 
     Returns:
         A tuple of ``(result, msg)``. ``result`` indicates whether the solution
@@ -104,7 +104,7 @@ def check_submission(challenge, solution, team_id, settings):
              filter(Submission.challenge_id == challenge.id))
     submissions = [id_ for id_, in query]
 
-    if team_id in submissions:
+    if team.id in submissions:
         return False, "Already solved."
 
     solved_count = len(submissions)
@@ -115,9 +115,11 @@ def check_submission(challenge, solution, team_id, settings):
         msg = 'Congratulations: That was the correct solution!'
 
     submission = Submission(additional_pts=first_blood_pts)
-    submission.team_id = team_id
+    submission.team_id = team.id
     submission.challenge = challenge
     DBSession.add(submission)
+    team.base_score += challenge.base_points
+    team.bonus_score += challenge.points - challenge.base_points
     return True, msg
 
 

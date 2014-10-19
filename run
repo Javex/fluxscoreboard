@@ -315,7 +315,7 @@ def coverage(root_path=''):
 
 
 def update_challenge_points(root_path=''):
-    import fluxscoreboard.models.challenge
+    import fluxscoreboard.models.team
     import paste.deploy.loadwsgi
     import sqlalchemy
     import pyramid.paster
@@ -334,7 +334,7 @@ def update_challenge_points(root_path=''):
     cfg = paste.deploy.loadwsgi.appconfig('config:' + cfg_path)
     engine = sqlalchemy.engine_from_config(cfg, 'sqlalchemy.')
     with engine.begin() as conn:
-        fluxscoreboard.models.challenge.update_challenge_points(conn, True)
+        fluxscoreboard.models.team.update_score(conn, True)
 
 if __name__ == '__main__':
     desc = 'Your one-time-stop-shop for the scoreboard <(^_^<)'

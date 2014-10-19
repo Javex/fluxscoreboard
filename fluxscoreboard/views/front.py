@@ -248,7 +248,8 @@ class FrontView(BaseView):
             if not form.validate():
                 return retparams
             is_solved, msg = check_submission(
-                challenge, form.solution.data, team_id, self.request.settings)
+                challenge, form.solution.data, self.request.team,
+                self.request.settings)
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
             return HTTPFound(location=self.request.route_url('challenge',
@@ -310,14 +311,13 @@ class FrontView(BaseView):
         """
         form = SolutionSubmitListForm(self.request.POST,
                                       csrf_context=self.request)
-        team_id = self.request.authenticated_userid
         retparams = {'form': form}
         if self.request.method == 'POST':
             if not form.validate():
                 return retparams
             is_solved, msg = check_submission(form.challenge.data,
                                               form.solution.data,
-                                              team_id,
+                                              self.request.team,
                                               self.request.settings,
                                               )
             self.request.session.flash(msg,
