@@ -7,7 +7,11 @@ import pytz
     <head>
         <link rel="shortcut icon" href="${request.static_url('fluxscoreboard:static/images/favicon.ico')}" />
         <script src="${request.static_url('fluxscoreboard:static/js/jquery.min.js')}"></script>
-        <script src="${request.static_url('fluxscoreboard:static/js/bootstrap.min.js')}"></script>
+        
+        % if not display_design(request):
+            <script src="${request.static_url('fluxscoreboard:static/js/bootstrap.min.js')}"></script>
+        % endif
+
         <script src="${request.static_url('fluxscoreboard:static/js/sorttable.js')}"></script>
         % if is_admin_path(request):
             <script src="${request.static_url('fluxscoreboard:static/js/admin.js')}"></script>
