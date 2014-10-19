@@ -31,8 +31,8 @@ from fluxscoreboard.util import display_design
             <td class="text-${'success' if team.local else 'danger'}">
                 ${'Yes' if team.local else 'No'}
             </td>
-            <td>base</td>
-            <td>bonus</td>
+            <td>${team.base_score}</td>
+            <td>${team.bonus_score}</td>
             <td>${points}</td>
         </tr>
     % endfor

@@ -20,6 +20,7 @@ import uuid
             </h3>
         % endif
         % if not challenge.dynamic:
+            <small class="points">${challenge.base_points} (+${challenge.points - challenge.base_points}) Points</small>
             <p>${challenge.text | n}</p>
             % if request.settings.archive_mode:
                 <p class="text-warning">Scoreboard is in archive mode. You can submit solutions and will receive feedback, but won't be able to compete in the scoreboard.</p>
