@@ -63,7 +63,7 @@ class RootFactory(object):
         for principal, permissions in permission_map[ctf_state]:
             acl.append((Allow, principal, permissions))
         if self.request.session.get('test-login'):
-            acl.append(Allow, 'group:team', permission_map[CTF_STARTED][0])
+            acl.append((Allow, principal, permission_map[CTF_STARTED][0][1]))
         return acl
 
 
