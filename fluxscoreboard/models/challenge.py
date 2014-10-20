@@ -10,6 +10,7 @@ from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey, FetchedValue
 from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText, Numeric
 from sqlalchemy.sql.expression import cast, case
+from pyramid.threadlocal import get_current_request
 
 
 first_blood_map = {0: (3, 'first'),
@@ -113,6 +114,9 @@ def check_submission(challenge, solution, team_id, settings):
         msg = 'Congratulations: You solved this challenge as %s!' % place_msg
     else:
         msg = 'Congratulations: That was the correct solution!'
+
+    msg += (' How did you like this challenge? Please provide some feedback '
+            'in the form below.')
 
     submission = Submission(additional_pts=first_blood_pts)
     submission.team_id = team_id
@@ -344,6 +348,23 @@ class Submission(Base):
              "timestamp=%s>" % (self.challenge, self.team,
                                 self.additional_pts, self.timestamp))
         return r.encode("utf-8")
+
+
+class Feedback(Base):
+    team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
+    challenge_id = Column(Integer, ForeignKey('challenge.id'),
+                          primary_key=True)
+    rating = Column(Integer)
+    note = Column(Unicode)
+
+    team = relationship("Team",
+                        backref=backref("feedback",
+                                        cascade="all, delete-orphan")
+                        )
+    challenge = relationship("Challenge",
+                             backref=backref("feedback",
+                                             cascade="all, delete-orphan")
+                             )
 
 
 def update_playing_teams(connection):

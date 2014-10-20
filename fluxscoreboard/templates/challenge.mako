@@ -82,9 +82,36 @@ import uuid
     % else:
         ${challenge.module.render(challenge, request) | n}
     % endif
+    % if feedback:
+    <div class="row">
+        <form method="POST" class="form-horizontal">
+            <legend><small>Please provide feedback for this challenge</small></legend>
+            <div class="row">
+                <div class="col-2">${feedback.rating.label(class_='control-label')}</div>
+                <div class="col-10">
+                % for item in feedback.rating:
+                    ${item.label()} ${item()}
+                % endfor
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-2">${feedback.note.label(class_='control-label')}</div>
+                <div class="col-10">${feedback.note(class_='form-control', rows=5)}</div>
+            </div>
+            <div class="row">
+                <div class="col-2"></div>
+                <div class="col-10">
+                    ${feedback.csrf_token}
+                    ${feedback.submit_feedback(class_='btn btn-default form-contro')}
+                </div>
+            </div>
+        </form>
+    </div>
+    % endif
     </div>
     <div class="clearfix"></div>
 </div>
+
 
 ${announcements.render_announcements(challenge.announcements, False, challenge.title)}
 

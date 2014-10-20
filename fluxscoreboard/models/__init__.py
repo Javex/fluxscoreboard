@@ -39,13 +39,17 @@ class RootFactory(object):
         self.request = request
 
     def __acl__(self):
-        from .settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
+        from .settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE, CTF_ENDED
         permission_map = {
             CTF_BEFORE: [
                 ('group:team', ['teams', 'logged_in']),
                 (Everyone, ['teams', 'login', 'register']),
             ],
             CTF_STARTED: [
+                ('group:team', ['scoreboard', 'challenges', 'logged_in']),
+                (Everyone, ['scoreboard', 'login']),
+            ],
+            CTF_ENDED: [
                 ('group:team', ['scoreboard', 'challenges', 'logged_in']),
                 (Everyone, ['scoreboard', 'login']),
             ],

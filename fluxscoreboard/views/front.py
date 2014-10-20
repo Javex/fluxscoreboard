@@ -2,17 +2,18 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
     SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
-    ResetPasswordForm)
+    ResetPasswordForm, FeedbackForm)
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import (Challenge, Submission,
-    check_submission, Category)
+    check_submission, Category, Feedback)
 from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
     get_number_solved_subquery, get_team, register_team, confirm_registration,
     password_reminder, check_password_reset_token, get_active_teams)
 from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
     display_design)
-from fluxscoreboard.models.settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
+from fluxscoreboard.models.settings import (
+    CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE, CTF_ENDED)
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPFound
 from pyramid.security import remember, forget
@@ -61,6 +62,11 @@ class BaseView(object):
         },
 
         CTF_STARTED: {
+            True: ['scoreboard', 'challenges', 'submit', 'profile', 'logout'],
+            False: ['scoreboard', 'login'],
+        },
+
+        CTF_ENDED: {
             True: ['scoreboard', 'challenges', 'submit', 'profile', 'logout'],
             False: ['scoreboard', 'login'],
         },
@@ -197,6 +203,8 @@ class FrontView(BaseView):
             (CTF_BEFORE, False): 'login',
             (CTF_STARTED, True): 'scoreboard',
             (CTF_STARTED, False): 'login',
+            (CTF_ENDED, True): 'scoreboard',
+            (CTF_ENDED, False): 'login',
             (CTF_ARCHIVE, False): 'scoreboard',
         }
         target = target_map[self.current_state]
@@ -250,13 +258,38 @@ class FrontView(BaseView):
                      'form': form,
                      'is_solved': is_solved,
                      }
+        # solved or after CTF
+        feedback_obj = None
+        if is_solved or (CTF_ENDED, True) == self.current_state:
+            feedback_obj = (
+                DBSession.query(Feedback).
+                filter(Feedback.team_id == self.request.team.id).
+                filter(Feedback.challenge_id == challenge.id).
+                first())
+            if not feedback_obj:
+                feedback_obj = Feedback(team_id=self.request.team.id,
+                                        challenge_id=challenge.id)
+                DBSession.add(feedback_obj)
+            retparams['feedback'] = FeedbackForm(
+                self.request.POST, obj=feedback_obj,
+                csrf_context=self.request)
         if self.request.method == 'POST':
-            if not form.validate():
-                return retparams
-            is_solved, msg = check_submission(
-                challenge, form.solution.data, team_id, self.request.settings)
-            self.request.session.flash(msg,
-                                       'success' if is_solved else 'error')
+            if 'submit_feedback' in self.request.POST:
+                if not retparams['feedback'].validate():
+                    return retparams
+                if feedback_obj:
+                    retparams['feedback'].populate_obj(feedback_obj)
+                    self.request.session.flash(
+                        'Thanks for your feedback. You can edit it at any '
+                        'point.')
+            else:
+                if not form.validate():
+                    return retparams
+                is_solved, msg = check_submission(
+                    challenge, form.solution.data, team_id,
+                    self.request.settings)
+                self.request.session.flash(msg,
+                                           'success' if is_solved else 'error')
             return HTTPFound(location=self.request.route_url('challenge',
                                                              id=challenge.id)
                              )
@@ -329,12 +362,15 @@ class FrontView(BaseView):
                                               )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
-            return HTTPFound(
-                location=self.request.route_url(
-                    'submit',
-                    _query={'challenge': form.challenge.data.id},
-                    ),
-            )
+            if is_solved:
+                return HTTPFound(
+                    location=self.request.route_url(
+                        'challenge',
+                        id=form.challenge.data.id,
+                        ),
+                )
+            else:
+                return retparams
         return retparams
 
     @view_config(route_name='verify_token')
