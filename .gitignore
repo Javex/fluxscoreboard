@@ -1,6 +1,7 @@
 development.ini
 production.ini
 test.ini
+avatars/
 data/session/*
 tests/template/cache/
 log/
