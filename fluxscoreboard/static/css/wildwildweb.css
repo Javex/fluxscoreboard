@@ -330,12 +330,22 @@ h3 {
     float: left;
     text-align: left;
 }
+textarea {
+    width: 400px;
+    border: 2px dashed #333;
+    padding: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    outline: 0;
+}
+textarea:focus {
+    background: rgba(255, 255, 255, 0.4);
+}
 .form-group::after {
     content: "";
     display: block;
     clear: both;
 }
-.fkinform input[type=text], .fkinform input[type=password], .fkinform input[type=email], .fkinform input[type=file], .fkinform select {
+.fkinform input[type=text], .fkinform input[type=password], .fkinform input[type=email], .fkinform input[type=file], .fkinform select, .fkinform textarea {
     display: block;
     float: left;
 }
@@ -358,4 +368,12 @@ h3 {
     text-align: right;
     padding-top: 20px;
     color: rgba(0, 0, 0, .5);
+}
+.note-label {
+    vertical-align: top;
+    padding-right: 5px;
+    font-weight: bold;
+}
+.padme {
+    padding-top: 10px;
 }
