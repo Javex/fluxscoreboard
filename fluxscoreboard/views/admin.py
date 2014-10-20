@@ -91,7 +91,7 @@ class AdminView(object):
         Construct a simple query to the database. Even though it is dead simple
         it is factored out because it is used in more than one place.
         """
-        return DBSession.query(DatabaseClass)
+        return DBSession.query(DatabaseClass).order_by(DatabaseClass.id)
 
     def _list_retparams(self, page, form, is_new=None):
         """
