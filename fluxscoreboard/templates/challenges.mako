@@ -1,5 +1,8 @@
+<%
+from fluxscoreboard.util import display_design
+%>
 <%inherit file="base.mako"/>
-<table class="table sortable">
+<table class="table sortable${' paper paper-curled listing' if display_design(request) else ''}">
     <thead>
         <tr>
             <th>#</th>
@@ -14,11 +17,11 @@
     % for index, (challenge, team_solved, solved_count) in enumerate(challenges, 1):
         <tr class="${'success' if team_solved else ''}">
             <td>${index}</td>
-            <td>
+            <td class="lefty">
                 <a href="${request.route_url('challenge', id=challenge.id)}">${challenge.title}</a>
             </td>
 ## The 'z'*20 solution is veeeery ugly: We should fix it so sorttable treats it as special somehow
-            <td sorttable_customkey="${challenge.category or 'z'*20}">
+            <td sorttable_customkey="${challenge.category or 'z'*20}" class="lefty">
             % if challenge.category:
                 ${challenge.category}
             % else:

@@ -76,7 +76,7 @@ class TestSubmissionFuncs(object):
         t = self.make_team()
         self.dbsession.add_all([c, t])
         self.dbsession.flush()
-        result, msg = check_submission(c, input_, t.id, self.dbsettings)
+        result, msg = check_submission(c, input_, t, self.dbsettings)
         assert result is True
         assert msg == 'Congratulations: You solved this challenge as first!'
         assert len(c.submissions) == 1
@@ -92,7 +92,7 @@ class TestSubmissionFuncs(object):
                 'Congratulations: You solved this challenge as third!',
                 'Congratulations: That was the correct solution!']
         for i in range(4):
-            result, msg = check_submission(c, "Test", teams[i].id, self.dbsettings)
+            result, msg = check_submission(c, "Test", teams[i], self.dbsettings)
             assert result is True
             assert msg == msgs[i]
             assert len(c.submissions) == i + 1
@@ -133,7 +133,7 @@ class TestSubmissionFuncs(object):
         s = Submission(team=t, challenge=c)
         self.dbsession.add(s)
         self.dbsession.flush()
-        result, msg = check_submission(c, "Test", t.id, self.dbsettings)
+        result, msg = check_submission(c, "Test", t, self.dbsettings)
         assert result is False
         assert msg == "Already solved."
 
