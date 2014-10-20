@@ -46,9 +46,11 @@ import pytz
                 % endfor
             </nav>
             <div class="content-wrapper">
-                % for queue, css_type in [('', 'info'), ('error', 'danger'), ('success', 'success'), ('warning', '')]:
-                    ${render_flash(queue, css_type)}
-                % endfor
+                <div class="flash">
+                    % for queue, css_type in [('', 'info'), ('error', 'danger'), ('success', 'success'), ('warning', '')]:
+                        ${render_flash(queue, css_type)}
+                    % endfor
+                </div>
                 ${self.body()}
             </div>
             <div class="grunge-top-bg"></div>
@@ -80,9 +82,11 @@ import pytz
             </ul>
             % endif
         </div>
-        % for queue, css_type in [('', 'info'), ('error', 'danger'), ('success', 'success'), ('warning', '')]:
-            ${render_flash(queue, css_type)}
-        % endfor
+        <div class="flash">
+            % for queue, css_type in [('', 'info'), ('error', 'danger'), ('success', 'success'), ('warning', '')]:
+                ${render_flash(queue, css_type)}
+            % endfor
+        </div>
         ${self.body()}
     </body>
 

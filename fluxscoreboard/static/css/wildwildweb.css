@@ -289,12 +289,20 @@ h3 {
     font-variant: small-caps;
     font-size: 26px;
 }
+.flash {
+    padding-bottom: 40px;
+}
 .alert {
     text-align: center;
-    width: 300px;
+    width: 670px;
     margin: auto;
-    padding: 20px;
-    margin-bottom: 40px;
+    padding: 5px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    background: url(../images/grunge_bottom_bg.png);
+    background-position: 0 220px;
+    color: rgba(0, 0, 0, 0.8);
 }
 .alert-danger {
     border: 2px solid #ac1212;
@@ -303,10 +311,6 @@ h3 {
 .alert-success {
     border: 2px solid #294D1B;
     color: #294D1B;
-}
-.alert-info {
-    border: 2px solid #333;
-    color: #333;
 }
 .paper .alert {
     width: auto;
@@ -326,12 +330,22 @@ h3 {
     float: left;
     text-align: left;
 }
+textarea {
+    width: 400px;
+    border: 2px dashed #333;
+    padding: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    outline: 0;
+}
+textarea:focus {
+    background: rgba(255, 255, 255, 0.4);
+}
 .form-group::after {
     content: "";
     display: block;
     clear: both;
 }
-.fkinform input[type=text], .fkinform input[type=password], .fkinform input[type=email], .fkinform input[type=file], .fkinform select {
+.fkinform input[type=text], .fkinform input[type=password], .fkinform input[type=email], .fkinform input[type=file], .fkinform select, .fkinform textarea {
     display: block;
     float: left;
 }
@@ -354,4 +368,12 @@ h3 {
     text-align: right;
     padding-top: 20px;
     color: rgba(0, 0, 0, .5);
+}
+.note-label {
+    vertical-align: top;
+    padding-right: 5px;
+    font-weight: bold;
+}
+.padme {
+    padding-top: 10px;
 }

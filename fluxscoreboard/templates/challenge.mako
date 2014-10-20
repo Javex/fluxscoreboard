@@ -52,6 +52,27 @@ import uuid
             ## is a dynamic challenge
             ${challenge.module.render(challenge, request) | n}
         % endif
+        % if feedback:
+        <div class="row">
+            <form method="POST" class="form-horizontal noteform">
+                <h3>Please Provide Feedback for This Challenge</h3>
+                <div class="form-group padme">
+                    <b>${feedback.rating.label(class_='control-label')}</b>
+                    % for item in feedback.rating:
+                        ${item()} ${item.label()} 
+                    % endfor
+                </div>
+                <div class="form-group">
+                    ${feedback.note.label(class_='control-label note-label')}
+                    ${feedback.note(class_='form-control note-area', rows=5)}
+                </div>
+                <div class="form-group">
+                    ${feedback.csrf_token}
+                    ${feedback.submit_feedback(class_='btn btn-default form-contro')}
+                </div>
+            </form>
+        </div>
+        % endif
     </div>
 
 
@@ -141,6 +162,7 @@ import uuid
     </div>
 
 % endif
+
 
 ${announcements.render_announcements(challenge.announcements, False, challenge.title)}
 
