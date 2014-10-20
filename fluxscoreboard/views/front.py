@@ -49,6 +49,7 @@ class BaseView(object):
         'logout': "Logout",
         'login': "Login",
         'register': "Register",
+        'news': "News",
         }
 
     # A matrix that gives a list of allowed views per possible state. The three
@@ -62,12 +63,14 @@ class BaseView(object):
         },
 
         CTF_STARTED: {
-            True: ['scoreboard', 'challenges', 'submit', 'profile', 'logout'],
+            True: ['news', 'scoreboard', 'challenges', 'submit', 'profile',
+                   'logout'],
             False: ['scoreboard', 'login'],
         },
 
         CTF_ENDED: {
-            True: ['scoreboard', 'challenges', 'submit', 'profile', 'logout'],
+            True: ['news', 'scoreboard', 'challenges', 'submit', 'profile',
+                   'logout'],
             False: ['scoreboard', 'login'],
         },
 

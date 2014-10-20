@@ -377,7 +377,22 @@ textarea:focus {
 .padme {
     padding-top: 10px;
 }
+.announcements h4 {
+    padding-top: 20px;
+}
+.announcements {
+    border-bottom: 2px solid rgba(0, 0, 0, .2);
+}
+.announcements p {
+    padding: 0;
+    padding-bottom: 20px;
+}
+.announcements:last-child {
+    border-bottom: 0;
+}
+h4 {
+    text-align: center;
+}
 h4 small {
     display: block;
-    text-align: center;
 }

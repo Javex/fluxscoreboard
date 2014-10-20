@@ -22,15 +22,15 @@ ${render_announcements(announcements)}
         </div>
         % if announcements:
             % for news in announcements:
-                <div class="list-group">
+                <div class="list-group${ ' announcements' if display_item_title else '' }">
                     <h4>
-                    % if display_item_title:
-                        % if news.challenge:
-                            <a href="${request.route_url('challenge', id=news.challenge_id)}">"${news.challenge.title}"</a>
-                        % else:
-                            General Announcement
+                        % if display_item_title:
+                            % if news.challenge:
+                                <a href="${request.route_url('challenge', id=news.challenge_id)}">${news.challenge.title}</a>
+                            % else:
+                                General Announcement
+                            % endif
                         % endif
-                    % endif
                         <small>(Published on ${tz_str(news.timestamp, request.team.timezone if request.team else None)})</small>
                     </h4>
                 <p>${news.message | n}</p>
