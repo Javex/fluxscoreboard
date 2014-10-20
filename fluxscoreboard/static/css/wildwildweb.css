@@ -289,12 +289,20 @@ h3 {
     font-variant: small-caps;
     font-size: 26px;
 }
+.flash {
+    padding-bottom: 40px;
+}
 .alert {
     text-align: center;
-    width: 300px;
+    width: 670px;
     margin: auto;
-    padding: 20px;
-    margin-bottom: 40px;
+    padding: 5px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    background: url(../images/grunge_bottom_bg.png);
+    background-position: 0 220px;
+    color: rgba(0, 0, 0, 0.8);
 }
 .alert-danger {
     border: 2px solid #ac1212;
@@ -303,10 +311,6 @@ h3 {
 .alert-success {
     border: 2px solid #294D1B;
     color: #294D1B;
-}
-.alert-info {
-    border: 2px solid #333;
-    color: #333;
 }
 .paper .alert {
     width: auto;
