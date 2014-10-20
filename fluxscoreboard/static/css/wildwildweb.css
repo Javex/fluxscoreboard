@@ -377,3 +377,7 @@ textarea:focus {
 .padme {
     padding-top: 10px;
 }
+h4 small {
+    display: block;
+    text-align: center;
+}
