@@ -3,7 +3,7 @@
 <h1>Categories</h1>
 
 % if items:
-    <table class="table">
+    <table class="table sortable">
         <thead>
             <tr>
                 <th>ID</th>

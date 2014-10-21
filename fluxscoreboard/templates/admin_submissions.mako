@@ -4,8 +4,8 @@
 <h1>Submissions</h1>
 
 % if items:
-    <table class="table">
-        <thead>
+    <table class="table sortable">
+        <thead> 
             <tr>
                 <th>Team (ID)</th>
                 <th>Challenge (ID)</th>

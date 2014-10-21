@@ -3,7 +3,7 @@
 <%namespace name="form_funcs" file="_form_functions.mako"/>
 <h1>Announcements</h1>
 % if items:
-    <table class="table">
+    <table class="table sortable">
         <thead>
             <tr>
                 <th>ID</th>

@@ -12,7 +12,7 @@
     % else:
         <em>All IPs that are currently registered</em>
     % endif
-    <table class="table">
+    <table class="table sortable">
         <tr>
             <th>Team ID</th>
             <th>Team Name</th>

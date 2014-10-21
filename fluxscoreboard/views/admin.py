@@ -619,7 +619,8 @@ class AdminView(object):
         form = IPSearchForm(self.request.POST, csrf_context=self.request)
         retparams = {'form': form}
         redirect = self.redirect('admin_ip_search')
-        query = DBSession.query(Team).join(TeamIP)
+        query = (DBSession.query(Team).join(TeamIP).
+                 options(subqueryload('team_ips')))
         if self.request.method == 'POST':
             if not form.validate():
                 return redirect
@@ -660,7 +661,6 @@ class AdminView(object):
             submission = (DBSession.query(Submission).
                           filter(Submission.team_id == team_id).
                           filter(Submission.challenge_id == challenge_id).
-                          order_by(desc(Submission.timestamp)).
                           one())
             form = SubmissionForm(None, submission, csrf_context=self.request)
 

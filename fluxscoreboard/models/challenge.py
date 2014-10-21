@@ -9,7 +9,7 @@ from sqlalchemy import event, func, select, exists
 from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey, FetchedValue
 from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText, Numeric
-from sqlalchemy.sql.expression import cast, case
+from sqlalchemy.sql.expression import cast, case, desc
 from pyramid.threadlocal import get_current_request
 
 
@@ -44,7 +44,8 @@ def get_submissions():
     """
     return (DBSession.query(Submission).
             options(joinedload('challenge')).
-            options(joinedload('team')))
+            options(joinedload('team')).
+            order_by(desc(Submission.timestamp)))
 
 
 def get_all_categories():

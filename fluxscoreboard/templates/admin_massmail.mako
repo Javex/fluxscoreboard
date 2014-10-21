@@ -3,7 +3,7 @@
 <h1>Send Mass Mails</h1>
 
 % if items:
-    <table class="table">
+    <table class="table sortable">
         <thead>
             <tr>
                 <th>ID</th>
