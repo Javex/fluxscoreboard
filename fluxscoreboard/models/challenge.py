@@ -252,6 +252,17 @@ class Challenge(Base):
     def points(self, points):
         self._points = points
 
+    @property
+    def average_feedback(self):
+        rated_feedback = filter(lambda f: f.rating is not None,
+                                self.feedback)
+        if rated_feedback:
+            rating_sum = sum(map(lambda f: f.rating, rated_feedback))
+            return float(rating_sum)/len(rated_feedback)
+        else:
+            return None
+
+
 
 @event.listens_for(Challenge, 'before_insert')
 @event.listens_for(Challenge, 'before_update')

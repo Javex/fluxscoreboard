@@ -12,6 +12,7 @@
                 <th>Solution</th>
                 <th>Base Points (+Bonus Points)</th>
                 <th>Author(s)</th>
+                <th>Avg. Rating</th>
                 <th>Manual</th>
                 <th>Online</th>
                 <th>Published</th>
@@ -48,6 +49,11 @@
                 % else:
                     <em>None</em>
                 % endif
+                </td>
+                <td>
+                    <a href="${request.route_url('admin_challenges_feedback', id=challenge.id)}">
+                        ${round(challenge.average_feedback, 2) if challenge.average_feedback else '-'}
+                    </a>
                 </td>
                 <td class="text-${'success' if challenge.manual else 'danger'}">
                     ${'Yes' if challenge.manual else 'No'}
