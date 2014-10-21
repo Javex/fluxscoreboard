@@ -86,7 +86,7 @@ def render(challenge, request):
 
 
 def get_points(team):
-    return len(team.protocols) * 5
+    return len(team.protocols) * 5 if team else 0
 
 
 def get_points_query(cls_=None):
