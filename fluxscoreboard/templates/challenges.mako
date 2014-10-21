@@ -28,7 +28,7 @@ from fluxscoreboard.util import display_design
                 <em>None</em>
             % endif
             </td>
-            <td>
+            <td sorttable_customkey="${0 if challenge.manual else challenge.base_points}">
                 % if challenge.dynamic:
                     -
                 % elif challenge.manual:
