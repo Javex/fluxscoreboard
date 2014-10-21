@@ -396,6 +396,6 @@ h4 {
 h4 small {
     display: block;
 }
-tr.success {
+tr.solved-challenge .lefty {
     text-decoration: line-through;
 }

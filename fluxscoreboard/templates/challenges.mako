@@ -15,7 +15,7 @@ from fluxscoreboard.util import display_design
     </thead>
     <tbody>
     % for index, (challenge, team_solved, solved_count) in enumerate(challenges, 1):
-        <tr class="${'success' if team_solved else ''}">
+        <tr class="${'solved-challenge' if team_solved else ''}">
             <td>${index}</td>
             <td class="lefty">
                 <a href="${request.route_url('challenge', id=challenge.id)}">${challenge.title}</a>
