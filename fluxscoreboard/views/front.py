@@ -555,7 +555,6 @@ class UserView(BaseView):
                             break
                         out.write(data)
                     in_file.seek(0)
-            form.populate_obj(self.request.team)
             to_update = ['email', 'avatar', 'country', 'timezone', 'size']
             if form.old_password.data:
                 to_update.append('password')
