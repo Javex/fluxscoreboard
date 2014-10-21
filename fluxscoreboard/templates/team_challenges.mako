@@ -23,8 +23,20 @@ from fluxscoreboard.util import display_design
                             ${submission.challenge.title}
                         % endif
                     </td>
-                    <td>${submission.challenge.base_points + submission.additional_pts}</td>
-                    <td>${submission.challenge.points - submission.challenge.base_points}</td>
+                    <td>
+                        % if submission.challenge.manual:
+                            ${submission.additional_points}
+                        % else:
+                            ${submission.challenge.base_points + submission.additional_pts}
+                        % endif
+                    </td>
+                    <td>
+                        % if submission.challenge.manual:
+                            ${submission.challenge.points}
+                        % else:
+                            ${submission.challenge.points - submission.challenge.base_points}
+                        % endif
+                    </td>
                 </tr>
             % endfor
         </tbody>
