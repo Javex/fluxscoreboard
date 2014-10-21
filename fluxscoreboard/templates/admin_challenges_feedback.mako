@@ -3,7 +3,7 @@
 <h1>Feedback for Challenge ${challenge.title}</h1>
 
 % if items:
-    <table class="table">
+    <table class="table sortable">
         <thead>
             <tr>
                 <th>Team</th>
