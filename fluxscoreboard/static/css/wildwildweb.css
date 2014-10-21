@@ -396,3 +396,6 @@ h4 {
 h4 small {
     display: block;
 }
+tr.success {
+    text-decoration: line-through;
+}
