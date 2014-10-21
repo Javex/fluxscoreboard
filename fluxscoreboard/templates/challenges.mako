@@ -32,7 +32,7 @@ from fluxscoreboard.util import display_design
             <td>${challenge.author}</td>
             <td sorttable_customkey="${0 if challenge.manual else challenge.base_points}">
                 % if challenge.dynamic:
-                    -
+                    ${challenge.module.get_points(request.team)}
                 % elif challenge.manual:
                     <em>${challenge.points}</em>
                 % else:

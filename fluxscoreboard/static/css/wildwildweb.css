@@ -399,3 +399,12 @@ h4 small {
 tr.solved-challenge .lefty {
     text-decoration: line-through;
 }
+
+.protocols {
+    list-style-type: none;
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.protocols li.active {
+    color: #333;
+}

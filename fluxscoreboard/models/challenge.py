@@ -243,7 +243,7 @@ class Challenge(Base):
         if self.dynamic:
             raise ValueError("This is a dynamic challenge, its points are "
                              "fetched by calling "
-                             "challenge.module.points(team).")
+                             "challenge.module.get_points(team).")
         if self.manual:
             return manual_challenge_points
         else:
