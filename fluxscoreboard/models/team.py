@@ -131,19 +131,24 @@ def get_team(request):
         return None
     if not request.settings.archive_mode:
         try:
-            team = (DBSession.query(Team).
-                    filter(Team.id == team_id).
-                    filter(Team.active == True).
-                    options(subqueryload('submissions').
-                            joinedload('challenge')).
-                    one())
-            return team
+            return get_team_by_id(team_id)
         except NoResultFound:
             return None
     else:
         if team_id:
             request.session.invalidate()
         return None
+
+
+def get_team_by_id(team_id):
+    team = (DBSession.query(Team).
+            filter(Team.id == team_id).
+            filter(Team.active == True).
+            options(subqueryload('submissions').
+                    joinedload('challenge')).
+            one())
+    return team
+
 
 
 def register_team(form, request):
