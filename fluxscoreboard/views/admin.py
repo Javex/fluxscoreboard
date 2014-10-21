@@ -5,7 +5,7 @@ from fluxscoreboard.forms.admin import NewsForm, ChallengeForm, TeamForm, \
     TeamCleanupForm, SettingsForm, IPSearchForm
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import Challenge, Submission, \
-    get_submissions, Category
+    get_submissions, Category, Feedback
 from fluxscoreboard.models.news import News, MassMail
 from fluxscoreboard.models.team import (Team, get_active_teams, TeamIP,
     send_activation_mail)
@@ -396,8 +396,12 @@ class AdminView(object):
         A view to list, add and edit challenges. Implemented with
         :meth:`_admin_list`.
         """
+        def _change_feedback(query):
+            query = query.options(subqueryload('feedback'))
+            return query
         return self._admin_list('admin_challenges', ChallengeForm,
-                                Challenge, "Challenge")
+                                Challenge, "Challenge",
+                                change_query=_change_feedback)
 
     @view_config(route_name='admin_challenges_edit',
                  renderer='admin_challenges.mako', request_method='POST')
@@ -441,6 +445,23 @@ class AdminView(object):
             status_variable_name='published',
             status_messages={False: 'Challenge unpublished',
                              True: 'Challenge published'})
+
+    @view_config(route_name='admin_challenges_feedback',
+                 renderer='admin_challenges_feedback.mako')
+    def challenge_feedback(self):
+        """
+        Display feedback list.
+        """
+        challenge_id = int(self.request.matchdict["id"])
+        challenge = (DBSession.query(Challenge).
+                     filter(Challenge.id == challenge_id).
+                     one())
+        items = (DBSession.query(Feedback).
+                 filter(Feedback.challenge_id == challenge_id).
+                 order_by(Feedback.team_id))
+        page = self.page(items)
+        return {'items': page.items, 'challenge': challenge,
+                'page': page}
 
     @view_config(route_name='admin_categories',
                  renderer='admin_categories.mako')
@@ -635,9 +656,10 @@ class AdminView(object):
             form = SubmissionForm(self.request.POST, csrf_context=self.request)
         else:
             submission = (DBSession.query(Submission).
-                       filter(Submission.team_id == team_id).
-                       filter(Submission.challenge_id == challenge_id).
-                       one())
+                          filter(Submission.team_id == team_id).
+                          filter(Submission.challenge_id == challenge_id).
+                          order_by(desc(Submission.timestamp)).
+                          one())
             form = SubmissionForm(None, submission, csrf_context=self.request)
 
         # Display the page
