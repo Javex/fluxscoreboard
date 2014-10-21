@@ -624,7 +624,10 @@ class AdminView(object):
         if self.request.method == 'POST':
             if not form.validate():
                 return redirect
-            query = query.filter(TeamIP.ip == form.term.data)
+            if form.by_ip.data:
+                query = query.filter(TeamIP.ip == form.term.data)
+            elif form.by_name.data:
+                query = query.filter(Team.name == form.term.data)
         retparams["results"] = query.all()
         return retparams
 

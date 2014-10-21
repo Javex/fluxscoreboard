@@ -1,14 +1,22 @@
 <%inherit file="base.mako"/>
-<h1>Find a team by IP address!</h1>
+<h1>Find a team by IP address or find an IP by team name!</h1>
 <form action="${request.route_url('admin_ip_search')}" method="POST">
     ${form.term}
     ${form.csrf_token}
-    ${form.submit}
+    ${form.by_ip}
+    ${form.by_name}
 </form>
 
 % if results:
     % if request.method == 'POST':
-        <em>Search result for ${form.term.data}</em>
+        <em>
+            Search result for ${form.term.data} by
+            % if form.by_ip.data:
+                IP
+            % elif form.by_name.data:
+                team name
+            % endif
+        </em>
     % else:
         <em>All IPs that are currently registered</em>
     % endif
@@ -30,7 +38,14 @@
     </table>
 % else:
     % if request.method == 'POST':
-        <em>No result found for search term ${form.term.data}</em>
+        <em>
+            No result found for search term ${form.term.data} by
+            % if form.by_ip.data:
+                IP
+            % elif form.by_name.data:
+                team name
+            % endif
+        </em>
     % else:
         <em>No IPs yet</em>
     % endif

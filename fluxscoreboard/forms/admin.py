@@ -244,7 +244,8 @@ class IPSearchForm(CSRFForm):
     """
     term = TextField("IP Address")
 
-    submit = SubmitField("Search")
+    by_ip = SubmitField("Search by IP")
+    by_name = SubmitField("Search by Team Name")
 
 
 class SubmissionForm(CSRFForm):
