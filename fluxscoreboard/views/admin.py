@@ -16,7 +16,7 @@ from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from sqlalchemy.orm import subqueryload
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from sqlalchemy.sql.expression import not_, desc, asc
+from sqlalchemy.sql.expression import not_, desc, asc, or_
 from webhelpers.paginate import Page, PageURL_WebOb
 import logging
 import uuid
@@ -458,6 +458,8 @@ class AdminView(object):
                      one())
         items = (DBSession.query(Feedback).
                  filter(Feedback.challenge_id == challenge_id).
+                 filter(or_(Feedback.rating != None,
+                            Feedback.note != None)).
                  order_by(Feedback.team_id))
         page = self.page(items)
         return {'items': page.items, 'challenge': challenge,
