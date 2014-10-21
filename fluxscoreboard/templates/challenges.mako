@@ -8,6 +8,7 @@ from fluxscoreboard.util import display_design
             <th>#</th>
             <th>Title</th>
             <th>Category</th>
+            <th>Author(s)</th>
             <th>Points</th>
             <th>#Solved</th>
             <th>Status</th>
@@ -28,6 +29,7 @@ from fluxscoreboard.util import display_design
                 <em>None</em>
             % endif
             </td>
+            <td>${challenge.author}</td>
             <td sorttable_customkey="${0 if challenge.manual else challenge.base_points}">
                 % if challenge.dynamic:
                     -
