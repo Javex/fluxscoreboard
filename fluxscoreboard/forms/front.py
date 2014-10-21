@@ -2,19 +2,23 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms import CSRFForm
 from fluxscoreboard.forms._fields import AvatarField, team_size_field
-from fluxscoreboard.forms._validators import (name_length_validator,
+from fluxscoreboard.forms._validators import (
+    name_length_validator,
     email_length_validator, password_min_length_validator,
     password_max_length_validator, required_validator, email_equal_validator,
     email_unique_validator, password_equal_validator,
-    password_required_and_valid_if_pw_change, password_min_length_if_set_validator,
-    password_max_length_if_set_validator, avatar_size_validator, name_unique_validator)
+    password_required_and_valid_if_pw_change,
+    password_min_length_if_set_validator,
+    password_max_length_if_set_validator,
+    avatar_size_validator, name_unique_validator)
 from fluxscoreboard.models.country import get_all_countries
 from pyramid.threadlocal import get_current_request
 from pytz import common_timezones, utc
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
-from wtforms.fields.core import SelectField
+from wtforms.fields.core import SelectField, RadioField
 from wtforms.fields.html5 import EmailField
-from wtforms.fields.simple import TextField, SubmitField, PasswordField
+from wtforms.fields.simple import (
+    TextField, SubmitField, PasswordField, TextAreaField)
 
 
 __doc__ = """
@@ -96,13 +100,11 @@ class RegisterForm(CSRFForm):
                                          password_equal_validator,
                                          password_min_length_validator,
                                          password_max_length_validator,
-                                         ]
-                         )
+                                         ])
 
     password_repeat = PasswordField("Repeat Password",
                                     validators=[required_validator,
-                                                ]
-                                )
+                                                ])
 
     country = QuerySelectField("Country/State",
                                query_factory=get_all_countries
@@ -267,3 +269,17 @@ class SolutionSubmitListForm(SolutionSubmitForm):
     challenge = QuerySelectField("Challenge",
                                  query_factory=_solvable_challenges_factory,
                                  )
+
+
+class FeedbackForm(CSRFForm):
+    rating = RadioField(
+        "Rating",
+        choices=[
+            ('1', 'Very Poor'),
+            ('2', 'Poor'),
+            ('3', 'Average'),
+            ('4', 'Fun'),
+            ('5', 'Much Fun'),
+        ])
+    note = TextAreaField("Note")
+    submit_feedback = SubmitField("Submit")

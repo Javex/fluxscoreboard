@@ -15,7 +15,8 @@ log = logging.getLogger(__name__)
 
 CTF_BEFORE = 1
 CTF_STARTED = 2
-CTF_ARCHIVE = 3
+CTF_ENDED = 3
+CTF_ARCHIVE = 4
 
 
 def load_settings(request):
@@ -93,9 +94,17 @@ class Settings(Base):
     @property
     def ctf_started(self):
         from fluxscoreboard.util import now
-        if self.ctf_start_date is None:
+        if self.ctf_start_date is None or self.ctf_end_date is None:
             return False
-        return now() >= self.ctf_start_date
+        now_ = now()
+        return now_ >= self.ctf_start_date and now_ < self.ctf_end_date
+
+    @property
+    def ctf_ended(self):
+        from fluxscoreboard.util import now
+        if self.ctf_end_date is None:
+            return False
+        return now() >= self.ctf_end_date
 
     @property
     def ctf_state(self):
@@ -103,5 +112,7 @@ class Settings(Base):
             return CTF_ARCHIVE
         elif self.ctf_started:
             return CTF_STARTED
+        elif self.ctf_ended:
+            return CTF_ENDED
         else:
             return CTF_BEFORE

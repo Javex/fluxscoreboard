@@ -205,6 +205,8 @@ def make_challenge():
     def _make(**kwargs):
         kwargs.setdefault("title", "Challenge%d" % count[0])
         kwargs.setdefault("text", "ChallengeText%d" % count[0])
+        if "dynamic" not in kwargs and "manual" not in kwargs:
+            kwargs.setdefault("base_points", 100)
         count[0] += 1
         return Challenge(**kwargs)
     return _make

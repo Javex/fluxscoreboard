@@ -81,6 +81,7 @@ class TestChallenge(TemplateTestBase):
 
     def test_manual_challenge(self):
         self.challenge.manual = True
+        self.challenge.base_points = None
         out = unicode(self.render())
         assert "evaluated manually" in out
         assert "Enter solution" not in out
@@ -99,6 +100,7 @@ class TestChallenge(TemplateTestBase):
 
     def test_dynamic_mock(self, module):
         self.challenge.dynamic = True
+        self.challenge.base_points = None
         self.challenge.module = module
         module.render.return_value = "Dynamic<br/>Out"
         out = unicode(self.render())
@@ -107,5 +109,6 @@ class TestChallenge(TemplateTestBase):
     def test_dynamic(self, dynamic_module):
         _, module = dynamic_module
         self.challenge.dynamic = True
+        self.challenge.base_points = None
         self.challenge.module = module
         assert self.render()

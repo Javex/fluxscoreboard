@@ -55,7 +55,7 @@ class TestChallengeQueries(object):
         assert q[0] == cat
 
 
-class TestSubmission(object):
+class TestSubmissionFuncs(object):
 
     @pytest.fixture(autouse=True)
     def _prepare(self, dbsession, dbsettings, make_challenge, make_team,
@@ -66,12 +66,17 @@ class TestSubmission(object):
         self.make_challenge = make_challenge
         self.ctf_end_date = ctf_end_date
 
-    def test_check_submission(self):
-        c = self.make_challenge(online=True, solution="Test")
+    @pytest.mark.parametrize("solution,input_",
+                             [('Test', 'Test'),
+                              ('Test', ' Test '),
+                              ('Test', 'flag{Test}')
+                              ])
+    def test_check_submission(self, solution, input_):
+        c = self.make_challenge(online=True, solution=solution)
         t = self.make_team()
         self.dbsession.add_all([c, t])
         self.dbsession.flush()
-        result, msg = check_submission(c, "Test", t.id, self.dbsettings)
+        result, msg = check_submission(c, input_, t, self.dbsettings)
         assert result is True
         assert msg == 'Congratulations: You solved this challenge as first!'
         assert len(c.submissions) == 1
@@ -87,7 +92,7 @@ class TestSubmission(object):
                 'Congratulations: You solved this challenge as third!',
                 'Congratulations: That was the correct solution!']
         for i in range(4):
-            result, msg = check_submission(c, "Test", teams[i].id, self.dbsettings)
+            result, msg = check_submission(c, "Test", teams[i], self.dbsettings)
             assert result is True
             assert msg == msgs[i]
             assert len(c.submissions) == i + 1
@@ -106,7 +111,7 @@ class TestSubmission(object):
 
     def test_check_submission_incorrect_solution(self):
         c = self.make_challenge(solution="Test", online=True)
-        result, msg = check_submission(c, "Test ", None, self.dbsettings)
+        result, msg = check_submission(c, "TestX", None, self.dbsettings)
         assert result is False
         assert msg == "Solution incorrect."
 
@@ -126,13 +131,13 @@ class TestSubmission(object):
         c = self.make_challenge(solution="Test", online=True)
         t = self.make_team()
         s = Submission(team=t, challenge=c)
-        dbsession.add(s)
-        dbsession.flush()
-        result, msg = check_submission(c, "Test", t.id, self.dbsettings)
+        self.dbsession.add(s)
+        self.dbsession.flush()
+        result, msg = check_submission(c, "Test", t, self.dbsettings)
         assert result is False
         assert msg == "Already solved."
 
-    def test_check_submission_ctf_over():
+    def test_check_submission_ctf_over(self):
         self.dbsettings.ctf_end_date = now() - timedelta(1)
         result, msg = check_submission(None, None, None, self.dbsettings)
         assert result is False
@@ -228,7 +233,6 @@ class TestUpdateChallengePoints(object):
 
         def _make_challenge(**kw):
             kw.setdefault('published', True)
-            kw.setdefault('base_points', 100)
             return make_challenge(**kw)
         self.make_challenge = _make_challenge
         self.db = dbsession
@@ -308,6 +312,18 @@ class TestUpdateChallengePoints(object):
         assert c.points == c.base_points + 100
         assert self.dbsettings.playing_teams == 16
 
+    def test_update_manual(self):
+        c = self.make_challenge(manual=True)
+        self.db.add(c)
+        self.run()
+        assert not c._points
+
+    def test_update_dynamic(self):
+        c = self.make_challenge(dynamic=True)
+        self.db.add(c)
+        self.run()
+        assert not c._points
+
 
 class TestChallenge(object):
 
@@ -332,7 +348,6 @@ class TestChallenge(object):
         c = self.make_challenge()
         self.dbsession.add(c)
         assert c.id is None
-        assert c.base_points is None
         assert c._points is None
         assert c.online is None
         assert c.manual is None
@@ -344,15 +359,14 @@ class TestChallenge(object):
         self.dbsession.flush()
         self.dbsession.expire(c)
         assert c.id
-        assert c.base_points == 0
-        assert c._points == 100
+        assert c._points == 200
         assert c.online is False
         assert c.manual is False
         assert c.dynamic is False
         assert c.has_token is False
 
     def test_nullables(self, nullable_exc):
-        c = Challenge()
+        c = Challenge(base_points=100)
         t = self.dbsession.begin_nested()
         self.dbsession.add(c)
         try:
@@ -420,10 +434,26 @@ class TestChallenge(object):
 
     def test_points_manual(self):
         c = self.make_challenge(manual=True)
-        c.base_points = 123
         assert c.points is manual_challenge_points
-        c.base_points = 321
-        assert c.points is manual_challenge_points
+
+    def test_manual_w_base_pts(self):
+        c = self.make_challenge(manual=True, base_points=100)
+        self.dbsession.add(c)
+        with pytest.raises(ValueError):
+            self.dbsession.flush()
+
+    def test_dynamic_w_base_pts(self):
+        c = self.make_challenge(dynamic=True, base_points=100)
+        self.dbsession.add(c)
+        with pytest.raises(ValueError):
+            self.dbsession.flush()
+
+    def test_missing_base_pts(self):
+        c = self.make_challenge()
+        c.base_points = None
+        self.dbsession.add(c)
+        with pytest.raises(ValueError):
+            self.dbsession.flush()
 
     def test_points_readonly(self):
         c = self.make_challenge()

@@ -181,7 +181,7 @@ class not_logged_in(object):
         return _redirect_if_logged_in
 
 
-@subscriber(NewResponse)
+# @subscriber(NewResponse)
 def add_header_x_frame_options(event):
     """
     Subscribe to the :class:`pyramid.events.NewResponse` event and add the
@@ -212,7 +212,7 @@ def add_header_x_xss_protection(event):
         event.response.headers[b"X-XSS-Protection"] = b"0"
 
 
-@subscriber(NewResponse)
+# @subscriber(NewResponse)
 def add_header_hsts(event):
     """
     Add the ``Strict-Transport-Security`` header. Its ``max-age`` setting is

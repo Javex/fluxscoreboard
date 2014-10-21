@@ -2,19 +2,20 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.forms.front import (LoginForm, RegisterForm, ProfileForm,
     SolutionSubmitForm, SolutionSubmitListForm, ForgotPasswordForm,
-    ResetPasswordForm)
+    ResetPasswordForm, FeedbackForm)
 from fluxscoreboard.models import DBSession
 from fluxscoreboard.models.challenge import (Challenge, Submission,
-    check_submission, Category)
+    check_submission, Category, Feedback)
 from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
-    get_number_solved_subquery, get_team, register_team, confirm_registration,
+    get_number_solved_subquery, get_team, get_team_by_id, register_team, confirm_registration,
     password_reminder, check_password_reset_token, get_active_teams)
 from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
     display_design)
-from fluxscoreboard.models.settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
+from fluxscoreboard.models.settings import (
+    CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE, CTF_ENDED)
 from pyramid.decorator import reify
-from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPFound, HTTPNotFound
 from pyramid.security import remember, forget
 from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
@@ -48,6 +49,7 @@ class BaseView(object):
         'logout': "Logout",
         'login': "Login",
         'register': "Register",
+        'news': "News",
         }
 
     # A matrix that gives a list of allowed views per possible state. The three
@@ -61,7 +63,14 @@ class BaseView(object):
         },
 
         CTF_STARTED: {
-            True: ['scoreboard', 'challenges', 'submit', 'profile', 'logout'],
+            True: ['news', 'scoreboard', 'challenges', 'submit', 'profile',
+                   'logout'],
+            False: ['scoreboard', 'login'],
+        },
+
+        CTF_ENDED: {
+            True: ['news', 'scoreboard', 'challenges', 'submit', 'profile',
+                   'logout'],
             False: ['scoreboard', 'login'],
         },
 
@@ -97,12 +106,6 @@ class BaseView(object):
         # Fetch the correcnt menu:
         menu = [(k, self._menu_item_map[k])
                 for k in self._menu_item_matrix[ctf_state][logged_in]]
-        # Small hack to accomodate 2013 design, might need to be removed
-        max_len = max(len(i) for x in self._menu_item_matrix.values()
-                      for i in x.values())
-        if display_design(self.request):
-            while len(menu) < max_len:
-                menu.append((None, None))
         return menu
 
     @reify
@@ -197,6 +200,8 @@ class FrontView(BaseView):
             (CTF_BEFORE, False): 'login',
             (CTF_STARTED, True): 'scoreboard',
             (CTF_STARTED, False): 'login',
+            (CTF_ENDED, True): 'scoreboard',
+            (CTF_ENDED, False): 'login',
             (CTF_ARCHIVE, False): 'scoreboard',
         }
         target = target_map[self.current_state]
@@ -250,13 +255,38 @@ class FrontView(BaseView):
                      'form': form,
                      'is_solved': is_solved,
                      }
+        # solved or after CTF
+        feedback_obj = None
+        if is_solved or (CTF_ENDED, True) == self.current_state:
+            feedback_obj = (
+                DBSession.query(Feedback).
+                filter(Feedback.team_id == self.request.team.id).
+                filter(Feedback.challenge_id == challenge.id).
+                first())
+            if not feedback_obj:
+                feedback_obj = Feedback(team_id=self.request.team.id,
+                                        challenge_id=challenge.id)
+                DBSession.add(feedback_obj)
+            retparams['feedback'] = FeedbackForm(
+                self.request.POST, obj=feedback_obj,
+                csrf_context=self.request)
         if self.request.method == 'POST':
-            if not form.validate():
-                return retparams
-            is_solved, msg = check_submission(
-                challenge, form.solution.data, team_id, self.request.settings)
-            self.request.session.flash(msg,
-                                       'success' if is_solved else 'error')
+            if 'submit_feedback' in self.request.POST:
+                if not retparams['feedback'].validate():
+                    return retparams
+                if feedback_obj:
+                    retparams['feedback'].populate_obj(feedback_obj)
+                    self.request.session.flash(
+                        'Thanks for your feedback. You can edit it at any '
+                        'point.')
+            else:
+                if not form.validate():
+                    return retparams
+                is_solved, msg = check_submission(
+                    challenge, form.solution.data, self.request.team,
+                    self.request.settings)
+                self.request.session.flash(msg,
+                                           'success' if is_solved else 'error')
             return HTTPFound(location=self.request.route_url('challenge',
                                                              id=challenge.id)
                              )
@@ -271,6 +301,15 @@ class FrontView(BaseView):
         complex part of the query is the query that calculates the sum of
         points right in the SQL.
         """
+        def ranked(teams):
+            """ Iterator adding ranks to team results. """
+            last_score = None
+            for index, (team, score) in enumerate(teams, 1):
+                if last_score is None or score < last_score:
+                    rank = index
+                    last_score = score
+                base_points = 0
+                yield (team, score, rank)
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)
         teams = (DBSession.query(Team, Team.score).
@@ -278,17 +317,17 @@ class FrontView(BaseView):
                  options(subqueryload('submissions'),
                          joinedload('submissions.challenge')).
                  order_by(desc("score")))
-        team_list = []
-        last_score = None
-        for index, (team, score) in enumerate(teams, 1):
-            if last_score is None or score < last_score:
-                rank = index
-                last_score = score
-            team_list.append((team, score, rank))
-        challenges = (DBSession.query(Challenge).filter(Challenge.published).
-                      options(joinedload("category")))
-        return {'teams': team_list,
-                'challenges': challenges.all()}
+        return {'teams': ranked(teams)}
+
+    @view_config(route_name='team_challenges', renderer='team_challenges.mako',
+                 permission='scoreboard')
+    def team_challenges(self):
+        try:
+            team_id = int(self.request.matchdict['team_id'])
+            team = get_team_by_id(team_id)
+        except (ValueError, NoResultFound):
+            raise HTTPNotFound()
+        return {'team': team}
 
     @view_config(route_name='teams', renderer='teams.mako', permission='teams')
     def teams(self):
@@ -317,24 +356,26 @@ class FrontView(BaseView):
         """
         form = SolutionSubmitListForm(self.request.POST,
                                       csrf_context=self.request)
-        team_id = self.request.authenticated_userid
         retparams = {'form': form}
         if self.request.method == 'POST':
             if not form.validate():
                 return retparams
             is_solved, msg = check_submission(form.challenge.data,
                                               form.solution.data,
-                                              team_id,
+                                              self.request.team,
                                               self.request.settings,
                                               )
             self.request.session.flash(msg,
                                        'success' if is_solved else 'error')
-            return HTTPFound(
-                location=self.request.route_url(
-                    'submit',
-                    _query={'challenge': form.challenge.data.id},
-                    ),
-            )
+            if is_solved:
+                return HTTPFound(
+                    location=self.request.route_url(
+                        'challenge',
+                        id=form.challenge.data.id,
+                        ),
+                )
+            else:
+                return retparams
         return retparams
 
     @view_config(route_name='verify_token')
@@ -497,14 +538,7 @@ class UserView(BaseView):
             if not form.validate():
                 return retparams
             if form.avatar.delete:
-                avatar_filename = self.request.team.avatar_filename
-                try:
-                    os.remove(avatar_filename)
-                except OSError as e:
-                    log.warning("Exception while deleting avatar for team "
-                                "'%s' under filename '%s': %s" %
-                                (self.request.team.name, avatar_filename, e))
-                self.request.team.avatar_filename = None
+                self.request.team.delete_avatar()
             elif form.avatar.data is not None and form.avatar.data != '':
                 # Handle new avatar
                 ext = form.avatar.data.filename.rsplit('.', 1)[-1]
@@ -512,9 +546,7 @@ class UserView(BaseView):
                     self.request.session.flash("Invalid file extension.")
                     return redirect
                 self.request.team.avatar_filename = random_token() + "." + ext
-                fpath = ("fluxscoreboard/static/images/avatars/%s"
-                         % self.request.team.avatar_filename)
-                with open(fpath, "w") as out:
+                with open(self.request.team.full_avatar_path, "w") as out:
                     in_file = form.avatar.data.file
                     in_file.seek(0)
                     while True:
@@ -523,7 +555,11 @@ class UserView(BaseView):
                             break
                         out.write(data)
                     in_file.seek(0)
-            form.populate_obj(self.request.team)
+            to_update = ['email', 'avatar', 'country', 'timezone', 'size']
+            if form.old_password.data:
+                to_update.append('password')
+            for fieldname in to_update:
+                setattr(self.request.team, fieldname, form.data[fieldname])
             self.request.session.flash('Your profile has been updated')
             return redirect
         return retparams

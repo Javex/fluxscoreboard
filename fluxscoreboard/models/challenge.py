@@ -10,6 +10,7 @@ from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey, FetchedValue
 from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText, Numeric
 from sqlalchemy.sql.expression import cast, case
+from pyramid.threadlocal import get_current_request
 
 
 first_blood_map = {0: (3, 'first'),
@@ -51,7 +52,7 @@ def get_all_categories():
     return DBSession.query(Category)
 
 
-def check_submission(challenge, solution, team_id, settings):
+def check_submission(challenge, solution, team, settings):
     """
     Check a solution for a challenge submitted by a team and add it to the
     database if it was correct.
@@ -62,7 +63,7 @@ def check_submission(challenge, solution, team_id, settings):
 
         ``solution``: A string, the proposed solution for the challenge.
 
-        ``team_id``: An integer, the team's id which submitted the solution.
+        ``team``: Team that submitted the solution.
 
     Returns:
         A tuple of ``(result, msg)``. ``result`` indicates whether the solution
@@ -74,17 +75,22 @@ def check_submission(challenge, solution, team_id, settings):
     if settings.submission_disabled:
         return False, "Submission is currently disabled"
 
-    if not challenge.online:
-        return False, "Challenge is offline."
-
     if not settings.archive_mode and now() > settings.ctf_end_date:
         return False, "The CTF is over, no more solutions can be submitted."
+
+    if not challenge.online:
+        return False, "Challenge is offline."
 
     if challenge.manual:
         return False, "Credits for this challenge will be given manually."
 
     if challenge.dynamic:
         return False, "The challenge is dynamic, no submission possible."
+
+    # help faggots
+    solution = solution.strip()
+    if solution.startswith('flag{'):
+        solution = solution[5:-1]
 
     if challenge.solution != solution:
         return False, "Solution incorrect."
@@ -99,7 +105,7 @@ def check_submission(challenge, solution, team_id, settings):
              filter(Submission.challenge_id == challenge.id))
     submissions = [id_ for id_, in query]
 
-    if team_id in submissions:
+    if team.id in submissions:
         return False, "Already solved."
 
     solved_count = len(submissions)
@@ -109,10 +115,15 @@ def check_submission(challenge, solution, team_id, settings):
     else:
         msg = 'Congratulations: That was the correct solution!'
 
+    msg += (' How did you like this challenge? Please provide some feedback '
+            'in the form below.')
+
     submission = Submission(additional_pts=first_blood_pts)
-    submission.team_id = team_id
+    submission.team_id = team.id
     submission.challenge = challenge
     DBSession.add(submission)
+    team.base_score += challenge.base_points + first_blood_pts
+    team.bonus_score += challenge.points - challenge.base_points
     return True, msg
 
 
@@ -178,7 +189,7 @@ class Challenge(Base):
     title = Column(Unicode, nullable=False)
     text = Column(UnicodeText)
     solution = Column(Unicode)
-    base_points = Column(Integer, default=0)
+    base_points = Column(Integer, nullable=True)
     online = Column(Boolean, default=False, nullable=False)
     manual = Column(Boolean, default=False, nullable=False)
     category_id = Column(Integer, ForeignKey('category.id'))
@@ -191,11 +202,6 @@ class Challenge(Base):
                      nullable=False)
 
     category = relationship("Category", backref="challenges")
-
-    def __init__(self, *args, **kwargs):
-        if kwargs.get("manual", False) and kwargs.get("points", 0):
-            raise ValueError("A manual challenge cannot have points!")
-        Base.__init__(self, *args, **kwargs)
 
     def __unicode__(self):
         return self.title
@@ -245,6 +251,18 @@ class Challenge(Base):
     @points.setter
     def points(self, points):
         self._points = points
+
+
+@event.listens_for(Challenge, 'before_insert')
+@event.listens_for(Challenge, 'before_update')
+def validate_base_points(mapper, connection, challenge):
+    if (not challenge.manual and not challenge.dynamic and
+            not challenge.base_points):
+        raise ValueError("Challenge must have base points.")
+    if challenge.manual and challenge.base_points:
+        raise ValueError("Challenge cannot be manual and have points.")
+    if challenge.dynamic and challenge.base_points:
+        raise ValueError("Challenge cannot be dynamic and have points.")
 
 
 @event.listens_for(Challenge, 'before_update')
@@ -334,6 +352,23 @@ class Submission(Base):
         return r.encode("utf-8")
 
 
+class Feedback(Base):
+    team_id = Column(Integer, ForeignKey('team.id'), primary_key=True)
+    challenge_id = Column(Integer, ForeignKey('challenge.id'),
+                          primary_key=True)
+    rating = Column(Integer)
+    note = Column(Unicode)
+
+    team = relationship("Team",
+                        backref=backref("feedback",
+                                        cascade="all, delete-orphan")
+                        )
+    challenge = relationship("Challenge",
+                             backref=backref("feedback",
+                                             cascade="all, delete-orphan")
+                             )
+
+
 def update_playing_teams(connection):
     """
     Update the number of playing teams whenever it changes.
@@ -358,7 +393,9 @@ def update_challenge_points(connection, update_team_count=True):
     team_count = select([Settings.playing_teams]).as_scalar()
     team_ratio = 1 - solved_count / team_count
     bonus = case([(team_count != 0, func.round(team_ratio, 1))], else_=1) * 100
-    source = (select([Challenge.base_points + bonus]).correlate(Challenge))
+    source = select([Challenge.base_points + bonus]).correlate(Challenge)
     query = (Challenge.__table__.update().
+             where(~Challenge.manual).
+             where(~Challenge.dynamic).
              values(points=source))
     connection.execute(query)

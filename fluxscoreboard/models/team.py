@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import (Submission, Challenge, Category,
-    get_online_challenges)
+    get_online_challenges, update_challenge_points)
 from fluxscoreboard.models.types import Timezone
 from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token, now
 from pyramid.decorator import reify
@@ -12,7 +12,7 @@ from pyramid.threadlocal import get_current_request
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from pytz import utc
-from sqlalchemy import event
+from sqlalchemy import event, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -20,7 +20,7 @@ from sqlalchemy.orm import relationship, backref, subqueryload, joinedload
 from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
-from sqlalchemy.schema import ForeignKey, Column
+from sqlalchemy.schema import ForeignKey, Column, FetchedValue
 from sqlalchemy.sql.expression import func, desc, bindparam, not_, cast
 from sqlalchemy.types import Integer, Unicode, Boolean
 from sqlalchemy.dialects.postgresql import INET
@@ -29,6 +29,7 @@ import random
 import string
 import transaction
 import uuid
+import os
 
 
 log = logging.getLogger(__name__)
@@ -131,19 +132,24 @@ def get_team(request):
         return None
     if not request.settings.archive_mode:
         try:
-            team = (DBSession.query(Team).
-                    filter(Team.id == team_id).
-                    filter(Team.active == True).
-                    options(subqueryload('submissions').
-                            joinedload('challenge')).
-                    one())
-            return team
+            return get_team_by_id(team_id)
         except NoResultFound:
             return None
     else:
         if team_id:
             request.session.invalidate()
         return None
+
+
+def get_team_by_id(team_id):
+    team = (DBSession.query(Team).
+            filter(Team.id == team_id).
+            filter(Team.active == True).
+            options(subqueryload('submissions').
+                    joinedload('challenge')).
+            one())
+    return team
+
 
 
 def register_team(form, request):
@@ -361,6 +367,11 @@ class Team(Base):
     avatar_filename = Column(Unicode, unique=True)
     size = Column(Integer)
 
+    base_score = Column(Integer, FetchedValue(), server_default='0',
+                        nullable=False)
+    bonus_score = Column(Integer, FetchedValue(), server_default='0',
+                         nullable=False)
+
     ips = association_proxy("team_ips", "ip")
 
     country = relationship("Country", lazy='joined')
@@ -409,6 +420,21 @@ class Team(Base):
         else:
             return float(done) / total
 
+    def delete_avatar(self):
+        if self.avatar_filename:
+            try:
+                os.remove(self.full_avatar_path)
+            except OSError as e:
+                log.warning("Exception while deleting avatar for team "
+                            "'%s' under filename '%s': %s" %
+                            (self.name, self.full_avatar_path, e))
+            self.avatar_filename = None
+
+    @property
+    def full_avatar_path(self):
+        return ("fluxscoreboard/static/images/avatars/%s"
+                % self.avatar_filename)
+
     @reify
     def stats(self):
         _stats = {}
@@ -435,45 +461,11 @@ class Team(Base):
 
     @hybrid_property
     def score(self):
-        if self._score is None:
-            # challenge points
-            challenge_sum = sum(s.challenge.points for s in self.submissions
-                                if s.challenge.published)
-
-            # first blood points
-            bonus_sum = sum(s.additional_pts or 0 for s in self.submissions
-                            if s.challenge.published)
-
-            # dynamic points
-            from fluxscoreboard.models import dynamic_challenges
-            dynamic_modules = dynamic_challenges.registry.values()
-            dynamic_points = sum(module.get_points(self)
-                                 for module in dynamic_modules)
-
-            # total score
-            self._score = challenge_sum + bonus_sum + dynamic_points
-        return self._score
+        return self.base_score + self.bonus_score
 
     @score.expression
     def score(cls):
-        from fluxscoreboard.models import dynamic_challenges
-        # Calculate sum of all points, defalt to 0
-        challenge_sum = func.coalesce(func.sum(Challenge._points), 0)
-        # Calculate sum of all first blood points, default to 0
-        bonus_sum = func.coalesce(func.sum(Submission.additional_pts), 0)
-        points_col = challenge_sum + bonus_sum
-        for module in dynamic_challenges.registry.values():
-            points_col += module.get_points_query(cls)
-        # Create a subquery for the sum of the above points. The filters
-        # basically join the columns and the correlation is needed to reference
-        # the **outer** Team query.
-        team_score_subquery = (DBSession.query(cast(points_col, Integer)).
-                               filter(Challenge.id == Submission.challenge_id).
-                               filter(cls.id == Submission.team_id).
-                               filter(~Challenge.dynamic).
-                               filter(Challenge.published).
-                               correlate(cls))
-        return team_score_subquery.label('score')
+        return (cls.base_score + cls.bonus_score).label('score')
 
     @hybrid_property
     def rank(self):
@@ -541,6 +533,11 @@ def log_password_change(target, value, oldvalue, initiator):
                 % (target.id, target.name, request.client_addr))
 
 
+@event.listens_for(Team, 'after_delete')
+def _on_team_delete_remove_avatar(mapper, connection, team):
+    team.delete_avatar()
+
+
 @subscriber(NewRequest)
 def register_ip(event):
     if ("test-login" in event.request.session and
@@ -566,3 +563,36 @@ class TeamIP(Base):
 
     team = relationship("Team", backref=backref("team_ips",
                                                 cascade="all, delete-orphan"))
+
+
+def update_score(connection, update_all=True):
+    from fluxscoreboard.models import dynamic_challenges
+    if update_all:
+        update_challenge_points(connection, update_team_count=True)
+    bonus_col = func.sum(Challenge._points - Challenge.base_points)
+    bonus_score = (select([func.coalesce(bonus_col, 0)]).
+                   where(Challenge.id == Submission.challenge_id).
+                   where(Team.id == Submission.team_id).
+                   where(~Challenge.dynamic).
+                   where(Challenge.published).
+                   correlate(Team))
+
+    # base score
+    challenge_sum = func.coalesce(func.sum(Challenge.base_points), 0)
+    # first blood
+    fb_sum = func.coalesce(func.sum(Submission.additional_pts), 0)
+
+    points_col = challenge_sum + fb_sum
+    for module in dynamic_challenges.registry.values():
+        points_col += module.get_points_query(Team)
+    base_score = (select([points_col]).
+                  where(Challenge.id == Submission.challenge_id).
+                  where(Team.id == Submission.team_id).
+                  where(~Challenge.dynamic).
+                  where(Challenge.published).
+                  correlate(Team))
+    query = (Team.__table__.update().
+             where(Team.active).
+             values(base_score=base_score,
+                    bonus_score=bonus_score))
+    connection.execute(query)

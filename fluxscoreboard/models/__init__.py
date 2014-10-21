@@ -39,13 +39,17 @@ class RootFactory(object):
         self.request = request
 
     def __acl__(self):
-        from .settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE
+        from .settings import CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE, CTF_ENDED
         permission_map = {
             CTF_BEFORE: [
                 ('group:team', ['teams', 'logged_in']),
                 (Everyone, ['teams', 'login', 'register']),
             ],
             CTF_STARTED: [
+                ('group:team', ['scoreboard', 'challenges', 'logged_in']),
+                (Everyone, ['scoreboard', 'login']),
+            ],
+            CTF_ENDED: [
                 ('group:team', ['scoreboard', 'challenges', 'logged_in']),
                 (Everyone, ['scoreboard', 'login']),
             ],
@@ -58,6 +62,8 @@ class RootFactory(object):
         ctf_state = self.request.settings.ctf_state
         for principal, permissions in permission_map[ctf_state]:
             acl.append((Allow, principal, permissions))
+        if self.request.session.get('test-login'):
+            acl.append((Allow, principal, permission_map[CTF_STARTED][0][1]))
         return acl
 
 
