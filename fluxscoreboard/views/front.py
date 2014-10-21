@@ -327,7 +327,9 @@ class FrontView(BaseView):
             team = get_team_by_id(team_id)
         except (ValueError, NoResultFound):
             raise HTTPNotFound()
-        return {'team': team}
+        dynamic_challenges = (DBSession.query(Challenge).
+                              filter(Challenge.dynamic))
+        return {'team': team, 'dynamic_challenges': dynamic_challenges}
 
     @view_config(route_name='teams', renderer='teams.mako', permission='teams')
     def teams(self):

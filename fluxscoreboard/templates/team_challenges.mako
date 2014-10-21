@@ -39,6 +39,21 @@ from fluxscoreboard.util import display_design
                     </td>
                 </tr>
             % endfor
+            % for challenge in dynamic_challenges:
+                <tr>
+                    <td class="lefty">
+                        % if request.team:
+                            <a href="${request.route_url('challenge', id=challenge.id)}">${challenge.title}</a>
+                        % else:
+                            ${challenge.title}
+                        % endif
+                    </td>
+                    <td>
+                        ${challenge.module.get_points(team)}
+                    </td>
+                    <td>-</td>
+                </tr>
+            % endfor
         </tbody>
     </table>
 </div>
