@@ -556,6 +556,11 @@ class UserView(BaseView):
                         out.write(data)
                     in_file.seek(0)
             form.populate_obj(self.request.team)
+            to_update = ['email', 'avatar', 'country', 'timezone', 'size']
+            if form.old_password.data:
+                to_update.append('password')
+            for fieldname in to_update:
+                setattr(self.request.team, fieldname, form.data[fieldname])
             self.request.session.flash('Your profile has been updated')
             return redirect
         return retparams
