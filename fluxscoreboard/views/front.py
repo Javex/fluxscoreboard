@@ -8,14 +8,14 @@ from fluxscoreboard.models.challenge import (Challenge, Submission,
     check_submission, Category, Feedback)
 from fluxscoreboard.models.news import get_published_news
 from fluxscoreboard.models.team import (Team, login, get_team_solved_subquery,
-    get_number_solved_subquery, get_team, register_team, confirm_registration,
+    get_number_solved_subquery, get_team, get_team_by_id, register_team, confirm_registration,
     password_reminder, check_password_reset_token, get_active_teams)
 from fluxscoreboard.util import (not_logged_in, random_token, tz_str, now,
     display_design)
 from fluxscoreboard.models.settings import (
     CTF_BEFORE, CTF_STARTED, CTF_ARCHIVE, CTF_ENDED)
 from pyramid.decorator import reify
-from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPFound, HTTPNotFound
 from pyramid.security import remember, forget
 from pyramid.view import (view_config, forbidden_view_config,
     notfound_view_config)
@@ -318,6 +318,16 @@ class FrontView(BaseView):
                          joinedload('submissions.challenge')).
                  order_by(desc("score")))
         return {'teams': ranked(teams)}
+
+    @view_config(route_name='team_challenges', renderer='team_challenges.mako',
+                 permission='scoreboard')
+    def team_challenges(self):
+        try:
+            team_id = int(self.request.matchdict['team_id'])
+            team = get_team_by_id(team_id)
+        except (ValueError, NoResultFound):
+            raise HTTPNotFound()
+        return {'team': team}
 
     @view_config(route_name='teams', renderer='teams.mako', permission='teams')
     def teams(self):

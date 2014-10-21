@@ -26,7 +26,9 @@ from fluxscoreboard.util import display_design
                 &nbsp;
             % endif
             </td>
-            <td class="lefty">${team.name}</td>
+            <td class="lefty">
+                <a href="${request.route_url('team_challenges', team_id=team.id)}">${team.name}</a>
+            </td>
             <td class="lefty">${team.country}</td>
             <td class="text-${'success' if team.local else 'danger'}">
                 ${'Yes' if team.local else 'No'}
