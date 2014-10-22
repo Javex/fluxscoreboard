@@ -68,7 +68,7 @@ class AdminView(object):
         items_per_page = self.request.GET.get('items', None)
         if items_per_page:
             self.request.session["items_per_page"] = int(items_per_page)
-        items_per_page = self.request.session.get("items_per_page", 5)
+        items_per_page = self.request.session.get("items_per_page", 100)
         current_page = self.request.GET.get('page', 1)
         page_url = PageURL_WebOb(self.request)
         page = Page(items, page=current_page, url=page_url,
