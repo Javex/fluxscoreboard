@@ -16,12 +16,12 @@ from sqlalchemy import event, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, backref, subqueryload, joinedload
+from sqlalchemy.orm import relationship, backref, subqueryload
 from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column, FetchedValue
-from sqlalchemy.sql.expression import func, desc, bindparam, not_, cast
+from sqlalchemy.sql.expression import func, desc, bindparam, not_, or_, and_
 from sqlalchemy.types import Integer, Unicode, Boolean
 from sqlalchemy.dialects.postgresql import INET
 import logging
@@ -116,10 +116,14 @@ def get_number_solved_subquery():
     challenge to correlate on, so make sure to provide one or this query
     makes no sense.
     """
-    return (DBSession.query(func.count('*')).
-            filter(Challenge.id == Submission.challenge_id).
-            correlate(Challenge).
-            label("solved_count"))
+    from fluxscoreboard.models import dynamic_challenges
+    query = (DBSession.query(func.count('*')).
+             filter(Challenge.id == Submission.challenge_id).
+             correlate(Challenge).as_scalar())
+    for name, module in dynamic_challenges.registry.items():
+        dyn_cnt = module.solved_count_query().filter(Challenge.module == name)
+        query = query + dyn_cnt.as_scalar()
+    return query.label("solved_count")
 
 
 def get_team(request):

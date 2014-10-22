@@ -10,7 +10,6 @@ from sqlalchemy.orm import relationship, backref, joinedload
 from sqlalchemy.schema import Column, ForeignKey, FetchedValue
 from sqlalchemy.types import Integer, Unicode, Boolean, UnicodeText, Numeric
 from sqlalchemy.sql.expression import cast, case, desc
-from pyramid.threadlocal import get_current_request
 
 
 first_blood_map = {0: (3, 'first'),

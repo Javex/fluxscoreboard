@@ -40,11 +40,7 @@ from fluxscoreboard.util import display_design
                 % endif
             </td>
             <td>
-                % if not challenge.dynamic:
-                    ${solved_count}
-                % else:
-                    -
-                % endif
+                ${solved_count}
             </td>
             <td class="text-${'success' if challenge.online else 'danger'}">
                 ${'online' if challenge.online else 'offline'}

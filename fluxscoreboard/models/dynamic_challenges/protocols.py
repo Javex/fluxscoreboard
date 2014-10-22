@@ -115,6 +115,21 @@ def in_progress_query(team):
     return query
 
 
+def solved_count_query():
+    team_count = (sqlalchemy.select(
+        [sqlalchemy.func.count(ProtocolsTeam.team_id)]
+        ).
+        where(ProtocolsTeam.team_id == fluxscoreboard.models.Team.id).
+        as_scalar())
+    prot_count = (sqlalchemy.select([sqlalchemy.func.count(Protocol.id)]).
+                  as_scalar())
+    query = (fluxscoreboard.models.DBSession.query(
+        sqlalchemy.func.count(fluxscoreboard.models.Team.id)).
+        filter(team_count == prot_count).
+        correlate(fluxscoreboard.models.Challenge))
+    return query
+
+
 def title():
     return "Protocols (%s)" % __name__
 
