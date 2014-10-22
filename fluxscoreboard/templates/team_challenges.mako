@@ -25,7 +25,7 @@ from fluxscoreboard.util import display_design
                     </td>
                     <td>
                         % if submission.challenge.manual:
-                            ${submission.additional_points}
+                            ${submission.additional_pts}
                         % else:
                             ${submission.challenge.base_points + submission.additional_pts}
                         % endif
