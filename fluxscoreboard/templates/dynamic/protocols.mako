@@ -2,7 +2,7 @@
 from fluxscoreboard.util import now
 %>
 % if challenge.text:
-    <p>${challenge.text}</p>
+    <p>${challenge.text | n}</p>
 % endif
 % if not request.settings.archive_mode and challenge.online and not request.settings.submission_disabled and not now() > request.settings.ctf_end_date:
     <form method="POST" action="${request.route_url('dynamic_protocols', id=challenge.id)}">
