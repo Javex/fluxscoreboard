@@ -49,7 +49,7 @@ from fluxscoreboard.util import display_design
                         % endif
                     </td>
                     <td>
-                        ${challenge.module.get_points(team)}
+                        ${" / ".join(map(str, challenge.module.get_points(team)))}
                     </td>
                     <td>-</td>
                 </tr>

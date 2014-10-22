@@ -22,7 +22,7 @@ from pyramid.view import (view_config, forbidden_view_config,
 from pyramid.response import Response
 from pytz import utc
 from sqlalchemy.orm import subqueryload, joinedload
-from sqlalchemy.sql.expression import desc
+from sqlalchemy.sql.expression import desc, and_, or_
 import logging
 import os
 from sqlalchemy.orm.exc import NoResultFound
@@ -322,14 +322,20 @@ class FrontView(BaseView):
     @view_config(route_name='team_challenges', renderer='team_challenges.mako',
                  permission='scoreboard')
     def team_challenges(self):
+        from fluxscoreboard.models import dynamic_challenges
         try:
             team_id = int(self.request.matchdict['team_id'])
             team = get_team_by_id(team_id)
         except (ValueError, NoResultFound):
             raise HTTPNotFound()
-        dynamic_challenges = (DBSession.query(Challenge).
-                              filter(Challenge.dynamic))
-        return {'team': team, 'dynamic_challenges': dynamic_challenges}
+        dynamic_queries = []
+        for name, module in dynamic_challenges.registry.items():
+            q = and_(Challenge.module == name, module.in_progress_query(team))
+            dynamic_queries.append(q)
+        dynamics = (DBSession.query(Challenge).
+                    filter(Challenge.dynamic).
+                    filter(or_(*dynamic_queries)))
+        return {'team': team, 'dynamic_challenges': dynamics}
 
     @view_config(route_name='teams', renderer='teams.mako', permission='teams')
     def teams(self):

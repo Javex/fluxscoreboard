@@ -86,7 +86,8 @@ def render(challenge, request):
 
 
 def get_points(team):
-    return len(team.protocols) * 5 if team else 0
+    prot_cnt = fluxscoreboard.models.DBSession.query(Protocol).count()
+    return len(team.protocols) * 5 if team else 0, prot_cnt * 5
 
 
 def get_points_query(cls_=None):
@@ -95,6 +96,16 @@ def get_points_query(cls_=None):
     query = (sqlalchemy.select([sqlalchemy.func.count('*') * 5]).
              where(ProtocolsTeam.team_id == cls_.id).
              correlate(cls_))
+    return query
+
+
+def is_solved(team):
+    prot_cnt = fluxscoreboard.models.DBSession.query(Protocol).count()
+    return len(team.protocols) == prot_cnt
+
+
+def in_progress_query(team):
+    query = sqlalchemy.exists().where(ProtocolsTeam.team_id == team.id)
     return query
 
 
