@@ -60,10 +60,14 @@ class ProtocolView(fluxscoreboard.views.front.BaseView):
                         ).first())
             if prot:
                 # correct!
-                subm = ProtocolsTeam(team_id=self.request.team.id,
-                                     protocol_id=prot.id)
-                fluxscoreboard.models.DBSession.add(subm)
-                self.request.session.flash("Correct!", queue='success')
+                try:
+                    subm = ProtocolsTeam(team_id=self.request.team.id,
+                                         protocol_id=prot.id)
+                    fluxscoreboard.models.DBSession.add(subm)
+                    self.request.session.flash("Correct!", queue='success')
+                except sqlalchemy.exc.IntegrityError:
+                    self.request.session.flash('You already submitted that '
+                                               'flag!', queue='error')
             else:
                 # wrong!
                 self.request.session.flash("Wrong!", queue='error')
