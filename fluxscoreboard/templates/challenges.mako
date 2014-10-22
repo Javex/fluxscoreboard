@@ -16,7 +16,7 @@ from fluxscoreboard.util import display_design
     </thead>
     <tbody>
     % for index, (challenge, team_solved, solved_count) in enumerate(challenges, 1):
-        <tr class="${'solved-challenge' if team_solved else ''}">
+        <tr class="${'solved-challenge' if team_solved or challenge.dynamic and request.team and challenge.module.is_solved(request.team) else ''}">
             <td>${index}</td>
             <td class="lefty">
                 <a href="${request.route_url('challenge', id=challenge.id)}">${challenge.title}</a>
@@ -32,7 +32,7 @@ from fluxscoreboard.util import display_design
             <td>${challenge.author}</td>
             <td sorttable_customkey="${0 if challenge.manual else challenge.base_points}">
                 % if challenge.dynamic:
-                    ${challenge.module.get_points(request.team)}
+                    ${" / ".join(map(str, challenge.module.get_points(request.team)))}
                 % elif challenge.manual:
                     <em>${challenge.points}</em>
                 % else:
