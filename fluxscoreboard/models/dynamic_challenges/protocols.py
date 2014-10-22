@@ -52,6 +52,7 @@ class ProtocolView(fluxscoreboard.views.front.BaseView):
                 not challenge.online):
             raise pyramid.httpexceptions.HTTPNotFound
         form = ProtocolForm(self.request.POST, csrf_context=self.request)
+        redir = self.request.route_url('challenge', id=challenge.id)
         if form.validate():
             prot = (fluxscoreboard.models.DBSession.query(Protocol).
                     filter(sqlalchemy.or_(
@@ -64,14 +65,15 @@ class ProtocolView(fluxscoreboard.views.front.BaseView):
                     subm = ProtocolsTeam(team_id=self.request.team.id,
                                          protocol_id=prot.id)
                     fluxscoreboard.models.DBSession.add(subm)
+                    fluxscoreboard.models.DBSession.flush()
                     self.request.session.flash("Correct!", queue='success')
                 except sqlalchemy.exc.IntegrityError:
                     self.request.session.flash('You already submitted that '
                                                'flag!', queue='error')
+                    raise pyramid.httpexceptions.HTTPFound(location=redir)
             else:
                 # wrong!
                 self.request.session.flash("Wrong!", queue='error')
-        redir = self.request.route_url('challenge', id=challenge.id)
         return pyramid.httpexceptions.HTTPFound(location=redir)
 
 
