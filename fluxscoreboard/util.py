@@ -39,7 +39,7 @@ def display_design(request):
         return True
 
     # If the CTF has started, display the real design.
-    if request.settings.ctf_started:
+    if request.settings.ctf_started or request.settings.ctf_ended:
         return True
 
     # If no route was matched, it's 404 and that is public, too.
