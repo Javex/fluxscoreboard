@@ -28,13 +28,13 @@ import pytz
         % endif
         <link href="${request.static_url('fluxscoreboard:static/css/hacklu.css')}" rel="stylesheet">
         
-        <title>Hack.lu ${now().year} CTF</title>
+        <title>${request.registry.settings['competition_title']}</title>
     </head>
 
     % if display_design(request):
 
         <div class="bg">
-            <h1>- HACK.LU CTF 2014 -</h1>
+            <h1>- ${request.registry.settings['competition_title']} -</h1>
             <nav>
                 % for name, title in view.menu:
                     % if name:

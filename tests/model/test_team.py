@@ -4,7 +4,7 @@ from fluxscoreboard.models.challenge import (Submission, Challenge)
 from fluxscoreboard.models.team import (get_team_solved_subquery, get_team,
     groupfinder, get_all_teams, get_active_teams, get_number_solved_subquery,
     register_team, confirm_registration, login, password_reminder,
-    check_password_reset_token, get_team_by_ref, ref_token, Team,
+    check_password_reset_token, Team,
     send_activation_mail, update_score)
 from fluxscoreboard.util import random_token
 from pyramid.httpexceptions import HTTPFound
@@ -168,7 +168,7 @@ class TestFuncs(object):
         send_activation_mail(t, self.request)
         assert len(self.mailer.outbox) == 1
         mail = self.mailer.outbox[0]
-        assert re.match(r"Your hack.lu \d{4} CTF Registration", mail.subject)
+        assert re.match(r"Your .* Registration", mail.subject)
         assert mail.recipients == [t.email]
         assert t.token is not None
         assert t.token in mail.html
@@ -255,19 +255,6 @@ class TestFuncs(object):
         team = check_password_reset_token("A" * 64)
         assert team is None
 
-    def test_get_team_by_ref(self):
-        t = self.make_team()
-        self.dbsession.add(t)
-        self.dbsession.flush()
-        assert get_team_by_ref(t.ref_token) == t
-
-    def test_get_team_by_ref_notfound(self):
-        with pytest.raises(NoResultFound):
-            get_team_by_ref("A" * 12)
-
-    def test_ref_token(self):
-        assert len(ref_token()) == 15
-
 
 class TestTeam(object):
 
@@ -294,12 +281,10 @@ class TestTeam(object):
         t = self.make_team()
         self.dbsession.add(t)
         assert t.local is None
-        assert t.ref_token is None
         assert t.active is None
         assert t.timezone is None
         self.dbsession.flush()
         assert t.local is False
-        assert len(t.ref_token) == 15
         assert t.active is False
         assert t.timezone is utc
 
@@ -438,7 +423,9 @@ class TestTeam(object):
         self.dbsession.expire(c)
         c = self.dbsession.query(Challenge).one()
         t = self.dbsession.query(Team).one()
-        assert isinstance(module.get_points(t), (int, long))
+        t_points, total = module.get_points(t)
+        assert isinstance(t_points, (int, long))
+        assert isinstance(total, (int, long))
 
         self.dbsession.flush()
         self.dbsession.expire(c)
@@ -454,13 +441,15 @@ class TestTeam(object):
         t4 = self.make_team(active=True)
         c1 = self.make_challenge(base_points=100, published=True)
         self.dbsession.add_all([t1, t2, t3, t4, c1])
-        self.dbsession.flush()
-        update_score(self.dbsession.connection())
-        self.dbsession.flush()
-        self.dbsession.expire(c1)
         Submission(challenge=c1, team=t1)
         Submission(challenge=c1, team=t2, additional_pts=3)
         Submission(challenge=c1, team=t3)
+        self.dbsession.flush()
+        self.dbsession.expire(t1)
+        self.dbsession.expire(t2)
+        self.dbsession.expire(t3)
+        self.dbsession.expire(t4)
+        update_score(self.dbsession.connection())
         assert t1.rank == 2
         assert t2.rank == 1
         assert t3.rank == 2

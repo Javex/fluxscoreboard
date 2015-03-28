@@ -31,9 +31,20 @@ avatar_domain = http://127.0.0.1:6543
 # external URL with the rules
 rules_url = http://2014.hack.lu/index.php/CaptureTheFlag
 
+# The title of your competition
+competition_title = ${competition}
+
+# Contact Details (for error messages and stuff)
+contact_name = ${contact_name}
+contact_mail = ${contact_mail}
+
+# Type of the competition. This could be e.g. "CTF" or just generic "competition"
+# This will be used in sentences like "This $competition does not start until..."
+competition_type = ${competition_type}
+
 # The CSP header values to set
 % if mode == 'development':
-    csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self' www.google.com; script-src 'self' www.google.com 'sha256-dtX3Yk6nskFEtsDm1THZkJ4mIIohKJf5grz4nY6HxI8='; style-src 'self';
+csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self' www.google.com; script-src 'self' www.google.com 'sha256-dtX3Yk6nskFEtsDm1THZkJ4mIIohKJf5grz4nY6HxI8='; style-src 'self';
 % else:
 csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self' %(avatar_domain)s www.google.com; script-src 'self' www.google.com; style-src 'self';
 % endif

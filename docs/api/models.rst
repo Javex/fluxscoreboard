@@ -18,13 +18,12 @@ Challenge Models & Functions
 .. autoclass:: Submission
     :members:
 
+.. autoclass:: Feedback
+    :members:
+
 .. autofunction:: get_all_challenges
 
 .. autofunction:: get_online_challenges
-
-.. autofunction:: get_unsolved_challenges
-
-.. autofunction:: get_solvable_challenges
 
 .. autofunction:: get_submissions
 
@@ -33,6 +32,10 @@ Challenge Models & Functions
 .. autofunction:: check_submission
 
 .. autodata:: manual_challenge_points
+
+.. autofunction:: update_playing_teams
+
+.. autofunction:: update_challenge_points
 
 Country Models & Functions
 ##########################
@@ -55,6 +58,8 @@ News Models & Functions
 .. autoclass:: MassMail
     :members:
 
+.. autofunction:: get_published_news
+
 Team Models & Functions
 #######################
 
@@ -73,7 +78,11 @@ Team Models & Functions
 
 .. autofunction:: get_team
 
+.. autofunction:: get_team_by_id
+
 .. autofunction:: register_team
+
+.. autofunction:: send_activation_mail
 
 .. autofunction:: confirm_registration
 
@@ -87,6 +96,10 @@ Team Models & Functions
 
 .. autofunction:: groupfinder
 
+.. autoclass:: TeamIP
+
+.. autofunction:: update_score
+
 Settings Models & Functions
 ###########################
 
@@ -95,8 +108,6 @@ Settings Models & Functions
 .. autoclass:: Settings
     :members:
 
-.. autofunction:: get
-
 Custom Column Types
 ###################
 
@@ -104,4 +115,6 @@ Custom Column Types
 
 .. autoclass:: TZDateTime
 
-.. autoclass:: JSONList
+.. autoclass:: Timezone
+
+.. autoclass:: Module

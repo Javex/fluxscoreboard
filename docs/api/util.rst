@@ -8,6 +8,8 @@ Utility Functions
 
 .. autofunction:: display_design
 
+.. autofunction:: is_admin_path
+
 .. autofunction:: now
 
 .. autofunction:: encrypt_pw
@@ -18,6 +20,8 @@ Utility Functions
 
 .. autofunction:: nl2br
 
+.. autofunction:: random_str
+
 .. autofunction:: tz_str
 
 .. autoclass:: not_logged_in
@@ -27,3 +31,5 @@ Utility Functions
 .. autofunction:: add_header_csp
 
 .. autofunction:: add_header_x_xss_protection
+
+.. autofunction:: add_header_hsts

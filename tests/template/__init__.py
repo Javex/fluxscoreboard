@@ -68,7 +68,7 @@ class TemplateTestBase(object):
         return MultiDict()
 
     @pytest.fixture
-    def module(self, request):
+    def module(self, request, dbsession):
         from fluxscoreboard.models import dynamic_challenges
         module = MagicMock()
         dynamic_challenges.registry[u"testmodule"] = module
@@ -76,6 +76,7 @@ class TemplateTestBase(object):
         module.get_points.return_value = 1
 
         def remove_module():
+            dbsession.flush()
             del dynamic_challenges.registry[u"testmodule"]
         request.addfinalizer(remove_module)
         return module

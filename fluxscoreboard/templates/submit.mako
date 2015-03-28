@@ -62,7 +62,7 @@ from fluxscoreboard.util import now, display_design
 
     % endif
 % elif now() > request.settings.ctf_end_date:
-    <div class="alert alert-danger">The CTF is over. You cannot submit any more solutions.</div>
+    <div class="alert alert-danger">The ${request.registry.settings['competition_type']} is over. You cannot submit any more solutions.</div>
 % elif request.settings.submission_disabled:
     <div class="alert alert-info">Sorry, but submission of solutions is currently disabled.</div>
 % elif not list(form.challenge):
