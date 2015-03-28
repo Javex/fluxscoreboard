@@ -78,7 +78,7 @@ class TestSubmissionFuncs(object):
         self.dbsession.flush()
         result, msg = check_submission(c, input_, t, self.dbsettings)
         assert result is True
-        assert msg == 'Congratulations: You solved this challenge as first!'
+        assert msg.startswith('Congratulations: You solved this challenge as first!')
         assert len(c.submissions) == 1
         assert len(t.submissions) == 1
 
@@ -94,7 +94,7 @@ class TestSubmissionFuncs(object):
         for i in range(4):
             result, msg = check_submission(c, "Test", teams[i], self.dbsettings)
             assert result is True
-            assert msg == msgs[i]
+            assert msg.startswith(msgs[i])
             assert len(c.submissions) == i + 1
             assert len(teams[i].submissions) == 1
 

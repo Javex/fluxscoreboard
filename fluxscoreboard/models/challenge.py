@@ -263,7 +263,6 @@ class Challenge(Base):
             return None
 
 
-
 @event.listens_for(Challenge, 'before_insert')
 @event.listens_for(Challenge, 'before_update')
 def validate_base_points(mapper, connection, challenge):
@@ -395,6 +394,9 @@ def update_playing_teams(connection):
 
 
 def update_challenge_points(connection, update_team_count=True):
+    """
+    Update the points on each challenge to reflect their current worth.
+    """
     if update_team_count:
         update_playing_teams(connection)
     solved_count = (select([cast(func.count('*'), Numeric)]).

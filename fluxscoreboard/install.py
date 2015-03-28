@@ -133,7 +133,7 @@ def install_test_data(dbsession, settings):
 def create_country_list(dbsession):
     countries = dbsession.query(Country).all()
     if not countries:
-        with open("states.json") as f:
+        with open("data/states.json") as f:
             country_names = [item["name"] for item in json.load(f)]
         for name in country_names:
             assert isinstance(name, unicode)

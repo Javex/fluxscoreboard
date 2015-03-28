@@ -4,8 +4,9 @@ from datetime import datetime
 from fluxscoreboard.util import now
 from fluxscoreboard.models import Base, DBSession
 from fluxscoreboard.models.challenge import Challenge
-from fluxscoreboard.models.types import TZDateTime, JSONList
-from sqlalchemy.orm import relationship, backref, lazyload, contains_eager, Load
+from fluxscoreboard.models.types import TZDateTime
+from sqlalchemy.orm import (
+    relationship, backref, lazyload, contains_eager, Load)
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.sql.expression import desc, or_
 from sqlalchemy.types import Integer, UnicodeText, Boolean, Unicode
@@ -17,7 +18,7 @@ def get_published_news():
                      filter(News.published == True).
                      filter(or_(Challenge.published,
                                 News.challenge == None)).
-                     filter(News.timestamp <=datetime.utcnow()).
+                     filter(News.timestamp <= datetime.utcnow()).
                      options(contains_eager(News.challenge),
                              Load(Challenge).load_only("title"),
                              lazyload('challenge.category')).
@@ -47,10 +48,8 @@ class News(Base):
         ``challenge``: Direct access to the challenge, if any.
     """
     id = Column(Integer, primary_key=True)
-    timestamp = Column(TZDateTime,
-                        nullable=False,
-                        default=now
-                        )
+    timestamp = Column(
+        TZDateTime, nullable=False, default=now)
     message = Column(UnicodeText)
     published = Column(Boolean, default=False, nullable=False)
     challenge_id = Column(Integer, ForeignKey('challenge.id'))
@@ -90,10 +89,8 @@ class MassMail(Base):
         mail.
     """
     id = Column(Integer, primary_key=True)
-    timestamp = Column(TZDateTime,
-                        nullable=False,
-                        default=datetime.utcnow
-                        )
+    timestamp = Column(
+        TZDateTime, nullable=False, default=datetime.utcnow)
     subject = Column(UnicodeText, nullable=False)
     message = Column(UnicodeText, nullable=False)
     recipients = Column(ARRAY(Unicode), nullable=False)

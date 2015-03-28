@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
 from fluxscoreboard.models import Base, DBSession
-from fluxscoreboard.models.challenge import (Submission, Challenge, Category,
-    get_online_challenges, update_challenge_points)
+from fluxscoreboard.models.challenge import (
+    Submission, Challenge, Category, get_online_challenges,
+    update_challenge_points)
 from fluxscoreboard.models.types import Timezone
-from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token, now
+from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token
 from pyramid.decorator import reify
 from pyramid.events import subscriber, NewRequest
 from pyramid.renderers import render
@@ -21,7 +22,7 @@ from sqlalchemy.orm.attributes import NO_VALUE
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.schema import ForeignKey, Column, FetchedValue
-from sqlalchemy.sql.expression import func, desc, bindparam, not_, or_, and_
+from sqlalchemy.sql.expression import func, desc, bindparam, not_
 from sqlalchemy.types import Integer, Unicode, Boolean
 from sqlalchemy.dialects.postgresql import INET
 import logging
@@ -190,11 +191,11 @@ def send_activation_mail(team, request):
         raise ValueError("Team must have token before sending activation "
                          "mail.")
     mailer = get_mailer(request)
-    year = now().year
-    message = Message(subject="Your hack.lu %s CTF Registration" % year,
+    competition = request.registry.settings['competition_title']
+    message = Message(subject="Your %s Registration" % competition,
                       recipients=[team.email],
                       html=render('mail_register.mako',
-                                  {'team': team, 'year': year},
+                                  {'team': team, 'competition': competition},
                                   request=request,
                                   )
                       )
@@ -276,8 +277,8 @@ def password_reminder(email, request):
         html = render('mail_password_reset_invalid.mako', {'email': email},
                       request=request)
         recipients = [email]
-    year = now().year
-    message = Message(subject="Password Reset for hack.lu CTF %s" % year,
+    competition = request.registry.settings['competition_title']
+    message = Message(subject="Password Reset for %s" % competition,
                       recipients=recipients,
                       html=html,
                       )
@@ -292,20 +293,6 @@ def check_password_reset_token(token):
     team = (DBSession.query(Team).
             filter(Team.reset_token == token).first())
     return team
-
-
-def get_team_by_ref(ref_id):
-    return (DBSession.query(Team).
-            filter(Team.ref_token == ref_id).one())
-
-
-def ref_token():
-    """
-    Create a ``ref`` token (a random string of 15 letters or digits) for usage
-    with the ref feature.
-    """
-    keyspace = string.letters + string.digits
-    return "".join(random.choice(keyspace) for __ in xrange(15))
 
 
 class Team(Base):
@@ -330,8 +317,6 @@ class Team(Base):
         ``token``: Token for E-Mail verification.
 
         ``reset_token``: When requesting a new password, this token is used.
-
-        ``ref_token``: When using the ``ref`` feature, this token is used.
 
         ``challenge_token``: Unique token for each team they can provide to
             a challenge so this challenge can do rate-limiting or banning or
@@ -360,8 +345,6 @@ class Team(Base):
     local = Column(Boolean, default=False)
     token = Column(Unicode, unique=True, default=random_token)
     reset_token = Column(Unicode, unique=True)
-    ref_token = Column(Unicode, nullable=False, default=ref_token,
-                       unique=True)
     challenge_token = Column(Unicode, unique=True,
                              default=lambda: unicode(uuid.uuid4()),
                              nullable=False)
@@ -498,7 +481,6 @@ class Team(Base):
         return (DBSession.query(func.count('*') + 1).
                 select_from(inner_team).
                 filter(inner_team.score > Team.score).
-                #order_by(desc(inner_team.score)).
                 correlate(Team).
                 label('rank'))
 
@@ -570,6 +552,12 @@ class TeamIP(Base):
 
 
 def update_score(connection, update_all=True):
+    """
+    Update the score of all teams. If ``update_all`` is set, the points
+    for all challenges are updated beforehand as well.
+
+    This is your one-shot function to create up-to-date points for everything.
+    """
     from fluxscoreboard.models import dynamic_challenges
     if update_all:
         update_challenge_points(connection, update_team_count=True)

@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import pytest
 from datetime import datetime
 from fluxscoreboard.models import Base
-from fluxscoreboard.models.types import TZDateTime, Timezone, JSONList, Module
+from fluxscoreboard.models.types import TZDateTime, Timezone, Module
 from fluxscoreboard.util import now
 from sqlalchemy import Column, Integer
 from sqlalchemy.exc import StatementError
@@ -36,6 +36,7 @@ class TestType(object):
         self.dbsession = dbsession
         self.Table = make_table(self.type_)
 
+
 class TestTZDateTime(TestType):
 
     type_ = TZDateTime
@@ -63,6 +64,7 @@ class TestTZDateTime(TestType):
         item = self.Table(col=date)
         self.add(item)
         assert item.col == utc_date
+
 
 class TestTimezone(TestType):
 

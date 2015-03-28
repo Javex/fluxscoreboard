@@ -495,10 +495,8 @@ class AdminView(object):
         """
         return self._admin_delete('admin_categories', Category, "Category")
 
-    @view_config(route_name='admin_teams',
-                       renderer='admin_teams.mako')
-    @view_config(route_name='admin_teams_edit',
-                       renderer='admin_teams.mako')
+    @view_config(route_name='admin_teams', renderer='admin_teams.mako')
+    @view_config(route_name='admin_teams_edit', renderer='admin_teams.mako')
     def teams(self):
         """
         List, add or edit a team.
@@ -510,8 +508,9 @@ class AdminView(object):
             retval["cleanup_form"] = cleanup_form
         return retval
 
-    @view_config(route_name='admin_teams_edit',
-                 renderer='admin_teams.mako', request_method='POST')
+    @view_config(
+        route_name='admin_teams_edit', renderer='admin_teams.mako',
+        request_method='POST')
     def team_edit(self):
         """
         This view accepts an edit form, handles it and reacts accordingly
@@ -550,7 +549,8 @@ class AdminView(object):
                              True: 'Set team as a local team'}
             )
 
-    @view_config(route_name='admin_teams_regenerate_token', request_method='POST')
+    @view_config(
+        route_name='admin_teams_regenerate_token', request_method='POST')
     def team_regenerate_token(self):
         """Manually regenerate the teams challenge token"""
         current_page = int(self.request.GET.get('page', 1))
@@ -724,16 +724,17 @@ class AdminView(object):
         # Load the IDs to delete and build query
         challenge_id = delete_form.challenge_id.data
         team_id = delete_form.team_id.data
-        submission = (DBSession.query(Submission).
-                        filter(Submission.challenge_id == challenge_id).
-                        filter(Submission.team_id == team_id))
+        submission = (
+            DBSession.query(Submission).
+            filter(Submission.challenge_id == challenge_id).
+            filter(Submission.team_id == team_id))
 
         # Delete the item
         self._delete_item(DBSession, submission, "Submission")
         return redirect
 
-    @view_config(route_name='admin_massmail',
-                       renderer='admin_massmail.mako')
+    @view_config(
+        route_name='admin_massmail', renderer='admin_massmail.mako')
     def massmail(self):
         """
         Send a massmail to all users in the system. It also stores the sent
@@ -771,8 +772,9 @@ class AdminView(object):
             return HTTPFound(location=self.request.route_url('admin_massmail'))
         return retparams
 
-    @view_config(route_name='admin_massmail_single',
-                       renderer='admin_massmail_single.mako')
+    @view_config(
+        route_name='admin_massmail_single',
+        renderer='admin_massmail_single.mako')
     def massmail_single(self):
         """View a single massmail that was sent."""
         id_ = self.request.matchdict["id"]

@@ -259,7 +259,7 @@ dummy_module = MagicMock(spec_set=['configuration', 'activate', 'render',
 dummy_module.configuration = {'allow_multiple': False}
 dummy_module.activate.return_value = None
 dummy_module.render.return_value = u"Foo<br>Bar"
-dummy_module.get_points.return_value = 1
+dummy_module.get_points.return_value = (1, 2)
 dummy_module.get_points_query.return_value = "1234"
 dummy_module.title.return_value = "Some title"
 dummy_module.install.return_value = None

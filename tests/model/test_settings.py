@@ -76,7 +76,9 @@ class TestSettings(object):
         tomorrow = now() + timedelta(1)
         s = Settings(ctf_start_date=tomorrow)
         assert not s.ctf_started
-        s = Settings(ctf_start_date=datetime(2012, 1, 1, tzinfo=utc))
+        s = Settings(
+            ctf_start_date=datetime(2012, 1, 1, tzinfo=utc),
+            ctf_end_date=now() + timedelta(1))
         assert s.ctf_started
 
     def test_ctf_started_none(self):
@@ -88,7 +90,9 @@ class TestSettings(object):
         assert s.ctf_state is CTF_ARCHIVE
 
     def test_ctf_state_started(self):
-        s = Settings(ctf_start_date=datetime(2012, 1, 1, tzinfo=utc))
+        s = Settings(
+            ctf_start_date=datetime(2012, 1, 1, tzinfo=utc),
+            ctf_end_date=now() + timedelta(1))
         assert s.ctf_state is CTF_STARTED
 
     def test_ctf_state_before(self):
