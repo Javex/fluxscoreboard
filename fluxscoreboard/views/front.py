@@ -308,7 +308,6 @@ class FrontView(BaseView):
                 if last_score is None or score < last_score:
                     rank = index
                     last_score = score
-                base_points = 0
                 yield (team, score, rank)
         # Finally build the complete query. The as_scalar tells SQLAlchemy to
         # use this as a single value (i.e. take the first coulmn)

@@ -76,6 +76,14 @@ def _create_configuration(template, mode, root_path=''):
     tvars['db_name'] = ask_for('a database name', 'scoreboard' + suffix)
     tvars['db_host'] = ask_for('the database host', 'localhost')
     tvars['db_port'] = ask_for('the database port', '5432')
+    tvars['competition_type'] = ask_for(
+        'Type of the competition (can be generic "competition")', 'CTF')
+    tvars['competition'] = ask_for(
+        'Name of your competition', 'My cool CTF 2015')
+    tvars['contact_name'] = ask_for(
+        'Your name (person, team, company...)', 'MyCoolTeam')
+    tvars['contact_mail'] = ask_for(
+        'E-Mail to direct questions & error reports', 'mycoolteam@example.com')
     with open(file_path, 'w+') as f:
         f.write(template.render(**tvars))
     return file_path

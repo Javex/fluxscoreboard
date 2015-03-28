@@ -49,6 +49,7 @@ class TestDisplayDesign(object):
 
     def test_ctf_started(self):
         self.settings.ctf_start_date = datetime(2012, 1, 1, tzinfo=utc)
+        self.settings.ctf_end_date = util.now() + timedelta(1)
         assert display_design(self.request)
 
     def test_no_route(self):

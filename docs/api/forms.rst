@@ -33,11 +33,10 @@ Frontend Forms
 
 .. autoclass:: SolutionSubmitListForm
 
+.. autoclass:: FeedbackForm
+
 :mod:`fluxscoreboard.forms.admin`
 ---------------------------------
-
-Administrative Forms
-####################
 
 .. automodule:: fluxscoreboard.forms.admin
 
@@ -49,6 +48,8 @@ Administrative Forms
 
 .. autoclass:: TeamForm
 
+.. autoclass:: IPSearchForm
+
 .. autoclass:: SubmissionForm
 
 .. autoclass:: MassMailForm
@@ -57,12 +58,20 @@ Administrative Forms
 
 .. autoclass:: SubmissionButtonForm
 
-:mod:`fluxscoreboard.forms.validators`
---------------------------------------
+.. autoclass:: TeamCleanupForm
 
-.. automodule:: fluxscoreboard.forms.validators
+.. autoclass:: SettingsForm
+
+:mod:`fluxscoreboard.forms._validators`
+---------------------------------------
+
+.. automodule:: fluxscoreboard.forms._validators
 
 .. autofunction:: email_unique_validator
+
+.. autofunction:: name_unique_validator
+
+.. autofunction:: greater_zero_if_set
 
 .. autofunction:: password_length_validator_conditional
 
@@ -76,17 +85,22 @@ Administrative Forms
 
 .. autofunction:: required_or_not_allowed
 
-.. autoclass:: AvatarDimensions
+.. autofunction:: required_except
+
+.. autofunction:: not_dynamic
+
+.. autofunction:: only_if_dynamic
+
+.. autofunction:: dynamic_check_multiple_allowed
 
 .. autoclass:: AvatarSize
 
-.. todo::
-    Document and include all the validators and stuff thats still missing here.
+.. autoclass:: RecaptchaValidator
 
-:mod:`fluxscoreboard.forms.fields`
-----------------------------------
+:mod:`fluxscoreboard.forms._fields`
+-----------------------------------
 
-.. automodule:: fluxscoreboard.forms.fields
+.. automodule:: fluxscoreboard.forms._fields
 
 .. autoclass:: AvatarWidget
 
@@ -95,3 +109,15 @@ Administrative Forms
 .. autoclass:: ButtonWidget
 
 .. autoclass:: IntegerOrEvaluatedField
+
+.. autoclass:: IntegerOrNoneField
+
+.. autoclass:: BootstrapWidget
+
+.. autofunction:: team_size_field
+
+.. autoclass:: RecaptchaWidget
+
+.. autoclass:: RecaptchaField
+
+.. autoclass:: TZDateTimeField

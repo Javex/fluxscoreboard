@@ -52,23 +52,6 @@ class Timezone(TypeDecorator):
             return None
 
 
-
-class JSONList(TypeDecorator):
-    """
-    Represent an **immutable** list in the table, stored as a JSON string.
-    Note that this must be updated as a whole or not at all. Do not try to
-    mutate it in-place!
-    """
-
-    impl = UnicodeText
-
-    def process_bind_param(self, value, dialect):
-        return unicode(json.dumps(value)) if value is not None else None
-
-    def process_result_value(self, value, dialect):
-        return json.loads(value) if value is not None else None
-
-
 class Module(TypeDecorator):
     """
     Represent a python module from the ``dynamic_challenges`` submodule. Input

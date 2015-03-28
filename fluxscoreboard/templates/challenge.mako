@@ -50,7 +50,14 @@ import uuid
             % elif not challenge.online:
                 <p class="text-warning text-center">This challenge is currently offline, check back later.</p>
             % else:
-                <p class="text-danger text-center">Something is seriously wrong here! Contact FluxFingers fluxfingers@rub.de</p>
+                <p class="text-danger text-center">
+                    Something is seriously wrong here!
+                    Please contact 
+                    <a href="${request.registry.settings['contact_mail']}">
+                        ${request.registry.settings['contact_name']}
+                    </a>
+                    to report this error.
+                </p>
             % endif
         % else:
             ## is a dynamic challenge
@@ -155,7 +162,14 @@ import uuid
             % elif not challenge.online:
                 <p class="text-warning text-center">This challenge is currently offline, check back later.</p>
             % else:
-                <p class="text-danger text-center">Something is seriously wrong here! Contact FluxFingers fluxfingers@rub.de</p>
+                <p class="text-danger text-center">
+                    Something is seriously wrong here!
+                    Please contact 
+                    <a href="${request.registry.settings['contact_mail']}">
+                        ${request.registry.settings['contact_name']}
+                    </a>
+                    to report this error.
+                </p>
             % endif
             </div>
         % else:

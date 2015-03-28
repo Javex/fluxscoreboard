@@ -1,3 +1,5 @@
+.. _dynamic:
+
 Writing a Dynamic Challenge
 ===========================
 

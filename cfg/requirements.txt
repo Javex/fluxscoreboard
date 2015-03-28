@@ -14,6 +14,5 @@ webhelpers  # Utility
 py_bcrypt  # Password storage
 wtforms==1.0.5  # Forms
 pytz  # Timezone
-requests  # Download data (GeoIP)
 alembic  # Database migration
 paste
