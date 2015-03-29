@@ -25,11 +25,3 @@ Utility Functions
 .. autofunction:: tz_str
 
 .. autoclass:: not_logged_in
-
-.. autofunction:: add_header_x_frame_options
-
-.. autofunction:: add_header_csp
-
-.. autofunction:: add_header_x_xss_protection
-
-.. autofunction:: add_header_hsts

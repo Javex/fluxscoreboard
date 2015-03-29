@@ -42,17 +42,6 @@ contact_mail = ${contact_mail}
 # This will be used in sentences like "This $competition does not start until..."
 competition_type = ${competition_type}
 
-# The CSP header values to set
-% if mode == 'development':
-csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self' www.google.com; script-src 'self' www.google.com 'sha256-dtX3Yk6nskFEtsDm1THZkJ4mIIohKJf5grz4nY6HxI8='; style-src 'self';
-% else:
-csp_headers = default-src 'none'; connect-src 'self'; font-src 'self'; img-src 'self' %(avatar_domain)s www.google.com; script-src 'self' www.google.com; style-src 'self';
-% endif
-
-# HSTS max-age setting
-#hsts.max-age = 31536000
-
-
 # Enter your database credentials here
 db.user = ${db_user}
 db.password = ${db_pass}
