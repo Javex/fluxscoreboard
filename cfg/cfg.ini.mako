@@ -20,8 +20,8 @@ domain = localhost
 #subdirectory =
 
 # reCAPTCHA keys
-recaptcha.public_key = 6LfQ9OYSAAAAAFF5CUgfyh0NNhs39YaGTapCKw_W
-recaptcha.private_key = 6LfQ9OYSAAAAAKK3RqdNgvLov1hO6Adj3VfECaTH
+recaptcha.public_key =
+recaptcha.private_key =
 
 # The domain to use for displaying the avatars. This should be different from
 # the domain of the scoreboard for security reasons. You could for example just
