@@ -71,45 +71,6 @@ def now():
     return utc.localize(datetime.utcnow())
 
 
-def encrypt_pw(pw, salt=None):
-    """
-    Encrypt a password (or any string) using bcrypt.
-
-    Generate a salt and hash the given password with it. This string can then
-    be stored in the database. Every time a user logs in, it has to be
-    regenerated with the same salt.
-
-    Function is deterministic if passing the same salt but random if
-    no salt is passed (checking vs. generation)
-
-    Args:
-        ``pw``: A string with the password that should be encrypted.
-
-        ``salt``: The salt used for hashing. This is only required if checking
-        a password for validity, but not if encrypting a new one. A new
-        password will have a fresh seed.
-
-        .. warning::
-            If passing in an arbitrary hash for a password that is new (not
-            only used for a check) then no salt should be passed.
-
-    Returns:
-        The hashed password, complete with the generated (or passed) salt.
-    """
-    assert isinstance(pw, unicode)
-    if salt is None:
-        salt = bcrypt.gensalt()
-    return unicode(bcrypt.hashpw(pw.encode("utf-8"), salt))
-
-
-def bcrypt_split(value):
-    """
-    Split up a bcrypt password into the salt and password part to be used
-    with :func:`encrypt_pw`. Returns a tuple of ``(salt, pw)``.
-    """
-    return value[:29], value[29:]
-
-
 def random_token(length=64):
     """
     Generate a random token hex-string of ``length`` characters. Due to it

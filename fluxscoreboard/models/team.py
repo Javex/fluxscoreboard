@@ -5,7 +5,7 @@ from fluxscoreboard.models.challenge import (
     Submission, Challenge, Category, get_online_challenges,
     update_challenge_points)
 from fluxscoreboard.models.types import Timezone
-from fluxscoreboard.util import bcrypt_split, encrypt_pw, random_token
+from fluxscoreboard.util import random_token
 from pyramid.decorator import reify
 from pyramid.events import subscriber, NewRequest
 from pyramid.renderers import render
@@ -31,6 +31,7 @@ import string
 import transaction
 import uuid
 import os
+import bcrypt
 
 
 log = logging.getLogger(__name__)
@@ -378,8 +379,7 @@ class Team(Base):
         Validate the password agains the team. If it matches return ``True``
         else return ``False``.
         """
-        salt, __ = bcrypt_split(self.password)
-        reference_pw = encrypt_pw(password, salt)
+        reference_pw = bcrypt.hashpw(password, self.password)
         if self.password != reference_pw:
             return False
         else:
@@ -391,7 +391,7 @@ class Team(Base):
 
     @password.setter
     def password(self, pw):
-        self._password = encrypt_pw(pw)
+        self._password = bcrypt.hashpw(pw, bcrypt.gensalt()).decode("ascii")
 
     def get_category_solved(self, category):
         cat_solved, total = self.stats.get(category, (0, 0))

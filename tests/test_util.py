@@ -2,10 +2,9 @@
 from __future__ import unicode_literals, print_function, absolute_import
 from datetime import datetime, timedelta
 from fluxscoreboard import util
-from fluxscoreboard.util import (display_design, encrypt_pw, bcrypt_split,
-    random_token, nl2br, random_str, tz_str, not_logged_in,
-    add_header_x_frame_options, add_header_x_xss_protection, add_header_hsts,
-    add_header_csp, is_admin_path)
+from fluxscoreboard.util import (
+    display_design, random_token, nl2br, random_str, tz_str,
+    not_logged_in, is_admin_path)
 from pytz import utc, timezone
 import pytest
 
@@ -13,14 +12,6 @@ import pytest
 @pytest.fixture(params=['login', 'register', 'reset-password-start',
                         'reset-password', 'confirm', 'teams'])
 def public_route(request):
-    return request.param
-
-
-@pytest.fixture(params=[(add_header_x_frame_options, 'X-Frame-Options', True),
-                        (add_header_x_xss_protection, 'X-XSS-Protection', True),
-                        (add_header_hsts, 'Strict-Transport-Security', True),
-                        (add_header_csp, 'Content-Security-Policy', True)])
-def header(request):
     return request.param
 
 
@@ -121,29 +112,6 @@ def test_now():
     assert now_after >= now_
 
 
-def test_encrypt_pw():
-    enc = encrypt_pw("Test")
-    assert len(enc) == 60
-    assert isinstance(enc, unicode)
-
-
-def test_encrypt_pw_salt():
-    salt = "$2a$12$XaT7ovLVr/alrZVNDu/t/e"
-    pw = encrypt_pw("Test", salt)
-    assert salt in pw
-
-
-def test_encrypt_pw_no_unicode():
-    with pytest.raises(AssertionError):
-        encrypt_pw(b"Test")
-
-
-def test_bcrypt_split():
-    ref = "$2a$12$.OlKHnjgnV5S03XFR14wyumeaicEB6oFaqYbOUrvJwEDkY1QImhhG"
-    assert bcrypt_split(ref) == ("$2a$12$.OlKHnjgnV5S03XFR14wyu",
-                                 "meaicEB6oFaqYbOUrvJwEDkY1QImhhG")
-
-
 def test_random_token():
     assert len(random_token()) == 64
     assert len(random_token(32)) == 32
@@ -219,36 +187,3 @@ def test_not_logged_in_msg(dummy_login, pyramid_request):
     q = pyramid_request.session.peek_flash()
     assert len(q) == 1
     assert q[0] == ("Testmsg")
-
-
-@pytest.mark.usefixtures("config")
-def test_header_defaults(header, pyramid_request):
-    class A():
-        pass
-
-    event = A()
-    event.request = pyramid_request
-    event.response = A()
-    event.response.headers = {}
-    func, key, has_default = header
-    func(event)
-    if has_default:
-        assert key in event.response.headers
-    else:
-        assert key not in event.response.headers
-
-
-@pytest.mark.usefixtures("config")
-def test_header_already_present(header, pyramid_request):
-    class A():
-        pass
-
-    event = A()
-    event.request = pyramid_request
-    event.response = A()
-    event.response.headers = {}
-    func, key, _ = header
-    inst = object()
-    event.response.headers[key] = inst
-    func(event)
-    assert event.response.headers[key] is inst
