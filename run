@@ -62,6 +62,8 @@ def _install_requirements(is_dev, root_path=''):
             execute_visibly('pip', 'install', '-r', devreqs_path)
     except subprocess.CalledProcessError:
         error('pip could not install the requirements.')
+    import site # reload the path to make sure 
+    reload(site) # everything that was just installed is now in the path
 
 
 def _create_configuration(template, mode, root_path=''):
