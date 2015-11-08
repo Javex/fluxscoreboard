@@ -6,7 +6,7 @@ Create Date: 2013-09-25 20:23:37.662903
 
 """
 from alembic import op
-from fluxscoreboard.models.team import Team, ref_token
+from fluxscoreboard.models.team import Team
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
@@ -15,6 +15,7 @@ down_revision = '263f849107af'
 
 
 def upgrade():
+    from fluxscoreboard.models.team import ref_token
     op.add_column('challenge', sa.Column('dynamic', sa.Boolean(),
                                          nullable=True))
     op.add_column('challenge', sa.Column('module_name', sa.Unicode(length=255),
@@ -42,6 +43,7 @@ def upgrade():
 
 
 def downgrade():
+    from fluxscoreboard.models.team import ref_token
     op.drop_column('team', 'ref_token')
     op.drop_column('challenge', 'module_name')
     op.drop_column('challenge', 'dynamic')
