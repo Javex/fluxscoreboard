@@ -116,25 +116,6 @@ def _create_directories(dirs, root_path=''):
             # directory already exists
             pass
 
-
-def _minify_static_files(root_path=''):
-    yui_comp = os.path.join(root_path, 'yuicompressor.jar')
-    static_path = os.path.join(root_path, 'fluxscoreboard', 'static')
-    for dirpath, _, filenames in os.walk(static_path):
-        for filename in filenames:
-            try:
-                basename, ext = filename.rsplit('.', 1)
-            except:
-                continue
-            min_name = '%s.min.%s' % (basename, ext)
-            file_path = os.path.join(dirpath, filename)
-            min_path = os.path.join(dirpath, min_name)
-            if (re.match(r'^[^\.]+(?!\.min)\.(css|js)$', filename)
-                    and not os.path.exists(min_path)):
-                execute_visibly('java', '-jar', yui_comp, '-o', min_path,
-                                file_path)
-
-
 def _initialize_logging(cfg_path):
     import pyramid.paster  # import here because was not installed before
     execute_visibly('touch', os.path.join('log', 'scoreboard.log'))
@@ -210,9 +191,6 @@ def install(mode='production', root_path=''):
 
     info('Creating all required directories...')
     _create_directories(TEMPORARY_DIRS, root_path)
-
-    info('Minifying all static files...')
-    _minify_static_files(root_path)
 
     info('Initializing logging...')
     _initialize_logging(cfg_path)
