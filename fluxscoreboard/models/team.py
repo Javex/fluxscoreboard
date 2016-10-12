@@ -551,7 +551,7 @@ class TeamIP(Base):
                                                 cascade="all, delete-orphan"))
 
 
-def update_score(connection, update_all=True):
+def update_score(session, update_all=True):
     """
     Update the score of all teams. If ``update_all`` is set, the points
     for all challenges are updated beforehand as well.
@@ -560,7 +560,8 @@ def update_score(connection, update_all=True):
     """
     from fluxscoreboard.models import dynamic_challenges
     if update_all:
-        update_challenge_points(connection, update_team_count=True)
+        update_challenge_points(session, update_team_count=True)
+    connection = session.connection()
     bonus_col = func.sum(Challenge._points - Challenge.base_points)
     bonus_score = (select([func.coalesce(bonus_col, 0)]).
                    where(Challenge.id == Submission.challenge_id).

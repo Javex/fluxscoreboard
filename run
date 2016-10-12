@@ -304,6 +304,7 @@ def update_challenge_points(root_path=''):
     import fluxscoreboard.models.team
     import paste.deploy.loadwsgi
     import sqlalchemy
+    import sqlalchemy.orm
     import pyramid.paster
 
     # Find cfg file
@@ -319,8 +320,13 @@ def update_challenge_points(root_path=''):
     pyramid.paster.setup_logging(cfg_path + '#loggers')
     cfg = paste.deploy.loadwsgi.appconfig('config:' + cfg_path)
     engine = sqlalchemy.engine_from_config(cfg, 'sqlalchemy.')
-    with engine.begin() as conn:
-        fluxscoreboard.models.team.update_score(conn, True)
+    session = sqlalchemy.orm.Session(bind=engine)
+    try:
+        fluxscoreboard.models.team.update_score(session, True)
+        session.commit()
+    except:
+        session.rollback()
+        raise
 
 if __name__ == '__main__':
     desc = 'Your one-time-stop-shop for the scoreboard <(^_^<)'

@@ -393,22 +393,18 @@ def update_playing_teams(connection):
     connection.execute(query)
 
 
-def update_challenge_points(connection, update_team_count=True):
+def update_challenge_points(session, update_team_count=True):
     """
     Update the points on each challenge to reflect their current worth.
     """
     if update_team_count:
-        update_playing_teams(connection)
-    solved_count = (select([cast(func.count('*'), Numeric)]).
-                    select_from(Submission.__table__).
-                    where(Challenge.id == Submission.challenge_id).
-                    correlate(Challenge))
-    team_count = select([Settings.playing_teams]).as_scalar()
-    team_ratio = 1 - solved_count / team_count
-    bonus = case([(team_count != 0, func.round(team_ratio, 1))], else_=1) * 100
-    source = select([Challenge.base_points + bonus]).correlate(Challenge)
-    query = (Challenge.__table__.update().
-             where(~Challenge.manual).
-             where(~Challenge.dynamic).
-             values(points=source))
-    connection.execute(query)
+        update_playing_teams(session.connection())
+    team_count = session.query(Settings.playing_teams).scalar()
+    challenges = session.query(Challenge, Challenge.solved_count)
+    for challenge, solved_count in challenges:
+        bonus = _calc_bonus_points(challenge.base_points, solved_count / team_count * 100)
+        # Note: Might not work since this is delcared as a fetched value above.
+        # Might need to turn it into a regular table column. But pay attention
+        # that other code might also modify this. Not sure how to address this.
+        # Maybe just ignore?
+        challenge.points = challenge.base_points + bonus
